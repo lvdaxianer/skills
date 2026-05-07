@@ -25,7 +25,9 @@ description: Use when performing code review, code review after changes, code fo
 
 ## 2. 作者标识
 
-所有代码的 `@author` 注解必须填写 `lvdaxianerplus`。
+仅针对**新添加的方法或类**，其 `@author` 注解必须填写 `lvdaxianerplus`。
+
+> 已存在的老方法或类，无需修改原有的 `@author` 标识。
 
 ## 3. 代码规范
 
@@ -252,59 +254,7 @@ description: Use when performing code review, code review after changes, code fo
 | 第三方认证失败 | WARN | `[OAuth2认证] 第三方认证失败, provider={}, error={}` |
 | 会话失效/过期 | WARN | `[OAuth2认证] 会话已失效或过期, sessionId={}` |
 
-**示例代码**：
-
-```java
-// OAuth2 认证流程中的 WARN 日志示例
-public class OAuth2AuthenticationHandler {
-
-    public AuthenticationResult authenticate(String token) {
-        // 场景1: Token 为空
-        if (token == null || token.isEmpty()) {
-            log.warn("[OAuth2认证] Token为空或缺失, requestIp={}", requestIp);
-            return AuthenticationResult.fail("Token不能为空");
-        }
-
-        // 场景2: Token 格式错误
-        if (!isValidTokenFormat(token)) {
-            log.warn("[OAuth2认证] Token格式无效, token={}", maskToken(token));
-            return AuthenticationResult.fail("Token格式错误");
-        }
-
-        try {
-            // 认证逻辑
-            Claims claims = jwtParser.parseClaimsJws(token).getBody();
-            // ...
-        } catch (ExpiredJwtException e) {
-            log.warn("[OAuth2认证] Token已过期, expiredAt={}", e.getClaims().getExpiration());
-            return AuthenticationResult.fail("Token已过期");
-        } catch (JwtException e) {
-            log.warn("[OAuth2认证] Token解析失败, error={}", e.getMessage());
-            return AuthenticationResult.fail("Token无效");
-        }
-
-        // 场景3: 用户被禁用
-        if (user.isDisabled()) {
-            log.warn("[OAuth2认证] 用户已被禁用, userId={}", user.getId());
-            return AuthenticationResult.fail("用户已被禁用");
-        }
-
-        // 场景4: 权限不足
-        if (!hasRequiredRole(user, requiredRole)) {
-            log.warn("[OAuth2认证] 权限不足, userId={}, requiredRole={}", user.getId(), requiredRole);
-            return AuthenticationResult.fail("权限不足");
-        }
-
-        return AuthenticationResult.success(user);
-    }
-}
-```
-
-**核心原则**：
-- 认证登录流程中的**任何异常分支**都必须记录 WARN 日志
-- 日志需包含足够的上下文信息（tokenId、userId、error、过期时间等）
-- 不得在认证流程中静默吞掉异常或只记录 DEBUG 级别
-- WARN 日志帮助快速定位认证失败原因，降低安全事件排查成本
+> **代码示例**：详见 [references/oauth2-auth-logging.md](references/oauth2-auth-logging.md)
 
 ### 6.2. 异常类型选择
 - **RuntimeException / Error**：程序员错误（逻辑 Bug）
@@ -341,137 +291,7 @@ public class OAuth2AuthenticationHandler {
 [服务间调用] 阶段|服务名称|接口|状态码|耗时ms|详情(JSON格式)
 ```
 
-**示例代码**：
-
-```java
-// HTTP 服务调用日志示例
-public class HttpServiceClient {
-
-    private static final Logger log = LoggerFactory.getLogger(HttpServiceClient.class);
-
-    public UserResponse getUser(Long userId) {
-        // 构建请求
-        HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create("https://api.example.com/users/" + userId))
-            .header("Authorization", "Bearer " + maskToken(token))
-            .header("Content-Type", "application/json")
-            .GET()
-            .build();
-
-        // 记录请求日志 (DEBUG)
-        log.debug("[服务间调用] REQUEST|用户服务|/users/{}|GET|X-Request-Id={}, Authorization=Bearer ***",
-            userId, request.headers().firstValue("X-Request-Id").orElse("N/A"));
-
-        long startTime = System.currentTimeMillis();
-        try {
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            long duration = System.currentTimeMillis() - startTime;
-
-            // 记录响应日志 (DEBUG)
-            log.debug("[服务间调用] RESPONSE|用户服务|/users/{}|{}|{}ms|X-Request-Id={}",
-                userId, response.statusCode(), duration,
-                response.headers().firstValue("X-Request-Id").orElse("N/A"));
-
-            // 脱敏处理后记录响应体
-            if (log.isTraceEnabled()) {
-                log.trace("[服务间调用] RESPONSE_BODY|用户服务|/users/{}|{}",
-                    userId, maskSensitiveData(response.body()));
-            }
-
-            if (response.statusCode() >= 400) {
-                log.warn("[服务间调用] ERROR|用户服务|/users/{}|{}|{}ms|错误: {}",
-                    userId, response.statusCode(), duration, response.body());
-            }
-
-            return parseResponse(response);
-        } catch (HttpServiceException e) {
-            long duration = System.currentTimeMillis() - startTime;
-            log.warn("[服务间调用] EXCEPTION|用户服务|/users/{}|{}|{}ms|服务调用失败: {}",
-                userId, "TIMEOUT", duration, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    /**
-     * 脱敏处理 - 隐藏敏感信息
-     */
-    private String maskToken(String token) {
-        if (token == null || token.length() <= 8) {
-            return "***";
-        }
-        return token.substring(0, 4) + "***" + token.substring(token.length() - 4);
-    }
-
-    /**
-     * 脱敏处理 - 隐藏响应体中的敏感字段
-     */
-    private String maskSensitiveData(String body) {
-        if (body == null) {
-            return "null";
-        }
-        return body
-            .replaceAll("\"password\"\\s*:\\s*\"[^\"]*\"", "\"password\":\"***\"")
-            .replaceAll("\"token\"\\s*:\\s*\"[^\"]*\"", "\"token\":\"***\"")
-            .replaceAll("\"secret\"\\s*:\\s*\"[^\"]*\"", "\"secret\":\"***\"")
-            .replaceAll("\"creditCard\"\\s*:\\s*\"[^\"]*\"", "\"creditCard\":\"***\"");
-    }
-}
-```
-
-```typescript
-// TypeScript 服务调用日志示例
-export class ApiService {
-    private readonly logger: Logger;
-
-    async getUser(userId: number): Promise<UserResponse> {
-        const requestId = generateRequestId();
-        const headers = {
-            'Authorization': `Bearer ${maskToken(this.token)}`,
-            'Content-Type': 'application/json',
-            'X-Request-Id': requestId,
-        };
-
-        // 记录请求日志 (DEBUG)
-        this.logger.debug(`[服务间调用] REQUEST|用户服务|/users/${userId}|GET|X-Request-Id=${requestId}`);
-
-        const startTime = Date.now();
-        try {
-            const response = await fetch(`https://api.example.com/users/${userId}`, {
-                method: 'GET',
-                headers,
-            });
-
-            const duration = Date.now() - startTime;
-            const responseBody = await response.text();
-
-            // 记录响应日志 (DEBUG)
-            this.logger.debug(`[服务间调用] RESPONSE|用户服务|/users/${userId}|${response.status}|${duration}ms`);
-
-            if (this.logger.isTraceEnabled()) {
-                this.logger.trace(`[服务间调用] RESPONSE_BODY|用户服务|/users/${userId}|${maskSensitiveData(responseBody)}`);
-            }
-
-            if (!response.ok) {
-                this.logger.warn(`[服务间调用] ERROR|用户服务|/users/${userId}|${response.status}|${duration}ms|错误: ${responseBody}`);
-            }
-
-            return JSON.parse(responseBody);
-        } catch (error) {
-            const duration = Date.now() - startTime;
-            this.logger.warn(`[服务间调用] EXCEPTION|用户服务|/users/${userId}|ERROR|${duration}ms|服务调用失败: ${error.message}`);
-            throw error;
-        }
-    }
-}
-```
-
-**核心原则**：
-- 请求和响应日志必须在 **DEBUG** 级别记录
-- 错误响应必须在 **WARN** 级别记录
-- 敏感信息（Token、Password、CreditCard 等）必须脱敏后记录
-- Header 中的 Authorization 字段必须脱敏或省略
-- 日志需包含 X-Request-Id 以便链路追踪
-- 响应体记录应使用 TRACE 级别，避免影响生产环境日志量
+> **代码示例（Java / TypeScript）**：详见 [references/service-call-logging.md](references/service-call-logging.md)
 
 ### 7.2. 日志级别
 | 级别 | 使用场景 |
@@ -493,6 +313,28 @@ timestamp [thread-name] level class-name:line-number - message
 - **必须带有业务标识**，格式：`[业务标识] 消息内容`
 
 > **代码示例（业务标识日志、常见业务标识表、占位符使用）**：详见 [references/logging.md](references/logging.md)
+
+### 7.4. 第三方接口调用日志规范（强制）
+
+> **适用场景**：调用外部第三方提供的 HTTP/REST 接口（无论 GET、POST、PUT、DELETE、PATCH 等）
+
+**强制要求**：调用第三方接口时，必须将**请求参数**和**响应值**完整记录到日志中。
+
+**请求参数范围**（包括但不限于）：
+- URL 路径参数（path variable）
+- URL 查询参数（query string / request params）
+- 请求体（request body）
+- 请求头（Header，需脱敏）
+
+**日志记录要求**：
+
+| 调用阶段 | 日志级别 | 必须记录的内容 |
+|----------|----------|----------------|
+| 发起请求 | DEBUG | 请求 URL、HTTP 方法、请求参数（含 body / params / path）、Header（脱敏） |
+| 收到响应 | DEBUG | 响应状态码、响应耗时、响应体（完整内容） |
+| 调用异常 | WARN | 异常信息、请求参数快照、响应内容（如有） |
+
+> **代码示例**：详见 [references/third-party-api-logging.md](references/third-party-api-logging.md)
 
 ## 8. 数据库规范
 
@@ -533,7 +375,7 @@ timestamp [thread-name] level class-name:line-number - message
 
 ### 13.1. 注释与文档（强制）
 
-- [✅/❌/不适用] **作者标识**：所有代码的 `@author` 必须填写 `lvdaxianerplus`
+- [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须填写 `lvdaxianerplus`（老方法/类无需修改）
 - [✅/❌/不适用] **方法注释**：所有方法都有完整注释（@param、@return、@author、@date）
 - [✅/❌/不适用] **类注释**：所有类都有 Javadoc 风格文档注释
 - [✅/❌/不适用] **分支注释**：所有 if-else 分支都有条件说明注释
@@ -597,6 +439,12 @@ timestamp [thread-name] level class-name:line-number - message
 - [✅/❌/不适用] **错误日志**：调用失败时 WARN 级别记录错误信息、异常堆栈、请求上下文
 - [✅/❌/不适用] **敏感信息脱敏**：日志中的 Token、Password、CreditCard 等敏感信息必须脱敏
 
+### 13.6.3. 第三方接口调用日志（强制）
+
+- [✅/❌/不适用] **请求参数完整**：调用第三方接口时 DEBUG 级别记录完整请求参数（body、params、path、header）
+- [✅/❌/不适用] **响应值完整**：DEBUG 级别记录完整响应体内容
+- [✅/❌/不适用] **异常记录**：调用失败时 WARN 级别记录异常信息及请求参数快照
+
 ### 13.7. 数据库规范（强制）
 
 - [✅/❌/不适用] **参数化查询**：使用参数化查询，禁止字符串拼接 SQL
@@ -634,7 +482,7 @@ timestamp [thread-name] level class-name:line-number - message
 [用户确认的审查范围：全部文件/特定文件/变更部分]
 
 ### 13.1 注释与文档
-- [✅/❌/不适用] 作者标识：具体说明
+- [✅/❌/不适用] 作者标识：新添加的方法/类是否填写 `lvdaxianerplus`（老方法/类无需修改）
 - [✅/❌/不适用] 方法注释：具体说明
 - [✅/❌/不适用] 类注释：具体说明
 - [✅/❌/不适用] 分支注释：具体说明
