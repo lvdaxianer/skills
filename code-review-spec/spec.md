@@ -100,12 +100,14 @@ description: Use when performing or requesting code review, code formatting, or 
 ### 3.8. Java 线程池规范
 
 > **仅适用于 Java**：禁止使用已定义线程池（如 `ExecutorService`、`@Async` 默认线程池），必须使用自定义线程池。
+> **隔离要求**：当多个业务模块会共享同一个线程池时，必须按业务模块做线程池隔离，禁止多个核心业务长期共用同一线程池。
 
 #### 3.8.1. 线程池定义要求
 
 - 必须定义有意义的 `threadName`，使用 `ThreadFactory` 设置
 - 必须使用有业务含义的日志标识
 - 线程池名称应体现业务用途
+- 不同业务模块应使用独立线程池，避免相互争抢资源导致排队、超时或雪崩
 
 > **代码示例（正确/错误示例及命名规范表）**：详见 [references/thread-pool.md](references/thread-pool.md)
 
@@ -394,6 +396,7 @@ timestamp [thread-name] level class-name:line-number - message
 - [✅/❌/不适用] **自定义线程池**：禁止使用 `ExecutorService` 默认线程池或 `@Async` 默认线程池，必须使用自定义线程池
 - [✅/❌/不适用] **有意义名称**：线程池必须定义有意义的 `threadName`（如 `user-handler-%d`）
 - [✅/❌/不适用] **线程日志**：线程池执行时必须打印业务日志，包含开始/成功/失败状态
+- [✅/❌/不适用] **线程池隔离**：多个业务模块共享线程池时，必须按业务模块隔离，禁止核心业务长期共用同一线程池
 
 ### 13.5. 日志规范（强制）
 
