@@ -1,4 +1,11 @@
-# if-else 强制配对规范示例
+# if-else 分支处理规范示例
+
+## 基本原则
+
+- if 语句必须覆盖所有需要处理的分支。
+- if 分支是设置值、状态切换、异常处理、降级处理或关键日志时，else 必须写出合理处理。
+- else 分支确实没有可执行逻辑、无需设置默认值或降级值，且不会造成未初始化、空值、状态不一致、资源泄漏、缺少关键日志等风险时，可以省略。
+- 禁止为了满足形式要求写空 else、无意义注释或占位语句。
 
 ## 正确示例
 
@@ -36,6 +43,11 @@ if (isPaid) {
 } else {
     status = OrderStatus.UNPAID;  // 未支付状态
 }
+
+// 正确：else 无实际处理逻辑，可省略
+if (cache.containsKey(key)) {
+    refreshExpireTime(key);
+}
 ```
 
 ### TypeScript
@@ -54,6 +66,11 @@ if (currentUser) {
 
 // 正确：降级处理
 const config = isConfigLoaded ? loadedConfig : defaultConfig;
+
+// 正确：else 无实际处理逻辑，可省略
+if (shouldTrackEvent) {
+    trackEvent(eventName);
+}
 ```
 
 ### Python
@@ -67,6 +84,10 @@ items = fetch_items() if has_items else []
 
 # 正确：业务逻辑分支
 status = OrderStatus.PAID if is_paid else OrderStatus.PENDING
+
+# 正确：else 无实际处理逻辑，可省略
+if should_record_metric:
+    record_metric(metric_name)
 ```
 
 ## 错误示例
@@ -74,14 +95,14 @@ status = OrderStatus.PAID if is_paid else OrderStatus.PENDING
 ### Java
 
 ```java
-// 错误：if 无 else，缺失分支处理
+// 错误：if 无 else，缺失必要分支处理
 int result;
 if (condition) {
     result = calculateValue();  // 只处理了 condition=true 的情况
 }
 // result 可能未初始化
 
-// 错误：缺少 else 分支处理
+// 错误：缺少必要 else 分支处理
 boolean isValid;
 if (value > 0) {
     isValid = true;
@@ -98,14 +119,14 @@ return "匿名用户";  // 这种写法不如 else 清晰，且容易出错
 ### TypeScript
 
 ```typescript
-// 错误：if 无 else
+// 错误：if 无 else，缺失必要分支处理
 let result: number;
 if (condition) {
     result = 100;
 }
 // result 可能未定义
 
-// 错误：缺少 else 分支
+// 错误：缺少必要 else 分支
 let status: string;
 if (isSuccess) {
     status = "成功";
@@ -116,7 +137,7 @@ if (isSuccess) {
 ### Python
 
 ```python
-# 错误：if 无 else
+# 错误：if 无 else，缺失必要分支处理
 result = None
 if condition:
     result = calculate_value()

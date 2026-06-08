@@ -47,13 +47,14 @@ description: Use when performing or requesting code review, code formatting, or 
 
 **注意**：优先使用 if-else，而非 switch-case；如必须使用 switch-case，每个 case 都必须有 default。
 
-### 3.3.1. if-else 强制配对规范（强制）
+### 3.3.1. if-else 分支处理规范（强制）
 
-> **强制要求**：所有 if 语句**必须**包含 else 分支，不允许单独 if。
+> **强制要求**：if 语句必须覆盖所有需要处理的分支；当 else 分支有明确处理逻辑时必须写出。若 else 分支确实没有可执行逻辑、无需设置默认值或降级值，且不会造成未初始化、空值、状态不一致、资源泄漏、缺少关键日志等风险，可以省略 else。
 
 **核心原则**：
-- 每个 if 都必须有对应 else
+- if 分支有对应的异常、默认、降级、状态设置或日志处理时，必须写出 else
 - 如果 if 分支是**设置值**，else 必须设置**合理值**；可为初期值、默认值、空值、备选值、降级值等
+- 如果 else 分支没有实际业务含义，仅为空代码块、重复注释或占位语句，可以省略
 - 该规范用于确保所有分支路径都被正确处理，提升健壮性
 
 > **代码示例（正确/错误示例及合理值类型表）**：详见 [references/if-else-pairing.md](references/if-else-pairing.md)
@@ -442,9 +443,9 @@ timestamp [thread-name] level class-name:line-number - message
 - [✅/❌/不适用] **SQL 注入**：使用参数化查询防注入
 - [✅/❌/不适用] **XSS**：用户输入必须过滤或转义
 
-### 13.9. if-else 强制配对规范（强制）
+### 13.9. if-else 分支处理规范（强制）
 
-- [✅/❌/不适用] **else 强制**：所有 if 语句**必须**包含 else 分支，不允许单独 if
+- [✅/❌/不适用] **else 必要性**：if 语句必须覆盖所有需要处理的分支；else 无实际逻辑且无风险时可省略
 - [✅/❌/不适用] **合理值设置**：如果 if 分支是设置值操作，else 必须设置合理值（初期值、默认值、空值、备选值、降级值等）
 
 ### 13.10. 未使用导入与变量清理规范（强制）
@@ -490,8 +491,8 @@ timestamp [thread-name] level class-name:line-number - message
 - [✅/❌/不适用] 字符串拼接：具体说明（循环内是否正确拼接）
 - [✅/❌/不适用] equals/hashCode：具体说明（是否同时重写）
 
-### 13.9 if-else 强制配对
-- [✅/❌/不适用] else 强制：具体说明
+### 13.9 if-else 分支处理
+- [✅/❌/不适用] else 必要性：具体说明
 - [✅/❌/不适用] 合理值设置：具体说明
 
 ### 总体评价
