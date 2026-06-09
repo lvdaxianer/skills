@@ -44,6 +44,17 @@ cp -r /path/to/skills/story-line .claude/skills/
 
 Restart Claude Code or reload the session. Skills will be automatically discovered and listed in the available skills.
 
+### Default Agent Context
+
+Copy [`AGENTS.md`](AGENTS.md) into a project root to make Codex load the
+`development-workflow` rules at session start. Copy [`CLAUDE.md`](CLAUDE.md)
+into a project root to make Claude Code load the same default workflow.
+
+These context files do not replace the skill. They point each agent at
+[`development-workflow/SKILL.md`](development-workflow/SKILL.md), so the
+plan-first, TDD-first, code-review-gated, Chinese Conventional Commit workflow
+is active before normal development work begins.
+
 ## Skill Details
 
 ### code-review-spec

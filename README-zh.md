@@ -44,6 +44,16 @@ cp -r /path/to/skills/story-line .claude/skills/
 
 重启 Claude Code 或重新加载会话，技能将被自动发现并列入可用技能列表。
 
+### 默认 Agent 上下文
+
+将 [`AGENTS.md`](AGENTS.md) 复制到项目根目录，可以让 Codex 在会话开始时加载
+`development-workflow` 规则。将 [`CLAUDE.md`](CLAUDE.md) 复制到项目根目录，
+可以让 Claude Code 加载同一套默认开发流程。
+
+这两个上下文文件不会替代技能本身，而是统一指向
+[`development-workflow/SKILL.md`](development-workflow/SKILL.md)，确保普通开发任务开始前
+就启用 plan-first、TDD-first、code-review-gated、中文 Conventional Commit 流程。
+
 ## 技能详解
 
 ### code-review-spec
