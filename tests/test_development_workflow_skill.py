@@ -67,10 +67,12 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         """
         content = SKILL_FILE.read_text(encoding="utf-8")
 
-        self.assertIn("/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md", content)
-        self.assertIn("/Users/lvdaxianer/.codex/skills/commit/SKILL.md", content)
+        self.assertIn("/Users/lvdaxianer/.claude/skills/code-review-spec/SKILL.md", content)
+        self.assertIn("/Users/lvdaxianer/.claude/skills/commit/SKILL.md", content)
         self.assertIn("/Users/lvdaxianer/.claude/skills/code-review-spec", content)
         self.assertIn("/Users/lvdaxianer/.claude/commands/commit.md", content)
+        self.assertNotIn("/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md", content)
+        self.assertNotIn("/Users/lvdaxianer/.codex/skills/commit/SKILL.md", content)
 
     def test_skill_disallows_questions_and_skipping_gates(self):
         """

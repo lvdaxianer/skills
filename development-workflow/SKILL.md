@@ -15,8 +15,8 @@ Load and follow these skills before work begins:
 
 - `superpowers:writing-plans` for the implementation plan.
 - `superpowers:test-driven-development` for RED/GREEN/REFACTOR discipline.
-- `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`.
-- `commit` from `/Users/lvdaxianer/.codex/skills/commit/SKILL.md`.
+- `code-review-spec` from `/Users/lvdaxianer/.claude/skills/code-review-spec/SKILL.md`.
+- `commit` from `/Users/lvdaxianer/.claude/skills/commit/SKILL.md`.
 
 Canonical rule sources used through those pointer skills:
 
