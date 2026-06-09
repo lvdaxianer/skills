@@ -7,6 +7,7 @@ A collection of reusable skills for [Claude Code](https://claude.ai/code) to boo
 | Skill | Description | Trigger |
 |-------|-------------|---------|
 | [code-review-spec](code-review-spec/) | Comprehensive code review assistant for all programming languages. Enforces comment standards (≥60%), naming conventions, security rules, exception handling, logging standards, DB specs, API design, batch processing, null safety, and more. | Automatically triggered on code changes, formatting, or review requests. |
+| [development-workflow](development-workflow/) | Mandatory development workflow that enforces Superpowers planning, TDD RED/GREEN cycles, code-review-spec fixes, and Chinese Conventional Commit submission before moving to the next task. | Triggered when starting or executing development tasks that require strict process gates. |
 | [ddd](ddd/) | Domain-Driven Design best practices — bounded contexts, entities, value objects, aggregates, domain events, repositories, domain services, CQRS, event sourcing. | Triggered by DDD-related discussions or complex domain modeling. |
 | [product-manager](product-manager/) | Product management best practices — requirement analysis, product planning, UX design, data-driven decisions, A/B testing, agile practices, MVP mindset. | Triggered on product discussions, user stories, feature design, or business metrics. |
 | [story-line](story-line/) | Interactive story-line creation for business execution. Guides users through 6 core elements (goals, milestones, roles, flows, data flow, exceptions) with brainstorm-powered refinement. Optionally validates via Chrome DevTools MCP. | Triggered when user wants to create a business story line. |
@@ -21,6 +22,7 @@ A collection of reusable skills for [Claude Code](https://claude.ai/code) to boo
 
 # Copy skills to Claude Code's global skills directory
 cp -r skills/code-review-spec ~/.claude/skills/
+cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
 cp -r skills/product-manager ~/.claude/skills/
 cp -r skills/story-line ~/.claude/skills/
@@ -32,6 +34,7 @@ cp -r skills/story-line ~/.claude/skills/
 # Inside your project root
 mkdir -p .claude/skills
 cp -r /path/to/skills/code-review-spec .claude/skills/
+cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
 cp -r /path/to/skills/product-manager .claude/skills/
 cp -r /path/to/skills/story-line .claude/skills/
@@ -48,6 +51,13 @@ Restart Claude Code or reload the session. Skills will be automatically discover
 - **Languages**: Java, Python, Go, TypeScript, Vue, and more
 - **Checks**: Code specs, comments (≥60%), naming, security, exceptions, logging, DB, API design, Git commits, dependencies, complexity limits, null safety, function params, duplication, magic numbers, collection capacity, string concatenation, equals/hashCode
 - **References**: Extensive reference docs in [`references/`](code-review-spec/references/)
+
+### development-workflow
+
+- **Plan**: Uses `superpowers:writing-plans` before development begins
+- **TDD**: Requires RED/GREEN/REFACTOR verification for every task
+- **Review**: Runs `code-review-spec` after each small task and fixes applicable issues
+- **Commit**: Runs `commit` and creates one atomic Chinese Conventional Commit before continuing
 
 ### ddd
 
@@ -73,6 +83,7 @@ Restart Claude Code or reload the session. Skills will be automatically discover
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI or IDE extension
+- For `development-workflow` skill: Superpowers `writing-plans` and `test-driven-development`, plus the configured `code-review-spec` and `commit` skills
 - For `story-line` skill: `brainstorm` skill from Superpowers extension
 - For `story-line` browser testing: Chrome DevTools MCP
 
