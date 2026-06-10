@@ -25,6 +25,13 @@ Canonical rule sources used through those pointer skills:
 
 If any required source cannot be read, stop and report the missing source.
 
+## code-review-spec 执行要求
+
+- 当任务涉及代码审查、格式化或代码修改时，必须严格执行 `code-review-spec`，不得用“差不多”“大致符合”或选择性覆盖代替。
+- 执行 `code-review-spec` 时，必须逐项对照 canonical 的 `SKILL.md`、`spec.md` 以及相关 `references/*` 检查；未覆盖的项必须明确说明原因，不能默认合格。
+- 如果 canonical `code-review-spec` 的任一要求不满足，必须视为未通过，直到修复并重新验证通过为止。
+- 任何 `code-review-spec` 结论都必须基于实际对照结果，而不是摘要、印象判断或部分规则检查。
+
 ## Mandatory Task Loop
 
 For each development task, execute this exact order:
@@ -36,7 +43,7 @@ For each development task, execute this exact order:
 5. Implement the minimal GREEN change required by the failing test.
 6. Run the focused test again and confirm it passes.
 7. Run the relevant broader test, lint, build, or documentation check for the touched area.
-8. Apply `code-review-spec` to the full diff for this task.
+8. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
 9. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
 10. Re-run the focused and broader verification commands after fixes.
@@ -55,6 +62,7 @@ For each development task, execute this exact order:
 - If a clear fix is available during review, make it immediately and verify again.
 - If the same blocker prevents progress after repeated attempts, report the blocker with
   exact command output and the affected file path.
+- For `code-review-spec`, a gate only passes after every applicable rule has been checked and any uncovered rule has been explicitly accounted for.
 
 ## Required Status Format
 

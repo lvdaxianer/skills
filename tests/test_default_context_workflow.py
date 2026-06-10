@@ -21,6 +21,10 @@ REQUIRED_WORKFLOW_MARKERS = [
     "code-review-spec",
     "中文 Conventional Commit",
 ]
+REQUIRED_STRICT_REVIEW_MARKERS = [
+    "严格执行 `code-review-spec`",
+    "按 canonical 规范修复所有应修复的问题",
+]
 
 
 class DefaultContextWorkflowTest(unittest.TestCase):
@@ -59,6 +63,9 @@ class DefaultContextWorkflowTest(unittest.TestCase):
                 content = context_file.read_text(encoding="utf-8")
 
                 for marker in REQUIRED_WORKFLOW_MARKERS:
+                    self.assertIn(marker, content)
+
+                for marker in REQUIRED_STRICT_REVIEW_MARKERS:
                     self.assertIn(marker, content)
 
 

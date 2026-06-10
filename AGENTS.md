@@ -11,7 +11,7 @@
 
 - plan-first：开发前先创建或更新实现计划。
 - TDD-first：每个任务先写失败测试，确认 RED，再实现 GREEN，并保持可重构。
-- review-gated：每个小任务后执行 `code-review-spec`，修复应修复的问题。
+- review-gated：每个小任务后严格执行 `code-review-spec`，按 canonical 规范修复所有应修复的问题。
 - commit-per-task：继续下个任务前创建一个原子中文 Conventional Commit。
 
 ## 执行约束

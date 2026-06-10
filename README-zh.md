@@ -6,8 +6,8 @@
 
 | 技能 | 描述 | 触发场景 |
 |------|------|----------|
-| [code-review-spec](code-review-spec/) | 全语言代码审查助手。强制规范注释比例（≥60%）、命名规范、安全规则、异常处理、日志标准、数据库规范、API 设计、批量处理、空值安全等。 | 代码修改、格式化、格式化代码或用户请求代码审查时自动触发。 |
-| [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
+| [code-review-spec](code-review-spec/) | 全语言代码审查助手。强制执行严格的 canonical 检查，覆盖注释比例（≥60%）、命名规范、安全规则、异常处理、日志标准、数据库规范、API 设计、批量处理、空值安全等。 | 代码修改、格式化、格式化代码或用户请求代码审查时自动触发。 |
+| [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后严格执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
 | [ddd](ddd/) | 领域驱动设计最佳实践 — 限界上下文、实体、值对象、聚合、领域事件、仓储、领域服务、CQRS、事件溯源。 | 讨论 DDD、领域建模、战略设计或复杂业务架构时触发。 |
 | [product-manager](product-manager/) | 产品经理最佳实践 — 需求分析、产品规划、用户体验设计、数据驱动决策、A/B 测试、敏捷实践、MVP 思维。 | 讨论产品需求、用户故事、功能设计、用户体验或业务指标时触发。 |
 | [story-line](story-line/) | 业务故事线交互式编写。引导用户完成六大核心要素（目标、里程碑、角色、流程、数据流转、异常场景），由 brainstorm 技能驱动细化。可选 Chrome DevTools MCP 测试验证。 | 用户想要创建业务故事线时触发。 |
@@ -66,7 +66,7 @@ cp -r /path/to/skills/story-line .claude/skills/
 
 - **计划**：开发前必须使用 `superpowers:writing-plans`
 - **TDD**：每个任务必须完成 RED/GREEN/REFACTOR 校验
-- **审查**：每个小任务后运行 `code-review-spec` 并修复应修复问题
+- **审查**：每个小任务后运行 `code-review-spec` 并严格修复所有应修复问题
 - **提交**：继续下个任务前运行 `commit` 并创建一个原子中文 Conventional Commit
 
 ### ddd

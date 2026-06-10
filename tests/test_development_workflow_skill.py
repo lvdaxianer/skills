@@ -87,6 +87,25 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         self.assertIn("Do not skip validation", content)
         self.assertIn("If a gate fails", content)
 
+    def test_skill_requires_strict_code_review_spec_execution(self):
+        """
+        The workflow must explicitly require strict canonical code-review-spec checks.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-10
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        required_markers = [
+            "必须严格执行 `code-review-spec`",
+            "必须逐项对照 canonical 的 `SKILL.md`、`spec.md` 以及相关 `references/*` 检查",
+            "任何 `code-review-spec` 结论都必须基于实际对照结果",
+            "a gate only passes after every applicable rule has been checked",
+        ]
+
+        for marker in required_markers:
+            self.assertIn(marker, content)
+
 
 if __name__ == "__main__":
     unittest.main()
