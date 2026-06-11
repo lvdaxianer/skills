@@ -39,6 +39,8 @@ If any required source cannot be read, stop and report the missing source.
   independent change.
 - Implementation uses `superpowers:test-driven-development` after the OpenSpec
   planning asset has been validated and committed.
+- After all planned tasks finish, emit a final audit report that lists completed
+  tasks and lists unfinished tasks before the workflow is considered fully closed.
 
 ## OpenSpec Planning Requirements
 
@@ -56,6 +58,8 @@ If any required source cannot be read, stop and report the missing source.
 - Every planned task must have one durable checkbox or equivalent status marker. Mark exactly one completed task immediately after its gate passes. Do not batch-complete tasks at the end.
 - If a session resumes mid-change, read the OpenSpec task list first, continue from the first unchecked task, and preserve already completed task markers.
 - After every OpenSpec change is fully executed and verified, archive the completed OpenSpec change according to the repository's OpenSpec archive process.
+- After the final audit and archive flow completes, produce a final audit report
+  that lists completed tasks and lists unfinished tasks for the completed change.
 
 ## code-review-spec 执行要求
 

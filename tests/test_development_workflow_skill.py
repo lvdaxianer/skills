@@ -54,6 +54,11 @@ COMPLETION_AUDIT_MARKERS = [
     "all planned tasks are complete",
     "archive the completed OpenSpec change",
 ]
+AUDIT_REPORT_MARKERS = [
+    "final audit report",
+    "lists completed tasks",
+    "lists unfinished tasks",
+]
 
 
 class DevelopmentWorkflowSkillTest(unittest.TestCase):
@@ -154,6 +159,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in COMPLETION_AUDIT_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_final_audit_report(self):
+        """
+        The workflow must emit a final audit report when all tasks finish.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-11
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in AUDIT_REPORT_MARKERS:
             self.assertIn(marker, content)
 
 
