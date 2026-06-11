@@ -24,6 +24,23 @@ MANDATORY_LOOP_MARKERS = [
     "one atomic Chinese Conventional Commit",
     "next task",
 ]
+OPENSPEC_STRUCTURE_MARKERS = [
+    "openspec/changes/<change-name>/",
+    ".openspec.yaml",
+    "proposal.md",
+    "design.md",
+    "tasks.md",
+    "specs/<capability>/spec.md",
+    "openspec validate <change-name> --strict",
+]
+POINTER_SOURCE_MARKERS = [
+    "/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md",
+    "/Users/lvdaxianer/.codex/skills/commit/SKILL.md",
+    "/Users/lvdaxianer/.claude/skills/code-review-spec/SKILL.md",
+    "/Users/lvdaxianer/.claude/skills/code-review-spec/spec.md",
+    "/Users/lvdaxianer/.claude/skills/code-review-spec/references/*",
+    "/Users/lvdaxianer/.claude/commands/commit.md",
+]
 STRICT_REVIEW_MARKERS = [
     "必须严格执行 `code-review-spec`",
     "必须逐项对照 canonical 的 `SKILL.md`、`spec.md` 以及相关 `references/*` 检查",
@@ -80,19 +97,27 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
 
     def test_skill_references_canonical_review_and_commit_sources(self):
         """
-        The skill must point agents at the canonical review and commit rules.
+        The skill must route through pointer skills and canonical rule sources.
 
         Author: lvdaxianerplus
         Date: 2026-06-09
         """
         content = SKILL_FILE.read_text(encoding="utf-8")
 
-        self.assertIn("/Users/lvdaxianer/.claude/skills/code-review-spec/SKILL.md", content)
-        self.assertIn("/Users/lvdaxianer/.claude/skills/commit/SKILL.md", content)
-        self.assertIn("/Users/lvdaxianer/.claude/skills/code-review-spec", content)
-        self.assertIn("/Users/lvdaxianer/.claude/commands/commit.md", content)
-        self.assertNotIn("/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md", content)
-        self.assertNotIn("/Users/lvdaxianer/.codex/skills/commit/SKILL.md", content)
+        for marker in POINTER_SOURCE_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_defines_openspec_change_structure(self):
+        """
+        The workflow must use the local OpenSpec change layout explicitly.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-11
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in OPENSPEC_STRUCTURE_MARKERS:
+            self.assertIn(marker, content)
 
     def test_skill_disallows_questions_and_skipping_gates(self):
         """
