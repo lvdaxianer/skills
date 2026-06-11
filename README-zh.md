@@ -7,6 +7,7 @@
 | 技能 | 描述 | 触发场景 |
 |------|------|----------|
 | [code-review-spec](code-review-spec/) | 全语言代码审查助手。强制执行严格的 canonical 检查，覆盖注释比例（≥60%）、命名规范、安全规则、异常处理、日志标准、数据库规范、API 设计、批量处理、空值安全等。 | 代码修改、格式化、格式化代码或用户请求代码审查时自动触发。 |
+| [commit](commit/) | 提交规范指针技能。统一指向 canonical commit 命令标准，覆盖 Conventional Commit、中文提交信息、提交拆分与提交选项判断。 | 提交变更、生成提交信息或运行 `/commit` 时触发。 |
 | [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后严格执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
 | [ddd](ddd/) | 领域驱动设计最佳实践 — 限界上下文、实体、值对象、聚合、领域事件、仓储、领域服务、CQRS、事件溯源。 | 讨论 DDD、领域建模、战略设计或复杂业务架构时触发。 |
 | [product-manager](product-manager/) | 产品经理最佳实践 — 需求分析、产品规划、用户体验设计、数据驱动决策、A/B 测试、敏捷实践、MVP 思维。 | 讨论产品需求、用户故事、功能设计、用户体验或业务指标时触发。 |
@@ -22,6 +23,7 @@ git clone https://github.com/lvdaxianerplus/skills.git
 
 # 将技能复制到 Claude Code 全局技能目录
 cp -r skills/code-review-spec ~/.claude/skills/
+cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
 cp -r skills/product-manager ~/.claude/skills/
@@ -34,6 +36,7 @@ cp -r skills/story-line ~/.claude/skills/
 # 在项目根目录下
 mkdir -p .claude/skills
 cp -r /path/to/skills/code-review-spec .claude/skills/
+cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
 cp -r /path/to/skills/product-manager .claude/skills/
@@ -69,6 +72,12 @@ cp -r /path/to/skills/story-line .claude/skills/
 - **审查**：每个小任务后运行 `code-review-spec` 并严格修复所有应修复问题
 - **提交**：继续下个任务前运行 `commit` 并创建一个原子中文 Conventional Commit
 
+### commit
+
+- **规范来源**：委托给 `/Users/lvdaxianer/.claude/commands/commit.md`
+- **适用范围**：提交信息生成、提交拆分判断、提交选项与中文 Conventional Commit 使用
+- **冲突处理**：仓库局部规则与 canonical 规范冲突时，采用更严格规则
+
 ### ddd
 
 - **战略设计**：限界上下文、通用语言、上下文映射
@@ -94,6 +103,7 @@ cp -r /path/to/skills/story-line .claude/skills/
 
 - [Claude Code](https://claude.ai/code) CLI 或 IDE 扩展
 - `development-workflow` 技能需要：Superpowers 的 `writing-plans`、`test-driven-development`，以及本仓库约定的 `code-review-spec` 与 `commit` 技能
+- `commit` 技能需要：`/Users/lvdaxianer/.claude/commands/commit.md` 可读取
 - `story-line` 技能需要：Superpowers 扩展的 `brainstorm` 技能
 - `story-line` 浏览器测试需要：Chrome DevTools MCP
 
