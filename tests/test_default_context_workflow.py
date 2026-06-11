@@ -20,6 +20,9 @@ REQUIRED_WORKFLOW_MARKERS = [
     "TDD",
     "code-review-spec",
     "中文 Conventional Commit",
+    "openspec/changes/<change-name>/",
+    "openspec validate <change-name> --strict",
+    "final audit report",
 ]
 REQUIRED_STRICT_REVIEW_MARKERS = [
     "严格执行 `code-review-spec`",
