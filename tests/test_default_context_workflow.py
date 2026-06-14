@@ -14,6 +14,12 @@ DEFAULT_CONTEXT_FILES = [
     PROJECT_ROOT / "AGENTS.md",
     PROJECT_ROOT / "CLAUDE.md",
 ]
+HOME_POINTER_FILES = [
+    Path.home() / ".claude" / "skills" / "AGENTS.md",
+    Path.home() / ".claude" / "skills" / "CLAUDE.md",
+    Path.home() / ".claude" / "CLAUDE.md",
+    Path.home() / ".codex" / "AGENTS.md",
+]
 REQUIRED_WORKFLOW_MARKERS = [
     "development-workflow/SKILL.md",
     "plan-first",
@@ -44,6 +50,20 @@ REQUIRED_SECTION_MARKERS = [
     "## Mandatory Task Loop",
     "## Gate Rules",
     "## Required Status Format",
+]
+POINTER_ONLY_MARKERS = [
+    "~/.claude/skills/development-workflow/SKILL.md",
+]
+HARD_TONE_MARKERS = [
+    "The workflow is mandatory.",
+    "Do not treat it as optional guidance.",
+]
+NO_DUPLICATED_WORKFLOW_MARKERS = [
+    "brainstorming-first",
+    "OpenSpec-plan-first",
+    "TDD-first",
+    "commit-per-task",
+    "final-audit-and-archive",
 ]
 
 
@@ -90,6 +110,30 @@ class DefaultContextWorkflowTest(unittest.TestCase):
 
                 for marker in REQUIRED_SECTION_MARKERS:
                     self.assertIn(marker, content)
+
+                for marker in HARD_TONE_MARKERS:
+                    self.assertIn(marker, content)
+
+    def test_home_context_files_are_pointer_only(self):
+        """
+        Home context files must point to the canonical skill instead of duplicating it.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        for context_file in HOME_POINTER_FILES:
+            with self.subTest(context_file=str(context_file)):
+                self.assertTrue(context_file.exists())
+                content = context_file.read_text(encoding="utf-8")
+
+                for marker in POINTER_ONLY_MARKERS:
+                    self.assertIn(marker, content)
+
+                for marker in HARD_TONE_MARKERS:
+                    self.assertIn(marker, content)
+
+                for marker in NO_DUPLICATED_WORKFLOW_MARKERS:
+                    self.assertNotIn(marker, content)
 
 
 if __name__ == "__main__":

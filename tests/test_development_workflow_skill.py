@@ -52,6 +52,11 @@ OPENSPEC_SOURCE_MARKERS = [
     "approved specs under `openspec/specs/`",
     "Non-OpenSpec documents do not replace",
 ]
+HARD_TONE_MARKERS = [
+    "The workflow is mandatory.",
+    "Do not treat it as optional guidance.",
+    "Any deviation from the workflow is noncompliant.",
+]
 POINTER_SOURCE_MARKERS = [
     "/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md",
     "/Users/lvdaxianer/.codex/skills/commit/SKILL.md",
@@ -165,6 +170,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in OPENSPEC_SOURCE_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_uses_hard_mandatory_language(self):
+        """
+        The workflow must read as a hard rule set, not a suggestion.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in HARD_TONE_MARKERS:
             self.assertIn(marker, content)
 
     def test_skill_disallows_questions_and_skipping_gates(self):

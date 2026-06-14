@@ -5,6 +5,8 @@ description: Use when starting or executing development tasks that must follow a
 
 # Development Workflow
 
+The workflow is mandatory. Do not treat it as optional guidance. Any deviation from the workflow is noncompliant.
+
 Use this skill to enforce a strict development loop. It applies to every code, test,
 documentation, configuration, and refactoring task unless the user explicitly provides a
 stricter workflow.

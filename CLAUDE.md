@@ -1,5 +1,7 @@
 # Claude 默认开发上下文
 
+The workflow is mandatory. Do not treat it as optional guidance. Any deviation from the workflow is noncompliant.
+
 本仓库的开发任务默认遵循 `development-workflow/SKILL.md`。
 
 ## 会话启动规则
