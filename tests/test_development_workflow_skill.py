@@ -22,7 +22,14 @@ MANDATORY_LOOP_MARKERS = [
     "plan-implementation consistency audit",
     "code-review-spec",
     "one atomic Chinese Conventional Commit",
+    "commit --style=full",
     "next task",
+]
+FULL_COMMIT_MARKERS = [
+    "commit --style=full",
+    "non-empty body",
+    "non-empty footer",
+    "Refs:",
 ]
 OPENSPEC_STRUCTURE_MARKERS = [
     "openspec/changes/<change-name>/",
@@ -171,6 +178,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in AUDIT_REPORT_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_full_commit_messages(self):
+        """
+        The workflow must forbid sparse one-line task commits.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in FULL_COMMIT_MARKERS:
             self.assertIn(marker, content)
 
 

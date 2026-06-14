@@ -12,6 +12,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SKILL_FILE = PROJECT_ROOT / "commit" / "SKILL.md"
 CANONICAL_COMMIT_SOURCE = "/Users/lvdaxianer/.claude/commands/commit.md"
+CANONICAL_COMMIT_FILE = Path(CANONICAL_COMMIT_SOURCE)
 
 
 class CommitSkillTest(unittest.TestCase):
@@ -47,6 +48,20 @@ class CommitSkillTest(unittest.TestCase):
         self.assertIn(CANONICAL_COMMIT_SOURCE, content)
         self.assertIn("source of truth", content)
         self.assertIn("If the canonical source cannot be read", content)
+
+    def test_canonical_commit_standard_requires_full_messages_by_default(self):
+        """
+        The canonical command must make body/footer the default commit contract.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        content = CANONICAL_COMMIT_FILE.read_text(encoding="utf-8")
+
+        self.assertIn("`full` (default)", content)
+        self.assertIn("Every commit message MUST include a non-empty body", content)
+        self.assertIn("Every commit message MUST include a non-empty footer", content)
+        self.assertIn("Use `Refs:` when no breaking change or issue applies", content)
 
 
 if __name__ == "__main__":

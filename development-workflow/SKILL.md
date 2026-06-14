@@ -61,6 +61,19 @@ If any required source cannot be read, stop and report the missing source.
 - After the final audit and archive flow completes, produce a final audit report
   that lists completed tasks and lists unfinished tasks for the completed change.
 
+## Commit Message Requirements
+
+- Apply `commit --style=full` for every workflow-created planning, task, archive,
+  or documentation commit unless the user explicitly requests `--style=simple`.
+- Every workflow-created commit MUST be a Chinese Conventional Commit with a
+  mapped emoji subject, a non-empty body, and a non-empty footer.
+- The commit body MUST explain what changed and why, including relevant
+  verification evidence when useful.
+- The commit footer MUST include traceability metadata. Use `Refs:` when no
+  breaking change, issue, co-author, or review reference applies.
+- For OpenSpec-driven task commits, prefer footer values such as
+  `Refs: OpenSpec <change-name> task <task-id>`.
+
 ## code-review-spec 执行要求
 
 - 当任务涉及代码审查、格式化或代码修改时，必须严格执行 `code-review-spec`，不得用“差不多”“大致符合”或选择性覆盖代替。
@@ -87,7 +100,9 @@ For each development task, execute this exact order:
    before making clear quality, correctness, maintainability, performance, or security fixes.
 13. Re-run the focused and broader verification commands after fixes.
 14. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-15. Apply `commit` and create one atomic Chinese Conventional Commit for this task.
+15. Create one atomic Chinese Conventional Commit for this task by applying
+    `commit --style=full`; the message must include a non-empty body and
+    non-empty footer.
 16. Only after the commit succeeds, move to the next task.
 17. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
 18. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.

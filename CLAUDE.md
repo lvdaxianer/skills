@@ -14,7 +14,7 @@
 - planning-commit-first：OpenSpec 规划提交必须先于实现提交。
 - TDD-first：每个任务先写失败测试，确认 RED，再实现 GREEN，并保持可重构。
 - review-gated：每个小任务后严格执行 `code-review-spec`，按 canonical 规范修复所有应修复的问题。
-- commit-per-task：继续下个任务前创建一个原子中文 Conventional Commit。
+- commit-per-task：继续下个任务前执行 `commit --style=full`，创建一个带 body 和 footer 的原子中文 Conventional Commit。
 - final-audit-and-report：所有 planned tasks 完成后先做 final audit，再输出 final audit report，列出 completed tasks 和 unfinished tasks，然后再归档 OpenSpec change。
 
 ## 执行约束
