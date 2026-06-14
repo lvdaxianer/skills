@@ -88,3 +88,4 @@ change closing sequence before archive completion is considered done.
 #### Scenario: Final audit completes
 - **WHEN** the workflow reaches the end-of-change closing sequence
 - **THEN** the audit report is produced before the change is treated as fully closed
+

@@ -23,3 +23,4 @@ as the workflow evolves.
 #### Scenario: Either startup file is updated
 - **WHEN** one startup context file changes
 - **THEN** the same workflow rules are reflected in the other startup context file
+
