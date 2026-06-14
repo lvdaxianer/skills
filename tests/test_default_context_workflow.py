@@ -29,6 +29,14 @@ REQUIRED_STRICT_REVIEW_MARKERS = [
     "严格执行 `code-review-spec`",
     "按 canonical 规范修复所有应修复的问题",
 ]
+REQUIRED_SECTION_MARKERS = [
+    "## Stage Boundaries",
+    "## OpenSpec Planning Requirements",
+    "## Commit Message Requirements",
+    "## Mandatory Task Loop",
+    "## Gate Rules",
+    "## Required Status Format",
+]
 
 
 class DefaultContextWorkflowTest(unittest.TestCase):
@@ -70,6 +78,9 @@ class DefaultContextWorkflowTest(unittest.TestCase):
                     self.assertIn(marker, content)
 
                 for marker in REQUIRED_STRICT_REVIEW_MARKERS:
+                    self.assertIn(marker, content)
+
+                for marker in REQUIRED_SECTION_MARKERS:
                     self.assertIn(marker, content)
 
 
