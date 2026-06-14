@@ -40,6 +40,12 @@ OPENSPEC_STRUCTURE_MARKERS = [
     "specs/<capability>/spec.md",
     "openspec validate <change-name> --strict",
 ]
+OPENSPEC_BOOTSTRAP_MARKERS = [
+    "non-hidden `openspec/` directory",
+    "initialize the OpenSpec scaffold",
+    "Codex and Claude instruction targets",
+    "Hidden `.openspec` paths do not satisfy",
+]
 POINTER_SOURCE_MARKERS = [
     "/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md",
     "/Users/lvdaxianer/.codex/skills/commit/SKILL.md",
@@ -129,6 +135,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in OPENSPEC_STRUCTURE_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_openspec_bootstrap_when_missing(self):
+        """
+        The workflow must initialize OpenSpec before planning in new projects.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in OPENSPEC_BOOTSTRAP_MARKERS:
             self.assertIn(marker, content)
 
     def test_skill_disallows_questions_and_skipping_gates(self):

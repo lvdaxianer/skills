@@ -28,6 +28,7 @@
 
 - Use `superpowers:brainstorming` before writing the plan so the plan captures the intended behavior, constraints, trade-offs, and acceptance criteria.
 - Use `openspec` to create or update the written change asset under `openspec/changes/<change-name>/`.
+- Before creating or updating the written change asset, verify that the project root contains a non-hidden `openspec/` directory. If it is missing, initialize the OpenSpec scaffold first and select Codex and Claude instruction targets. Hidden `.openspec` paths do not satisfy the project OpenSpec root requirement.
 - Use the local OpenSpec `spec-driven` layout:
   - `openspec/changes/<change-name>/.openspec.yaml`
   - `openspec/changes/<change-name>/proposal.md`

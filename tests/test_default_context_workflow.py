@@ -23,6 +23,10 @@ REQUIRED_WORKFLOW_MARKERS = [
     "body 和 footer",
     "openspec/changes/<change-name>/",
     "openspec validate <change-name> --strict",
+    "non-hidden `openspec/` directory",
+    "initialize the OpenSpec scaffold",
+    "Codex and Claude instruction targets",
+    "Hidden `.openspec` paths do not satisfy",
     "final audit report",
 ]
 REQUIRED_STRICT_REVIEW_MARKERS = [
