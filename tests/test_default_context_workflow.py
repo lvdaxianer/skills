@@ -27,6 +27,10 @@ REQUIRED_WORKFLOW_MARKERS = [
     "initialize the OpenSpec scaffold",
     "Codex and Claude instruction targets",
     "Hidden `.openspec` paths do not satisfy",
+    "Future persisted changes and approved specs must be based on the project OpenSpec workflow",
+    "changes under `openspec/changes/`",
+    "approved specs under `openspec/specs/`",
+    "Non-OpenSpec documents do not replace",
     "final audit report",
 ]
 REQUIRED_STRICT_REVIEW_MARKERS = [

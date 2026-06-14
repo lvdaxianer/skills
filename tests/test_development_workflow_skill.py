@@ -46,6 +46,12 @@ OPENSPEC_BOOTSTRAP_MARKERS = [
     "Codex and Claude instruction targets",
     "Hidden `.openspec` paths do not satisfy",
 ]
+OPENSPEC_SOURCE_MARKERS = [
+    "Future persisted changes and approved specs must be based on the project OpenSpec workflow",
+    "changes under `openspec/changes/`",
+    "approved specs under `openspec/specs/`",
+    "Non-OpenSpec documents do not replace",
+]
 POINTER_SOURCE_MARKERS = [
     "/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md",
     "/Users/lvdaxianer/.codex/skills/commit/SKILL.md",
@@ -147,6 +153,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in OPENSPEC_BOOTSTRAP_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_future_changes_and_specs_from_openspec(self):
+        """
+        The workflow must keep future change/spec assets sourced from OpenSpec.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-14
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in OPENSPEC_SOURCE_MARKERS:
             self.assertIn(marker, content)
 
     def test_skill_disallows_questions_and_skipping_gates(self):

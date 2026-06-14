@@ -21,6 +21,10 @@ contains a non-hidden `openspec/` directory. If it does not, the workflow MUST
 initialize the OpenSpec scaffold first and select Codex/Claude instruction
 targets. Hidden `.openspec` paths MUST NOT be treated as the project OpenSpec
 root.
+Future persisted changes and approved specs MUST be based on the project
+OpenSpec workflow. Changes MUST live under `openspec/changes/`, approved specs
+MUST live under `openspec/specs/`, and non-OpenSpec documents MUST NOT replace
+OpenSpec change/spec assets as the authoritative source.
 
 #### Scenario: User approves persisted planning
 - **WHEN** requirements are ready to be written to files
@@ -34,6 +38,12 @@ root.
 - **THEN** the workflow initializes the OpenSpec scaffold before creating a change
 - **AND** the scaffold initialization selects Codex and Claude instruction targets
 - **AND** hidden paths such as `.openspec` are not accepted as the project OpenSpec root
+
+#### Scenario: Future change or spec is persisted
+- **WHEN** a future change or approved spec must be persisted
+- **THEN** the change is created, updated, validated, and archived through the project OpenSpec workflow
+- **AND** approved specs live under `openspec/specs/<capability>/spec.md`
+- **AND** external notes or non-OpenSpec documents are not treated as authoritative substitutes
 
 ### Requirement: Development workflow MUST commit planning before implementation
 The development workflow MUST commit the validated OpenSpec planning asset before
@@ -88,4 +98,3 @@ change closing sequence before archive completion is considered done.
 #### Scenario: Final audit completes
 - **WHEN** the workflow reaches the end-of-change closing sequence
 - **THEN** the audit report is produced before the change is treated as fully closed
-
