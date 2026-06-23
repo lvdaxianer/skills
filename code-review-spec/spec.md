@@ -21,7 +21,7 @@ description: Use when performing or requesting code review, code formatting, or 
 
 ## 2. 作者标识
 
-仅**新添加的方法或类**，其 `@author` 必须填写 `lvdaxianerplus`。
+仅**新添加的方法或类**，其 `@author` 必须填写 `lvdaxianer@yeah.net`。
 
 > 已存在的方法或类，无需修改原有 `@author`。
 
@@ -372,7 +372,7 @@ timestamp [thread-name] level class-name:line-number - message
 
 ### 13.1. 注释与文档（强制）
 
-- [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须填写 `lvdaxianerplus`（老方法/类无需修改）
+- [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须填写 `lvdaxianer@yeah.net`（老方法/类无需修改）
 - [✅/❌/不适用] **方法注释**：所有方法都有完整注释（@param、@return、@author、@date）
 - [✅/❌/不适用] **类注释**：所有类都有 Javadoc 风格文档注释
 - [✅/❌/不适用] **分支注释**：所有 if-else 分支都有条件说明注释
@@ -481,7 +481,7 @@ timestamp [thread-name] level class-name:line-number - message
 [用户确认的审查范围：全部文件/特定文件/变更部分]
 
 ### 13.1 注释与文档
-- [✅/❌/不适用] 作者标识：新添加的方法/类是否填写 `lvdaxianerplus`（老方法/类无需修改）
+- [✅/❌/不适用] 作者标识：新添加的方法/类是否填写 `lvdaxianer@yeah.net`（老方法/类无需修改）
 - [✅/❌/不适用] 方法注释：具体说明
 - [✅/❌/不适用] 类注释：具体说明
 - [✅/❌/不适用] 分支注释：具体说明

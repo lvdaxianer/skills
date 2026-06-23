@@ -17,7 +17,7 @@ import java.util.Optional;
  * <p>
  * 负责与第三方认证服务交互，获取 access_token。
  *
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 @Slf4j

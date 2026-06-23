@@ -1,7 +1,7 @@
 """
 Contract tests for the code-review-spec skill.
 
-Author: lvdaxianerplus
+Author: lvdaxianer@yeah.net
 Date: 2026-06-21
 """
 
@@ -17,13 +17,14 @@ THIRD_PARTY_REFERENCE = (
 THREAD_POOL_REFERENCE = (
     PROJECT_ROOT / "code-review-spec" / "references" / "thread-pool.md"
 )
+CODE_REVIEW_SPEC_ROOT = PROJECT_ROOT / "code-review-spec"
 
 
 class CodeReviewSpecTest(unittest.TestCase):
     """
     Verify that code-review-spec preserves mandatory review rules.
 
-    Author: lvdaxianerplus
+    Author: lvdaxianer@yeah.net
     Date: 2026-06-21
     """
 
@@ -31,7 +32,7 @@ class CodeReviewSpecTest(unittest.TestCase):
         """
         Third-party API calls must log method, URL, parameters, headers, and response.
 
-        Author: lvdaxianerplus
+        Author: lvdaxianer@yeah.net
         Date: 2026-06-21
         """
         content = SPEC_FILE.read_text(encoding="utf-8")
@@ -55,7 +56,7 @@ class CodeReviewSpecTest(unittest.TestCase):
         """
         Thread pools must be business-isolated and reject long-held worker threads.
 
-        Author: lvdaxianerplus
+        Author: lvdaxianer@yeah.net
         Date: 2026-06-21
         """
         content = SPEC_FILE.read_text(encoding="utf-8")
@@ -76,6 +77,21 @@ class CodeReviewSpecTest(unittest.TestCase):
         for marker in required_markers:
             with self.subTest(marker=marker):
                 self.assertIn(marker, combined_content)
+
+    def test_author_marker_uses_email_address(self):
+        """
+        Author examples and requirements must use the canonical email marker.
+
+        Author: lvdaxianer@yeah.net
+        Date: 2026-06-23
+        """
+        skill_content = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in CODE_REVIEW_SPEC_ROOT.rglob("*.md")
+        )
+
+        self.assertIn("lvdaxianer@yeah.net", skill_content)
+        self.assertNotIn("lvdaxianerplus", skill_content)
 
 
 if __name__ == "__main__":

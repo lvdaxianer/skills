@@ -6,7 +6,7 @@
 /**
  * 类描述，说明核心功能和职责
  *
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 创建日期（格式：yyyy-MM-dd）
  */
 public class ClassName {
@@ -19,7 +19,7 @@ public class ClassName {
 ```go
 // PackageName 类/模块描述，说明核心功能和职责
 //
-// Author: lvdaxianerplus
+// Author: lvdaxianer@yeah.net
 // Date: 2024-01-15
 package service
 ```
@@ -30,7 +30,7 @@ package service
 /**
  * 类/模块描述，说明核心功能和职责
  *
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 export class UserService {
@@ -40,7 +40,7 @@ export class UserService {
 /**
  * Vue 组件描述，说明核心功能和职责
  *
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 export default defineComponent({
@@ -54,7 +54,7 @@ export default defineComponent({
 """
 类/模块描述，说明核心功能和职责
 
-Author: lvdaxianerplus
+Author: lvdaxianer@yeah.net
 Date: 2024-01-15
 """
 class UserService:
@@ -66,7 +66,7 @@ class UserService:
 """
 Vue 组件模块描述，说明核心功能和职责
 
-Author: lvdaxianerplus
+Author: lvdaxianer@yeah.net
 Date: 2024-01-15
 """
 ```

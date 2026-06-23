@@ -246,7 +246,7 @@ import java.util.Optional;
  * 甘孜州统一认证 OAuth2 登录 Controller
  * 提供 OAuth2 授权码模式的登录、回调、退出功能
  *
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2026/04/22
  */
 @Api("甘孜州 OAuth2 登录")

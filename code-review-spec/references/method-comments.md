@@ -9,7 +9,7 @@
  * @param paramName 参数描述（有效值、无效值）
  * @param paramName2 参数描述
  * @return 返回值描述（可能的值、边界情况）
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 创建日期（格式：yyyy-MM-dd）
  */
 public void methodName(String paramName) {
@@ -28,7 +28,7 @@ public void methodName(String paramName) {
 //
 // Returns: 返回值描述（可能的值、边界情况）
 //
-// Author: lvdaxianerplus
+// Author: lvdaxianer@yeah.net
 // Date: 2024-01-15
 func MethodName(paramName string) {
 
@@ -44,7 +44,7 @@ func MethodName(paramName string) {
  * @param paramName - 参数描述（有效值、无效值）
  * @param paramName2 - 参数描述
  * @returns 返回值描述（可能的值、边界情况）
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 function methodName(paramName: string): void {
@@ -56,7 +56,7 @@ function methodName(paramName: string): void {
  *
  * @param userId - 用户 ID（有效值 > 0）
  * @returns 用户信息对象
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 async function fetchUser(userId: number): Promise<User> {
@@ -72,7 +72,7 @@ async function fetchUser(userId: number): Promise<User> {
  *
  * @param userId - 用户 ID（有效值 > 0）
  * @returns 用户信息对象
- * @author lvdaxianerplus
+ * @author lvdaxianer@yeah.net
  * @date 2024-01-15
  */
 const getUser = async (userId: number): Promise<User> => {
@@ -94,7 +94,7 @@ def method_name(param_name: str) -> None:
     Returns:
         返回值描述（可能的值、边界情况）
 
-    Author: lvdaxianerplus
+    Author: lvdaxianer@yeah.net
     Date: 2024-01-15
     """
     pass
@@ -114,7 +114,7 @@ async def fetch_user(user_id: int) -> dict:
     Raises:
         UserNotFoundError: 用户不存在时抛出
 
-    Author: lvdaxianerplus
+    Author: lvdaxianer@yeah.net
     Date: 2024-01-15
     """
     pass
