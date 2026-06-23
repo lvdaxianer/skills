@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Code review spec MUST require the canonical author marker for new methods and classes
 The code review spec MUST require only newly added methods or classes to use
