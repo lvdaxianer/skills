@@ -83,6 +83,14 @@ AUDIT_REPORT_MARKERS = [
     "lists completed tasks",
     "lists unfinished tasks",
 ]
+FINAL_REVIEW_SUMMARY_MARKERS = [
+    "final review summary",
+    "what this modification did well",
+    "why it was good",
+    "what was poor in the original code or workflow",
+    "why it was poor",
+    "how to correct or improve it",
+]
 
 
 class DevelopmentWorkflowSkillTest(unittest.TestCase):
@@ -231,6 +239,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in AUDIT_REPORT_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_final_review_summary(self):
+        """
+        The final report must include quality lessons from the completed change.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-23
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in FINAL_REVIEW_SUMMARY_MARKERS:
             self.assertIn(marker, content)
 
     def test_skill_requires_full_commit_messages(self):
