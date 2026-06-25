@@ -10,6 +10,7 @@
 | [commit](commit/) | 提交规范指针技能。统一指向 canonical commit 命令标准，覆盖 Conventional Commit、中文提交信息、提交拆分与提交选项判断。 | 提交变更、生成提交信息或运行 `/commit` 时触发。 |
 | [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后严格执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
 | [ddd](ddd/) | 领域驱动设计最佳实践 — 限界上下文、实体、值对象、聚合、领域事件、仓储、领域服务、CQRS、事件溯源。 | 讨论 DDD、领域建模、战略设计或复杂业务架构时触发。 |
+| [package-backup](package-backup/) | 打包与还原归档任务技能，必须遵守 `package_backup.sh` 的命名、校验与还原安全约定。 | 在打包、备份、还原、解压或提取文件和目录时触发。 |
 | [product-manager](product-manager/) | 产品经理最佳实践 — 需求分析、产品规划、用户体验设计、数据驱动决策、A/B 测试、敏捷实践、MVP 思维。 | 讨论产品需求、用户故事、功能设计、用户体验或业务指标时触发。 |
 | [story-line](story-line/) | 业务故事线交互式编写。引导用户完成六大核心要素（目标、里程碑、角色、流程、数据流转、异常场景），由 brainstorm 技能驱动细化。可选 Chrome DevTools MCP 测试验证。 | 用户想要创建业务故事线时触发。 |
 
@@ -26,6 +27,7 @@ cp -r skills/code-review-spec ~/.claude/skills/
 cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
+cp -r skills/package-backup ~/.claude/skills/package-backup
 cp -r skills/product-manager ~/.claude/skills/
 cp -r skills/story-line ~/.claude/skills/
 ```
@@ -39,6 +41,7 @@ cp -r /path/to/skills/code-review-spec .claude/skills/
 cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
+cp -r /path/to/skills/package-backup .claude/skills/package-backup
 cp -r /path/to/skills/product-manager .claude/skills/
 cp -r /path/to/skills/story-line .claude/skills/
 ```
@@ -54,8 +57,10 @@ cp -r /path/to/skills/story-line .claude/skills/
 可以让 Claude Code 加载同一套默认开发流程。
 
 这两个上下文文件不会替代技能本身，而是统一指向
-[`development-workflow/SKILL.md`](development-workflow/SKILL.md)，确保普通开发任务开始前
-就启用 plan-first、TDD-first、code-review-gated、中文 Conventional Commit 流程。
+[`development-workflow/SKILL.md`](development-workflow/SKILL.md) 负责通用开发流程，
+并在归档工作时指向 [`package-backup/SKILL.md`](package-backup/SKILL.md)，确保普通
+开发任务开始前就启用 plan-first、TDD-first、code-review-gated、中文 Conventional
+Commit 流程。
 
 ## 技能详解
 
@@ -71,6 +76,12 @@ cp -r /path/to/skills/story-line .claude/skills/
 - **TDD**：每个任务必须完成 RED/GREEN/REFACTOR 校验
 - **审查**：每个小任务后运行 `code-review-spec` 并严格修复所有应修复问题
 - **提交**：继续下个任务前运行 `commit` 并创建一个原子中文 Conventional Commit
+
+### package-backup
+
+- **规范来源**：委托给 [`package-backup/SKILL.md`](package-backup/SKILL.md)
+- **适用范围**：打包、备份、还原、解压与提取工作流
+- **规则**：遵守 `package_backup.sh` 的命名、校验与还原安全约定
 
 ### commit
 

@@ -10,6 +10,7 @@ A collection of reusable skills for [Claude Code](https://claude.ai/code) to boo
 | [commit](commit/) | Thin pointer to the canonical commit command standard for Conventional Commit messages, Chinese git commit messages, commit splitting, and commit option decisions. | Triggered when committing changes, generating commit messages, or running `/commit`. |
 | [development-workflow](development-workflow/) | Mandatory development workflow that enforces Superpowers planning, TDD RED/GREEN cycles, strict code-review-spec checks, and Chinese Conventional Commit submission before moving to the next task. | Triggered when starting or executing development tasks that require strict process gates. |
 | [ddd](ddd/) | Domain-Driven Design best practices — bounded contexts, entities, value objects, aggregates, domain events, repositories, domain services, CQRS, event sourcing. | Triggered by DDD-related discussions or complex domain modeling. |
+| [package-backup](package-backup/) | Package and restore archive tasks that must follow the `package_backup.sh` contract for naming, validation, and restore safety. | Triggered when packaging, backing up, restoring, unzipping, or extracting files and directories. |
 | [product-manager](product-manager/) | Product management best practices — requirement analysis, product planning, UX design, data-driven decisions, A/B testing, agile practices, MVP mindset. | Triggered on product discussions, user stories, feature design, or business metrics. |
 | [story-line](story-line/) | Interactive story-line creation for business execution. Guides users through 6 core elements (goals, milestones, roles, flows, data flow, exceptions) with brainstorm-powered refinement. Optionally validates via Chrome DevTools MCP. | Triggered when user wants to create a business story line. |
 
@@ -26,6 +27,7 @@ cp -r skills/code-review-spec ~/.claude/skills/
 cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
+cp -r skills/package-backup ~/.claude/skills/package-backup
 cp -r skills/product-manager ~/.claude/skills/
 cp -r skills/story-line ~/.claude/skills/
 ```
@@ -39,6 +41,7 @@ cp -r /path/to/skills/code-review-spec .claude/skills/
 cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
+cp -r /path/to/skills/package-backup .claude/skills/package-backup
 cp -r /path/to/skills/product-manager .claude/skills/
 cp -r /path/to/skills/story-line .claude/skills/
 ```
@@ -54,9 +57,10 @@ Copy [`AGENTS.md`](AGENTS.md) into a project root to make Codex load the
 into a project root to make Claude Code load the same default workflow.
 
 These context files do not replace the skill. They point each agent at
-[`development-workflow/SKILL.md`](development-workflow/SKILL.md), so the
-plan-first, TDD-first, code-review-gated, Chinese Conventional Commit workflow
-is active before normal development work begins.
+[`development-workflow/SKILL.md`](development-workflow/SKILL.md) for general
+development and [`package-backup/SKILL.md`](package-backup/SKILL.md) for archive
+work, so the plan-first, TDD-first, code-review-gated, Chinese Conventional
+Commit workflow stays active before normal development work begins.
 
 ## Skill Details
 
@@ -72,6 +76,12 @@ is active before normal development work begins.
 - **TDD**: Requires RED/GREEN/REFACTOR verification for every task
 - **Review**: Runs `code-review-spec` after each small task and strictly fixes all applicable issues
 - **Commit**: Runs `commit` and creates one atomic Chinese Conventional Commit before continuing
+
+### package-backup
+
+- **Canonical Source**: Delegates to [`package-backup/SKILL.md`](package-backup/SKILL.md)
+- **Scope**: Packaging, backup, restore, unzip, and extraction workflows
+- **Rule**: Follow the `package_backup.sh` contract for naming, validation, and restore safety
 
 ### commit
 

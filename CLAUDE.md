@@ -3,11 +3,14 @@
 The workflow is mandatory. Do not treat it as optional guidance. Any deviation from the workflow is noncompliant.
 
 本仓库的开发任务默认遵循 `development-workflow/SKILL.md`。
+归档、解压与备份任务同时遵循 `package-backup/SKILL.md`。
 
 ## 会话启动规则
 
 每个 Claude 会话开始后，只要任务涉及代码、测试、文档、配置、重构或提交，
 都必须先加载并遵守 `development-workflow/SKILL.md`。
+如果任务涉及打包、备份、还原、解压或提取，还必须先加载并遵守
+`package-backup/SKILL.md`。
 
 该默认流程要求：
 
@@ -19,11 +22,16 @@ The workflow is mandatory. Do not treat it as optional guidance. Any deviation f
 - commit-per-task：继续下个任务前执行 `commit --style=full`，创建一个带 body 和 footer 的原子中文 Conventional Commit。
 - final-audit-and-report：所有 planned tasks 完成后先做 final audit，再输出 final audit report，列出 completed tasks 和 unfinished tasks，然后再归档 OpenSpec change。
 
+对于归档与解压工作，还要额外遵守：
+
+- package-backup-first：先用 `package-backup/SKILL.md` 和 `package-backup/references/package_backup.md` 确认命名、校验与还原安全约定，再执行任何压缩或解压动作。
+
 ## Stage Boundaries
 
 - Requirement discussion uses `superpowers:brainstorming`.
 - Requirement persistence uses OpenSpec.
 - Implementation uses `superpowers:test-driven-development` after the OpenSpec planning asset has been validated and committed.
+- Archive and extraction work uses `package-backup/SKILL.md` as the domain skill.
 - After all planned tasks finish, emit a final audit report that lists completed tasks and lists unfinished tasks before the workflow is considered fully closed.
 
 ## OpenSpec Planning Requirements
