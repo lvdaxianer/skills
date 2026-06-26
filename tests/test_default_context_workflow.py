@@ -45,11 +45,19 @@ REQUIRED_STRICT_REVIEW_MARKERS = [
 ]
 REQUIRED_SECTION_MARKERS = [
     "## Stage Boundaries",
+    "## Lightweight Discussion And Architecture Design",
     "## OpenSpec Planning Requirements",
     "## Commit Message Requirements",
     "## Mandatory Task Loop",
     "## Gate Rules",
     "## Required Status Format",
+]
+LIGHTWEIGHT_DISCUSSION_MARKERS = [
+    "需求讨论、方案比较、架构设计、调研总结、快速架构设计文档草稿",
+    "不触发完整 `development-workflow`",
+    "不要求 OpenSpec planning、TDD、code-review-spec 或 commit-per-task gates",
+    "进入代码、测试、配置、重构、持久项目文档、OpenSpec change 或 git commit",
+    "必须先切换回完整 `development-workflow`",
 ]
 POINTER_ONLY_MARKERS = [
     "~/.claude/skills/development-workflow/SKILL.md",
@@ -112,6 +120,20 @@ class DefaultContextWorkflowTest(unittest.TestCase):
                     self.assertIn(marker, content)
 
                 for marker in HARD_TONE_MARKERS:
+                    self.assertIn(marker, content)
+
+    def test_default_context_allows_lightweight_design_discussion(self):
+        """
+        Requirement discussion and architecture drafts should stay lightweight.
+
+        Author: lvdaxianer@yeah.net
+        Date: 2026-06-26
+        """
+        for context_file in DEFAULT_CONTEXT_FILES:
+            with self.subTest(context_file=context_file.name):
+                content = context_file.read_text(encoding="utf-8")
+
+                for marker in LIGHTWEIGHT_DISCUSSION_MARKERS:
                     self.assertIn(marker, content)
 
     def test_home_context_files_are_pointer_only(self):

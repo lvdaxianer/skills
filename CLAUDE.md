@@ -7,8 +7,9 @@ The workflow is mandatory. Do not treat it as optional guidance. Any deviation f
 
 ## 会话启动规则
 
-每个 Claude 会话开始后，只要任务涉及代码、测试、文档、配置、重构或提交，
-都必须先加载并遵守 `development-workflow/SKILL.md`。
+每个 Claude 会话开始后，只要任务涉及代码、测试、配置、重构、持久项目文档、
+OpenSpec change 或提交，都必须先加载并遵守
+`development-workflow/SKILL.md`。
 如果任务涉及打包、备份、还原、解压或提取，还必须先加载并遵守
 `package-backup/SKILL.md`。
 
@@ -33,6 +34,12 @@ The workflow is mandatory. Do not treat it as optional guidance. Any deviation f
 - Implementation uses `superpowers:test-driven-development` after the OpenSpec planning asset has been validated and committed.
 - Archive and extraction work uses `package-backup/SKILL.md` as the domain skill.
 - After all planned tasks finish, emit a final audit report that lists completed tasks and lists unfinished tasks before the workflow is considered fully closed.
+
+## Lightweight Discussion And Architecture Design
+
+- 需求讨论、方案比较、架构设计、调研总结、快速架构设计文档草稿，如果不进入代码、测试、配置、重构、持久项目文档、OpenSpec change 或 git commit，不触发完整 `development-workflow`。
+- 这类轻量工作可以快速输出 Markdown 草稿、架构说明、对比表、决策建议或讨论结论，不要求 OpenSpec planning、TDD、code-review-spec 或 commit-per-task gates。
+- 如果轻量讨论或架构设计后续进入代码、测试、配置、重构、持久项目文档、OpenSpec change 或 git commit，必须先切换回完整 `development-workflow`，再执行对应文件修改、验证和提交。
 
 ## OpenSpec Planning Requirements
 
