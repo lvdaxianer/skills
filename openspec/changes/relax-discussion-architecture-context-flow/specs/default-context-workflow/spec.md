@@ -1,4 +1,4 @@
-## MODIFIED Requirements
+## ADDED Requirements
 
 ### Requirement: Default context files MUST distinguish lightweight discussion from development execution
 `AGENTS.md` and `CLAUDE.md` MUST allow pure requirement discussion, option
