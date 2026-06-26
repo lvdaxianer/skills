@@ -22,11 +22,3 @@ project documentation, OpenSpec assets, or git commits.
   assets, or git commits
 - **THEN** the agent must switch into `development-workflow` before making those
   implementation or durable project changes
-
-### Requirement: Default context files MUST stay aligned with each other
-`AGENTS.md` and `CLAUDE.md` MUST remain semantically aligned so they do not drift
-as the workflow evolves.
-
-#### Scenario: Either startup file is updated
-- **WHEN** one startup context file changes
-- **THEN** the same workflow rules are reflected in the other startup context file
