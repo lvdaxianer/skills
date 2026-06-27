@@ -14,6 +14,8 @@ installation commands for both global and per-project installation paths.
 - **THEN** the instructions include `frontend-interaction-guidelines`
 - **AND** the English and Chinese README files describe when the skill triggers
 
+## ADDED Requirements
+
 ### Requirement: Frontend interaction guidelines skill MUST be available from the agents skill root
 The skill MUST be installed at
 `/Users/lvdaxianer/.agents/skills/frontend-interaction-guidelines` with the same
