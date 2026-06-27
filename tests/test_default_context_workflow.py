@@ -23,6 +23,7 @@ HOME_POINTER_FILES = [
 REQUIRED_WORKFLOW_MARKERS = [
     "development-workflow/SKILL.md",
     "plan-first",
+    "planning-validated-first",
     "TDD",
     "code-review-spec",
     "中文 Conventional Commit",
@@ -38,6 +39,11 @@ REQUIRED_WORKFLOW_MARKERS = [
     "approved specs under `openspec/specs/`",
     "Non-OpenSpec documents do not replace",
     "final audit report",
+    "OpenSpec planning files are committed with the first atomic task commit",
+    "complete business module",
+    "documentation-only",
+    "no business implementation remains",
+    "OpenSpec validation",
 ]
 REQUIRED_STRICT_REVIEW_MARKERS = [
     "严格执行 `code-review-spec`",

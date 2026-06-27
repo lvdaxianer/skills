@@ -15,7 +15,6 @@ MANDATORY_LOOP_MARKERS = [
     "superpowers:brainstorming",
     "OpenSpec",
     "OpenSpec plan",
-    "Commit the OpenSpec plan",
     "TDD",
     "RED",
     "GREEN",
@@ -30,6 +29,13 @@ FULL_COMMIT_MARKERS = [
     "non-empty body",
     "non-empty footer",
     "Refs:",
+]
+PLANNING_COMMIT_POLICY_MARKERS = [
+    "does not require a standalone planning commit",
+    "OpenSpec planning files are committed with the first atomic task commit",
+    "complete business module",
+    "documentation-only",
+    "when no business implementation remains",
 ]
 OPENSPEC_STRUCTURE_MARKERS = [
     "openspec/changes/<change-name>/",
@@ -116,7 +122,7 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
 
     def test_skill_enforces_plan_tdd_review_commit_order(self):
         """
-        The workflow must require plan, TDD, review, and commit in order.
+        The workflow must require validated planning, TDD, review, and commit in order.
 
         Author: lvdaxianerplus
         Date: 2026-06-09
@@ -131,6 +137,21 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         ]
 
         self.assertEqual(marker_positions, sorted(marker_positions))
+
+    def test_skill_commits_planning_with_first_business_task(self):
+        """
+        OpenSpec planning should be committed with business work by default.
+
+        Author: lvdaxianer@yeah.net
+        Date: 2026-06-27
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in PLANNING_COMMIT_POLICY_MARKERS:
+            self.assertIn(marker, content)
+
+        self.assertNotIn("independent planning commit", content)
+        self.assertNotIn("Commit the OpenSpec plan as its own", content)
 
     def test_skill_references_canonical_review_and_commit_sources(self):
         """

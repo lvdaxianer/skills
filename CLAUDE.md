@@ -17,7 +17,7 @@ OpenSpec change 或提交，都必须先加载并遵守
 
 - brainstorming-first：需求讨论先用 `superpowers:brainstorming`。
 - OpenSpec-plan-first：落地到文件时每次变更都是一个 OpenSpec change，使用 `openspec/changes/<change-name>/` 的 `spec-driven` 结构，并通过 `openspec validate <change-name> --strict`。
-- planning-commit-first：OpenSpec 规划提交必须先于实现提交。
+- planning-validated-first：OpenSpec 规划必须先于实现完成并通过验证，但默认随首个完整业务任务提交一起提交。
 - TDD-first：每个任务先写失败测试，确认 RED，再实现 GREEN，并保持可重构。
 - review-gated：每个小任务后严格执行 `code-review-spec`，按 canonical 规范修复所有应修复的问题。
 - commit-per-task：继续下个任务前执行 `commit --style=full`，创建一个带 body 和 footer 的原子中文 Conventional Commit。
@@ -31,7 +31,7 @@ OpenSpec change 或提交，都必须先加载并遵守
 
 - Requirement discussion uses `superpowers:brainstorming`.
 - Requirement persistence uses OpenSpec.
-- Implementation uses `superpowers:test-driven-development` after the OpenSpec planning asset has been validated and committed.
+- Implementation uses `superpowers:test-driven-development` after the OpenSpec planning asset has been created and validated.
 - Archive and extraction work uses `package-backup/SKILL.md` as the domain skill.
 - After all planned tasks finish, emit a final audit report that lists completed tasks and lists unfinished tasks before the workflow is considered fully closed.
 
@@ -54,7 +54,8 @@ OpenSpec change 或提交，都必须先加载并遵守
   - `openspec/changes/<change-name>/tasks.md`
   - `openspec/changes/<change-name>/specs/<capability>/spec.md`
 - Validate the OpenSpec change with `openspec validate <change-name> --strict`.
-- The OpenSpec plan is a required project asset. Commit the OpenSpec plan as an independent planning commit before implementing production code.
+- The OpenSpec plan is a required project asset. Validate it before implementing production code, but do not require a standalone planning commit by default. OpenSpec planning files are committed with the first atomic task commit that carries a complete business module.
+- A standalone OpenSpec or documentation commit is allowed only when the change is documentation-only or when no business implementation remains to carry the document update.
 - Every planned task must have one durable checkbox or equivalent status marker. Mark exactly one completed task immediately after its gate passes. Do not batch-complete tasks at the end.
 - If a session resumes mid-change, read the OpenSpec task list first, continue from the first unchecked task, and preserve already completed task markers.
 - After every OpenSpec change is fully executed and verified, archive the completed OpenSpec change according to the repository's OpenSpec archive process.
@@ -62,7 +63,7 @@ OpenSpec change 或提交，都必须先加载并遵守
 
 ## Commit Message Requirements
 
-- Apply `commit --style=full` for every workflow-created planning, task, archive, or documentation commit unless the user explicitly requests `--style=simple`.
+- Apply `commit --style=full` for every workflow-created task, archive, or documentation commit unless the user explicitly requests `--style=simple`.
 - Every workflow-created commit MUST be a Chinese Conventional Commit with a mapped emoji subject, a non-empty body, and a non-empty footer.
 - The commit body MUST explain what changed and why, including relevant verification evidence when useful.
 - The commit footer MUST include traceability metadata. Use `Refs:` when no breaking change, issue, co-author, or review reference applies.
@@ -81,7 +82,7 @@ For each development task, execute this exact order:
 
 1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
-3. Commit the OpenSpec plan as its own required planning commit before production code changes.
+3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
 4. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
 5. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
 6. Run the focused test and confirm the RED failure is caused by missing behavior.
@@ -93,7 +94,7 @@ For each development task, execute this exact order:
 12. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation before making clear quality, correctness, maintainability, performance, or security fixes.
 13. Re-run the focused and broader verification commands after fixes.
 14. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-15. Create one atomic Chinese Conventional Commit for this task by applying `commit --style=full`; the message must include a non-empty body and non-empty footer.
+15. Create one atomic Chinese Conventional Commit for this task by applying `commit --style=full`; the message must include a non-empty body and non-empty footer. Include uncommitted related OpenSpec planning files in this commit when the task carries a complete business module.
 16. Only after the commit succeeds, move to the next task.
 17. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
 18. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.
@@ -102,7 +103,9 @@ For each development task, execute this exact order:
 
 - Do not ask for confirmation when the next action is mandated by this workflow.
 - Do not skip validation, even for small or documentation-only changes.
-- Do not implement production code before the OpenSpec plan has been written and committed.
+- Do not implement production code before the OpenSpec plan has been written and validated.
+- Do not create standalone planning commits by default; carry OpenSpec planning files with the first atomic task commit for a complete business module.
+- Do not create a standalone OpenSpec or documentation commit unless the change is documentation-only or no business implementation remains to carry it.
 - Do not keep implementation code that was written before a failing test unless the user explicitly exempted the task from TDD.
 - Do not mark a task complete before RED, GREEN, broader verification, plan-implementation consistency audit, `code-review-spec`, fixes, re-verification, and commit gates all pass.
 - Do not batch-complete tasks at the end. Progress must be durable after every finished task.
@@ -120,7 +123,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | OpenSpec plan | planning commit | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | next task>
+Gate: <brainstorming | OpenSpec plan | OpenSpec validation | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | next task>
 Evidence: <command or file checked>
 ```
 
