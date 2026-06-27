@@ -1,0 +1,4 @@
+interface:
+  display_name: "Frontend Interaction Guidelines"
+  short_description: "Reliable frontend interaction rules"
+  default_prompt: "Use $frontend-interaction-guidelines to implement or review frontend interactions for reliable states, actions, forms, loading, empty views, errors, keyboard behavior, and consistency."
