@@ -18,6 +18,7 @@ THREAD_POOL_REFERENCE = (
     PROJECT_ROOT / "code-review-spec" / "references" / "thread-pool.md"
 )
 CODE_REVIEW_SPEC_ROOT = PROJECT_ROOT / "code-review-spec"
+SKILL_FILE = CODE_REVIEW_SPEC_ROOT / "SKILL.md"
 
 
 class CodeReviewSpecTest(unittest.TestCase):
@@ -92,6 +93,24 @@ class CodeReviewSpecTest(unittest.TestCase):
 
         self.assertIn("lvdaxianer@yeah.net", skill_content)
         self.assertNotIn("lvdaxianerplus", skill_content)
+
+    def test_skill_requires_chinese_comments_for_written_or_modified_comments(self):
+        """
+        技能入口必须保留中文注释语言规则。
+
+        Author: lvdaxianer@yeah.net
+        Date: 2026-06-28
+        """
+        skill_content = SKILL_FILE.read_text(encoding="utf-8")
+
+        required_markers = [
+            "新增或修改代码注释时",
+            "必须使用中文注释",
+        ]
+
+        for marker in required_markers:
+            with self.subTest(marker=marker):
+                self.assertIn(marker, skill_content)
 
 
 if __name__ == "__main__":

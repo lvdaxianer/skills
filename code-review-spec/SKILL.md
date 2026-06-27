@@ -14,4 +14,5 @@ description: Use when reviewing, formatting, or editing code. Follow `/code-revi
 2. 细则：`references/*.md`
 3. 有 git 看 `git diff`；无 git 全局
 4. 先确认范围；强制项有一项不通过即不通过
-5. 按规范审查报告格式输出
+5. 新增或修改代码注释时，必须使用中文注释
+6. 按规范审查报告格式输出
