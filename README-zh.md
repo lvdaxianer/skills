@@ -10,6 +10,7 @@
 | [commit](commit/) | 提交规范指针技能。统一指向 canonical commit 命令标准，覆盖 Conventional Commit、中文提交信息、提交拆分与提交选项判断。 | 提交变更、生成提交信息或运行 `/commit` 时触发。 |
 | [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后严格执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
 | [ddd](ddd/) | 领域驱动设计最佳实践 — 限界上下文、实体、值对象、聚合、领域事件、仓储、领域服务、CQRS、事件溯源。 | 讨论 DDD、领域建模、战略设计或复杂业务架构时触发。 |
+| [frontend-interaction-guidelines](frontend-interaction-guidelines/) | 前端交互实现与体验审查指南，覆盖可靠状态、表单、动作、加载、空数据、错误、可访问性交互、操作可靠性与跨页面状态统一。 | 实现或审查前端交互、按钮、提交/删除行为、防抖/节流、加载状态、空数据状态、键盘行为或响应式交互质量时触发。 |
 | [package-backup](package-backup/) | 打包与还原归档任务技能，必须遵守 `package_backup.sh` 的命名、校验与还原安全约定。 | 在打包、备份、还原、解压或提取文件和目录时触发。 |
 | [product-manager](product-manager/) | 产品经理最佳实践 — 需求分析、产品规划、用户体验设计、数据驱动决策、A/B 测试、敏捷实践、MVP 思维。 | 讨论产品需求、用户故事、功能设计、用户体验或业务指标时触发。 |
 | [story-line](story-line/) | 业务故事线交互式编写。引导用户完成六大核心要素（目标、里程碑、角色、流程、数据流转、异常场景），由 brainstorm 技能驱动细化。可选 Chrome DevTools MCP 测试验证。 | 用户想要创建业务故事线时触发。 |
@@ -27,6 +28,7 @@ cp -r skills/code-review-spec ~/.claude/skills/
 cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
+cp -r skills/frontend-interaction-guidelines ~/.claude/skills/
 cp -r skills/package-backup ~/.claude/skills/package-backup
 cp -r skills/product-manager ~/.claude/skills/
 cp -r skills/story-line ~/.claude/skills/
@@ -41,6 +43,7 @@ cp -r /path/to/skills/code-review-spec .claude/skills/
 cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
+cp -r /path/to/skills/frontend-interaction-guidelines .claude/skills/
 cp -r /path/to/skills/package-backup .claude/skills/package-backup
 cp -r /path/to/skills/product-manager .claude/skills/
 cp -r /path/to/skills/story-line .claude/skills/
@@ -83,6 +86,12 @@ Commit 流程。
 - **适用范围**：打包、备份、还原、解压与提取工作流
 - **规则**：遵守 `package_backup.sh` 的命名、校验与还原安全约定
 
+### frontend-interaction-guidelines
+
+- **适用范围**：页面、组件、表单、弹窗、列表、仪表盘、编辑器、工作流和共享 UI 状态的前端交互实现与体验审查
+- **检查项**：任务路径、状态反馈、表单、错误、加载、空数据、导航、命中区域、键盘行为、动效、响应式适配、可访问性、操作可靠性与跨页面状态统一
+- **规则**：做实质性前端交互决策前，先读取 [`references/interaction-checklist.md`](frontend-interaction-guidelines/references/interaction-checklist.md)
+
 ### commit
 
 - **规范来源**：委托给 `/Users/lvdaxianer/.claude/commands/commit.md`
@@ -114,6 +123,7 @@ Commit 流程。
 
 - [Claude Code](https://claude.ai/code) CLI 或 IDE 扩展
 - `development-workflow` 技能需要：Superpowers 的 `writing-plans`、`test-driven-development`，以及本仓库约定的 `code-review-spec` 与 `commit` 技能
+- `frontend-interaction-guidelines` 技能需要：可读取其 `references/interaction-checklist.md` 检查清单
 - `commit` 技能需要：`/Users/lvdaxianer/.claude/commands/commit.md` 可读取
 - `story-line` 技能需要：Superpowers 扩展的 `brainstorm` 技能
 - `story-line` 浏览器测试需要：Chrome DevTools MCP
