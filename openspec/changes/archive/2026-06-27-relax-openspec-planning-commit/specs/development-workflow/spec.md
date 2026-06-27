@@ -2,7 +2,7 @@
 
 ## Modified Requirements
 
-### Requirement: Development workflow MUST validate OpenSpec planning before implementation
+### Requirement: Development workflow MUST validate planning before implementation
 The development workflow MUST create or update and validate the OpenSpec planning
 asset before any production implementation starts. The workflow MUST NOT require
 that validated planning asset to be committed as an independent planning commit by
