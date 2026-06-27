@@ -6,6 +6,7 @@ A collection of reusable skills for [Claude Code](https://claude.ai/code) to boo
 
 | Skill | Description | Trigger |
 |-------|-------------|---------|
+| [backend-reliability-guidelines](backend-reliability-guidelines/) | Backend implementation and review guidance for API contracts, validation, authorization, environment separation, idempotency, transactions, concurrency, errors, jobs, webhooks, migrations, observability, security, performance, and tests. | Triggered when implementing or reviewing backend APIs, services, jobs, queues, webhooks, migrations, configuration, production configuration, data-changing workflows, or reliability-sensitive behavior. |
 | [code-review-spec](code-review-spec/) | Comprehensive code review assistant for all programming languages. Enforces strict canonical checks for comment standards (≥60%), naming conventions, security rules, exception handling, logging standards, DB specs, API design, batch processing, null safety, and more. | Automatically triggered on code changes, formatting, or review requests. |
 | [commit](commit/) | Thin pointer to the canonical commit command standard for Conventional Commit messages, Chinese git commit messages, commit splitting, and commit option decisions. | Triggered when committing changes, generating commit messages, or running `/commit`. |
 | [development-workflow](development-workflow/) | Mandatory development workflow that enforces Superpowers planning, TDD RED/GREEN cycles, strict code-review-spec checks, and Chinese Conventional Commit submission before moving to the next task. | Triggered when starting or executing development tasks that require strict process gates. |
@@ -25,6 +26,7 @@ A collection of reusable skills for [Claude Code](https://claude.ai/code) to boo
 
 # Copy skills to Claude Code's global skills directory
 cp -r skills/code-review-spec ~/.claude/skills/
+cp -r skills/backend-reliability-guidelines ~/.claude/skills/
 cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
@@ -40,6 +42,7 @@ cp -r skills/story-line ~/.claude/skills/
 # Inside your project root
 mkdir -p .claude/skills
 cp -r /path/to/skills/code-review-spec .claude/skills/
+cp -r /path/to/skills/backend-reliability-guidelines .claude/skills/
 cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
@@ -66,6 +69,12 @@ work, so the plan-first, TDD-first, code-review-gated, Chinese Conventional
 Commit workflow stays active before normal development work begins.
 
 ## Skill Details
+
+### backend-reliability-guidelines
+
+- **Scope**: Backend implementation and review for APIs, services, controllers, jobs, queues, webhooks, migrations, configuration, integrations, and data-changing workflows
+- **Checks**: API contracts, validation, authentication, authorization, environment separation, idempotency, transactions, concurrency, error handling, background work, webhooks, database migrations, observability, security, performance, and tests
+- **Rule**: Read [`references/backend-checklist.md`](backend-reliability-guidelines/references/backend-checklist.md) before substantive backend reliability decisions, especially when production configuration or data-changing behavior is touched
 
 ### code-review-spec
 
@@ -122,6 +131,7 @@ Commit workflow stays active before normal development work begins.
 ## Requirements
 
 - [Claude Code](https://claude.ai/code) CLI or IDE extension
+- For `backend-reliability-guidelines` skill: read access to its `references/backend-checklist.md` checklist
 - For `development-workflow` skill: Superpowers `writing-plans` and `test-driven-development`, plus the configured `code-review-spec` and `commit` skills
 - For `frontend-interaction-guidelines` skill: read access to its `references/interaction-checklist.md` checklist
 - For `commit` skill: `/Users/lvdaxianer/.claude/commands/commit.md` must be readable

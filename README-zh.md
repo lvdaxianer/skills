@@ -6,6 +6,7 @@
 
 | 技能 | 描述 | 触发场景 |
 |------|------|----------|
+| [backend-reliability-guidelines](backend-reliability-guidelines/) | 后端实现与可靠性审查指南，覆盖接口契约、校验、鉴权授权、环境配置隔离、幂等、事务、并发、错误、任务、Webhook、迁移、可观测性、安全、性能与测试。 | 实现或审查后端 API、服务、任务、队列、Webhook、迁移、配置、生产配置、数据变更工作流或可靠性敏感行为时触发。 |
 | [code-review-spec](code-review-spec/) | 全语言代码审查助手。强制执行严格的 canonical 检查，覆盖注释比例（≥60%）、命名规范、安全规则、异常处理、日志标准、数据库规范、API 设计、批量处理、空值安全等。 | 代码修改、格式化、格式化代码或用户请求代码审查时自动触发。 |
 | [commit](commit/) | 提交规范指针技能。统一指向 canonical commit 命令标准，覆盖 Conventional Commit、中文提交信息、提交拆分与提交选项判断。 | 提交变更、生成提交信息或运行 `/commit` 时触发。 |
 | [development-workflow](development-workflow/) | 强制开发流程技能。要求先用 Superpowers 编写计划，再按 TDD RED/GREEN 开发，每个小任务后严格执行 code-review-spec 修复与中文 Conventional Commit 提交。 | 开始或执行需要严格流程门禁的开发任务时触发。 |
@@ -25,6 +26,7 @@ git clone https://github.com/lvdaxianerplus/skills.git
 
 # 将技能复制到 Claude Code 全局技能目录
 cp -r skills/code-review-spec ~/.claude/skills/
+cp -r skills/backend-reliability-guidelines ~/.claude/skills/
 cp -r skills/commit ~/.claude/skills/
 cp -r skills/development-workflow ~/.claude/skills/
 cp -r skills/ddd ~/.claude/skills/
@@ -40,6 +42,7 @@ cp -r skills/story-line ~/.claude/skills/
 # 在项目根目录下
 mkdir -p .claude/skills
 cp -r /path/to/skills/code-review-spec .claude/skills/
+cp -r /path/to/skills/backend-reliability-guidelines .claude/skills/
 cp -r /path/to/skills/commit .claude/skills/
 cp -r /path/to/skills/development-workflow .claude/skills/
 cp -r /path/to/skills/ddd .claude/skills/
@@ -66,6 +69,12 @@ cp -r /path/to/skills/story-line .claude/skills/
 Commit 流程。
 
 ## 技能详解
+
+### backend-reliability-guidelines
+
+- **适用范围**：API、服务、控制器、任务、队列、Webhook、迁移、配置、外部集成和数据变更工作流的后端实现与可靠性审查
+- **检查项**：接口契约、输入校验、认证、授权、环境配置隔离、幂等、事务、并发、错误处理、后台任务、Webhook、数据库迁移、可观测性、安全隐私、性能与测试
+- **规则**：做实质性后端可靠性决策前，先读取 [`references/backend-checklist.md`](backend-reliability-guidelines/references/backend-checklist.md)，尤其是触及生产配置或数据变更行为时
 
 ### code-review-spec
 
@@ -122,6 +131,7 @@ Commit 流程。
 ## 环境要求
 
 - [Claude Code](https://claude.ai/code) CLI 或 IDE 扩展
+- `backend-reliability-guidelines` 技能需要：可读取其 `references/backend-checklist.md` 检查清单
 - `development-workflow` 技能需要：Superpowers 的 `writing-plans`、`test-driven-development`，以及本仓库约定的 `code-review-spec` 与 `commit` 技能
 - `frontend-interaction-guidelines` 技能需要：可读取其 `references/interaction-checklist.md` 检查清单
 - `commit` 技能需要：`/Users/lvdaxianer/.claude/commands/commit.md` 可读取
