@@ -1,13 +1,6 @@
 # Extend Architecture Deployment Planning
 
-## Summary
-
-Update the `architecture-design-spec` skill so architecture documents treat
-deployment architecture as a first-class view. System-level architecture
-documents must include deployment resource planning for both standalone and
-high-availability deployments.
-
-## Motivation
+## Why
 
 The current skill requires several architecture diagrams, including deployment
 architecture, but it does not explicitly require the overall document to answer
@@ -15,7 +8,7 @@ which components run on which machines and what machine specifications are
 needed. This leaves implementation and operations teams without a clear
 deployment baseline.
 
-## Scope
+## What Changes
 
 - Add business architecture as an explicitly recognized architecture view.
 - Strengthen deployment architecture requirements for system-level documents.
