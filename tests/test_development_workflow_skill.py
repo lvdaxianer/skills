@@ -97,6 +97,41 @@ FINAL_REVIEW_SUMMARY_MARKERS = [
     "why it was poor",
     "how to correct or improve it",
 ]
+TASK_BOUNDARY_MARKERS = [
+    "task boundary and agent dispatch plan",
+    "module-oriented agent name",
+    "owned responsibility",
+    "allowed files or modules",
+    "out-of-scope work",
+    "dependencies",
+    "focused and broader verification commands",
+    "handoff evidence",
+]
+SUBAGENT_DISPATCH_MARKERS = [
+    "superpowers:subagent-driven-development",
+    "multi-agent orchestration",
+    "Direct main-agent execution is allowed only when delegation is unavailable, unsafe, or not useful",
+    "record the fallback reason",
+    "disjoint write scopes or isolated worktrees",
+    "does not dispatch multiple implementation agents to edit overlapping files or modules in the same working tree",
+]
+SUBAGENT_MERGE_REVIEW_LOOP_MARKERS = [
+    "subagent merge-review loop",
+    "merge or apply the subagent result into the main worktree",
+    "main agent review",
+    "send the findings back to the same subagent",
+    "repeat merge, review, and fix",
+    "until the main agent review passes",
+]
+SUBAGENT_CONCURRENCY_MARKERS = [
+    "default maximum parallel implementer subagents is 3",
+    "default maximum total parallel agents is 5",
+    "The concurrency limit is a safety ceiling, not a target",
+    "queue additional agent work",
+    "reuse the same subagent for that repair loop",
+    "reduce implementation concurrency to 1",
+    "shared files, shared modules, or high-risk changes",
+]
 
 
 class DevelopmentWorkflowSkillTest(unittest.TestCase):
@@ -272,6 +307,72 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in FINAL_REVIEW_SUMMARY_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_task_boundary_before_red(self):
+        """
+        The workflow must define task ownership before the TDD RED gate.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-29
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+        mandatory_loop = content.split("## Mandatory Task Loop", maxsplit=1)[1]
+
+        for marker in TASK_BOUNDARY_MARKERS:
+            self.assertIn(marker, content)
+
+        boundary_position = mandatory_loop.index("task boundary and agent dispatch plan")
+        red_position = mandatory_loop.index("RED")
+
+        self.assertLess(boundary_position, red_position)
+
+    def test_skill_prefers_bounded_subagent_execution(self):
+        """
+        The workflow must use subagent orchestration with safe fallback rules.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-29
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in SUBAGENT_DISPATCH_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_requires_subagent_merge_review_loop(self):
+        """
+        The workflow must merge subagent work before main-agent review and fixes.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-29
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+        mandatory_loop = content.split("## Mandatory Task Loop", maxsplit=1)[1]
+
+        for marker in SUBAGENT_MERGE_REVIEW_LOOP_MARKERS:
+            self.assertIn(marker, content)
+
+        dispatch_position = mandatory_loop.index("Dispatch a bounded module-oriented implementer agent")
+        merge_position = mandatory_loop.index("merge or apply the subagent result into the main worktree")
+        review_position = mandatory_loop.index("main agent review")
+        fix_position = mandatory_loop.index("send the findings back to the same subagent")
+        tdd_position = mandatory_loop.index("superpowers:test-driven-development")
+
+        self.assertLess(dispatch_position, merge_position)
+        self.assertLess(merge_position, review_position)
+        self.assertLess(review_position, fix_position)
+        self.assertLess(fix_position, tdd_position)
+
+    def test_skill_limits_subagent_concurrency(self):
+        """
+        The workflow must cap subagent concurrency and queue excess work.
+
+        Author: lvdaxianerplus
+        Date: 2026-06-29
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in SUBAGENT_CONCURRENCY_MARKERS:
             self.assertIn(marker, content)
 
     def test_skill_requires_full_commit_messages(self):

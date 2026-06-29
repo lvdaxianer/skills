@@ -17,6 +17,7 @@ Load and follow these skills before work begins:
 
 - `superpowers:brainstorming` for requirement discussion, alternatives, and approved design.
 - `openspec` for durable written change specs, implementation plans, task lists, validation, and archival.
+- `superpowers:subagent-driven-development` for bounded multi-agent task execution when tasks can be safely delegated.
 - `superpowers:test-driven-development` for RED/GREEN/REFACTOR discipline before production code.
 - `superpowers:verification-before-completion` or the closest available Superpowers audit skill for plan-implementation consistency audit.
 - `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`.
@@ -39,8 +40,9 @@ If any required source cannot be read, stop and report the missing source.
 - Requirement persistence uses OpenSpec. Once the user chooses to write the
   requirement into files, create or update exactly one OpenSpec change for the
   independent change.
-- Implementation uses `superpowers:test-driven-development` after the OpenSpec
-  planning asset has been created and validated.
+- Implementation first defines a task boundary and agent dispatch plan after the
+  OpenSpec planning asset has been created and validated, then uses
+  `superpowers:test-driven-development`.
 - After all planned tasks finish, emit a final audit report that lists completed
   tasks, lists unfinished tasks, and includes a final review summary before the
   workflow is considered fully closed.
@@ -102,6 +104,48 @@ If any required source cannot be read, stop and report the missing source.
 - 如果 canonical `code-review-spec` 的任一要求不满足，必须视为未通过，直到修复并重新验证通过为止。
 - 任何 `code-review-spec` 结论都必须基于实际对照结果，而不是摘要、印象判断或部分规则检查。
 
+## Task Boundary And Agent Dispatch Requirements
+
+- Before RED, the selected OpenSpec task must define a task boundary and agent
+  dispatch plan.
+- The task boundary and agent dispatch plan must include:
+  - module-oriented agent name
+  - owned responsibility
+  - allowed files or modules
+  - out-of-scope work
+  - dependencies
+  - focused and broader verification commands
+  - handoff evidence
+- Use `superpowers:subagent-driven-development` as the default multi-agent
+  orchestration principle for safely delegable tasks.
+- multi-agent orchestration is the default execution principle when task
+  boundaries are clear and delegation is safe.
+- The main agent remains responsible for planning, context curation, dispatch,
+  verification evidence, plan-implementation consistency audit,
+  `code-review-spec`, task mark-complete, commits, final audit, OpenSpec
+  archive, and final reporting.
+- The main agent verifies the returned evidence before advancing gates.
+- Direct main-agent execution is allowed only when delegation is unavailable, unsafe, or not useful. The workflow must record the fallback reason before RED.
+- Parallel implementation is allowed only with disjoint write scopes or isolated worktrees.
+- The workflow does not dispatch multiple implementation agents to edit overlapping files or modules in the same working tree.
+- Analysis, review, and verification agents may run in parallel when they do not
+  mutate overlapping files.
+- The default maximum parallel implementer subagents is 3.
+- The default maximum total parallel agents is 5 across implementer, analysis,
+  review, and verification agents.
+- The concurrency limit is a safety ceiling, not a target. Do not start agents
+  only to fill capacity.
+- When the limit is reached, queue additional agent work until a running agent
+  completes or is closed.
+- If a delegated task enters a repair loop, reuse the same subagent for that repair loop instead of starting a new implementer agent.
+- For shared files, shared modules, or high-risk changes, reduce implementation concurrency to 1 even when the default limit would allow more agents.
+- The subagent merge-review loop is mandatory for delegated implementation:
+  merge or apply the subagent result into the main worktree, run main agent
+  review, send the findings back to the same subagent when issues exist, and
+  repeat merge, review, and fix until the main agent review passes.
+- Do not mark delegated work complete from a subagent report alone. The main
+  worktree must contain the merged or applied result before review gates can pass.
+
 ## Mandatory Task Loop
 
 For each development task, execute this exact order:
@@ -110,30 +154,48 @@ For each development task, execute this exact order:
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
 3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
 4. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
-5. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
-6. Run the focused test and confirm the RED failure is caused by missing behavior.
-7. Implement the minimal GREEN change required by the failing test.
-8. Run the focused test again and confirm it passes.
-9. Run the relevant broader test, lint, build, or documentation check for the touched area.
-10. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
-11. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
-12. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
+5. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
+6. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
+7. For delegated implementation, merge or apply the subagent result into the main worktree before accepting the task result.
+8. Run main agent review on the merged or applied result.
+9. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
+10. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
+11. Run the focused test and confirm the RED failure is caused by missing behavior.
+12. Implement the minimal GREEN change required by the failing test.
+13. Run the focused test again and confirm it passes.
+14. Run the relevant broader test, lint, build, or documentation check for the touched area.
+15. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
+16. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
+17. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
-13. Re-run the focused and broader verification commands after fixes.
-14. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-15. Create one atomic Chinese Conventional Commit for this task by applying
+18. Re-run the focused and broader verification commands after fixes.
+19. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
+20. Create one atomic Chinese Conventional Commit for this task by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module.
-16. Only after the commit succeeds, move to the next task.
-17. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
-18. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.
+21. Only after the commit succeeds, move to the next task.
+22. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
+23. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.
 
 ## Gate Rules
 
 - Do not ask for confirmation when the next action is mandated by this workflow.
 - Do not skip validation, even for small or documentation-only changes.
 - Do not implement production code before the OpenSpec plan has been written and validated.
+- Do not write the RED test before the task boundary and agent dispatch plan has
+  been defined.
+- Do not use direct main-agent execution without recording why delegation is
+  unavailable, unsafe, or not useful.
+- Do not run overlapping implementation agents in the same working tree.
+- Do not exceed 3 parallel implementer subagents or 5 total parallel agents by
+  default; queue extra work instead.
+- Do not treat the concurrency limit as a target.
+- Do not start a new subagent for a repair loop when the original subagent can
+  receive the findings and continue.
+- Do not advance delegated work from subagent report alone; first merge or apply
+  the subagent result into the main worktree, run main agent review, and send
+  findings back to the same subagent until the review passes.
 - Do not create standalone planning commits by default; carry OpenSpec planning
   files with the first atomic task commit for a complete business module.
 - Do not create a standalone OpenSpec or documentation commit unless the change
@@ -157,7 +219,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | OpenSpec plan | OpenSpec validation | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | next task>
+Gate: <brainstorming | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | next task>
 Evidence: <command or file checked>
 ```
 
