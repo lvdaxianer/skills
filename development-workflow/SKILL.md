@@ -71,6 +71,12 @@ If any required source cannot be read, stop and report the missing source.
   default.
   OpenSpec planning files are committed with the first atomic task commit that
   carries a complete business module.
+- For new feature implementation, create or switch to a dedicated feature branch
+  before production implementation begins. The branch name must follow
+  `feature/<source-branch>-<中文任务短名>`, where `<source-branch>` records the
+  branch used as the base for the feature branch and `<中文任务短名>` describes the
+  feature purpose in Chinese. Example: a login feature branched from `main`
+  can use `feature/main-新增登录`.
 - A standalone OpenSpec or documentation commit is allowed only when the change
   is documentation-only or when no business implementation remains to carry the
   document update.
@@ -153,30 +159,31 @@ For each development task, execute this exact order:
 1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
 3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
-4. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
-5. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
-6. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
-7. For delegated implementation, merge or apply the subagent result into the main worktree before accepting the task result.
-8. Run main agent review on the merged or applied result.
-9. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
-10. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
-11. Run the focused test and confirm the RED failure is caused by missing behavior.
-12. Implement the minimal GREEN change required by the failing test.
-13. Run the focused test again and confirm it passes.
-14. Run the relevant broader test, lint, build, or documentation check for the touched area.
-15. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
-16. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
-17. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
+4. For new feature implementation, create or switch to the dedicated feature branch named `feature/<source-branch>-<中文任务短名>` before production implementation begins.
+5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
+6. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
+7. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
+8. For delegated implementation, merge or apply the subagent result into the main worktree before accepting the task result.
+9. Run main agent review on the merged or applied result.
+10. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
+11. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
+12. Run the focused test and confirm the RED failure is caused by missing behavior.
+13. Implement the minimal GREEN change required by the failing test.
+14. Run the focused test again and confirm it passes.
+15. Run the relevant broader test, lint, build, or documentation check for the touched area.
+16. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
+17. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
+18. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
-18. Re-run the focused and broader verification commands after fixes.
-19. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-20. Create one atomic Chinese Conventional Commit for this task by applying
+19. Re-run the focused and broader verification commands after fixes.
+20. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
+21. Create one atomic Chinese Conventional Commit for this task by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module.
-21. Only after the commit succeeds, move to the next task.
-22. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
-23. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.
+22. Only after the commit succeeds, move to the next task.
+23. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
+24. Archive the completed OpenSpec change, then commit the archive/update if the archive modifies repository files.
 
 ## Gate Rules
 
