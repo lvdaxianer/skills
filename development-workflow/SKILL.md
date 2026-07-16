@@ -13,15 +13,23 @@ stricter workflow.
 
 ## Required Sources
 
-Load and follow these skills before work begins:
+Load and follow these skills at their required workflow stages:
 
 - `superpowers:brainstorming` for requirement discussion, alternatives, and approved design.
-- `openspec` for durable written change specs, implementation plans, task lists, validation, and archival.
+- The action-specific OpenSpec skill suite for durable change assets:
+  - `openspec-new-change` with `openspec-continue-change`, or `openspec-ff-change`, for planning.
+  - `openspec-apply-change` for implementation.
+  - `openspec-verify-change` for implementation verification.
+  - `openspec-sync-specs` when approved delta specs must be synchronized.
+  - `openspec-archive-change` for archival.
 - `superpowers:subagent-driven-development` for bounded multi-agent task execution when tasks can be safely delegated.
 - `superpowers:test-driven-development` for RED/GREEN/REFACTOR discipline before production code.
 - `superpowers:verification-before-completion` or the closest available Superpowers audit skill for plan-implementation consistency audit.
 - `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`.
 - `commit` from `/Users/lvdaxianer/.codex/skills/commit/SKILL.md`.
+
+The project `openspec/` directory stores change and specification assets; it is
+not a skill package. Do not search for or require `openspec/SKILL.md`.
 
 Canonical rule sources used through those pointer skills:
 
@@ -50,7 +58,9 @@ If any required source cannot be read, stop and report the missing source.
 ## OpenSpec Planning Requirements
 
 - Use `superpowers:brainstorming` before writing the plan so the plan captures the intended behavior, constraints, trade-offs, and acceptance criteria.
-- Use `openspec` to create or update the written change asset under `openspec/changes/<change-name>/`.
+- Use `openspec-new-change` with `openspec-continue-change`, or use
+  `openspec-ff-change`, to create or update the written change asset under
+  `openspec/changes/<change-name>/`.
 - Before creating or updating the written change asset, verify that the project
   root contains a non-hidden `openspec/` directory. If it is missing,
   initialize the OpenSpec scaffold first and select Codex and Claude instruction targets.
