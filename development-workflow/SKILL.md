@@ -83,11 +83,11 @@ If any required source cannot be read, stop and report the missing source.
   carries a complete business module.
 - For new feature or bug fix implementation, create or switch to a dedicated
   branch before production implementation begins. A feature branch must follow
-  `feature/<source-branch>_<中文功能短名>`, and a bug-fix branch must follow
+  `feat/<source-branch>_<中文功能短名>`, and a bug-fix branch must follow
   `fix/<source-branch>_<中文修复短名>`. The `<source-branch>` value records the
   actual branch used as the base, including any `/` in that branch name. The
   Chinese suffix describes the current feature or fix. Examples: a login
-  feature based on `main` can use `feature/main_新增登录`; a login timeout fix
+  feature based on `main` can use `feat/main_新增登录`; a login timeout fix
   based on `develop` can use `fix/develop_修复登录超时`.
 - The agent must not begin implementation until the required feature or bug-fix
   branch has been created or selected.
@@ -174,7 +174,7 @@ For each development task, execute this exact order:
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
 3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
 4. Classify the change as a new feature or bug fix before implementation. Create
-   or switch to `feature/<source-branch>_<中文功能短名>` for feature work or
+   or switch to `feat/<source-branch>_<中文功能短名>` for feature work or
    `fix/<source-branch>_<中文修复短名>` for bug-fix work. The agent must not begin
    implementation on the source branch.
 5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.

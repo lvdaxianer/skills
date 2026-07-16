@@ -16,24 +16,26 @@ SKILL_FILE = PROJECT_ROOT / "development-workflow" / "SKILL.md"
 # 标记同时覆盖任务类型、命名格式、来源分支和示例。
 MANDATORY_BRANCH_POLICY_MARKERS = [
     "new feature or bug fix",
-    "feature/<source-branch>_<中文功能短名>",
+    "feat/<source-branch>_<中文功能短名>",
     "fix/<source-branch>_<中文修复短名>",
     "actual branch used as the base",
     "including any `/`",
-    "feature/main_新增登录",
+    "feat/main_新增登录",
     "fix/develop_修复登录超时",
 ]
 
-# 旧规则使用连字符且只覆盖 feature，必须从当前契约移除。
+# 旧规则使用 feature 前缀或连字符，必须从当前契约移除。
 OBSOLETE_BRANCH_POLICY_MARKERS = [
+    "feature/<source-branch>_<中文功能短名>",
     "feature/<source-branch>-<中文任务短名>",
+    "feature/main_新增登录",
     "feature/main-新增登录",
 ]
 
 
 class DevelopmentWorkflowBranchPolicyTest(unittest.TestCase):
     """
-    验证 feature 和 bug-fix 实现使用强制来源分支命名。
+    验证 feat 和 bug-fix 实现使用强制来源分支命名。
 
     Author: lvdaxianer@yeah.net
     Date: 2026-07-16
