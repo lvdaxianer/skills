@@ -104,6 +104,37 @@ If any required source cannot be read, stop and report the missing source.
   what was poor in the original code or workflow, why it was poor, and
   how to correct or improve it.
 
+## Risk-Based Standard Change Tiers
+
+OpenSpec remains mandatory by default for every persisted change unless the user
+explicitly opts out. Risk tiers only scale evidence depth; they do not remove
+OpenSpec traceability, required gate order, task completion markers, commits,
+final audit, or OpenSpec archive.
+
+Classify standard changes primarily by behavior risk and secondarily by file
+count or module span before implementation:
+
+- S-tier: localized low-risk behavior changes, such as a small bug fix, a local
+  validation adjustment, or a narrow test/configuration update. Keep an OpenSpec
+  change by default, but use compact proposal, design, task, spec, verification,
+  and review evidence. A single task is usually enough. Do not add subagent
+  orchestration when the task is better handled directly; record the direct
+  execution fallback reason before RED.
+- M-tier: normal feature, bugfix, configuration, test, documentation, or
+  refactoring changes with clear behavior risk and bounded module impact. Use
+  the complete workflow with concise evidence, focused task boundaries, focused
+  and broader verification commands, and canonical review. Dispatch subagents
+  only when clear ownership boundaries make delegation useful and safe.
+- L-tier: broad or risk-sensitive standard changes, including cross-module
+  behavior, public contract changes, migrations, permissions, concurrency, data
+  consistency, or architecture-boundary work. Use the fullest task breakdown,
+  risk notes, verification scope, and review evidence. Prefer smaller task
+  commits, reduce implementation concurrency for shared or high-risk areas, and
+  run the strongest relevant broader verification.
+
+Tiers scale evidence depth; they do not remove gate order. If the tier is
+unclear, choose the higher-risk tier until evidence supports a narrower scope.
+
 ## Commit Message Requirements
 
 - Apply `commit --style=full` for every workflow-created task, archive,

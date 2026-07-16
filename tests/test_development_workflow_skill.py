@@ -132,6 +132,19 @@ SUBAGENT_CONCURRENCY_MARKERS = [
     "reduce implementation concurrency to 1",
     "shared files, shared modules, or high-risk changes",
 ]
+RISK_TIER_MARKERS = [
+    "## Risk-Based Standard Change Tiers",
+    "OpenSpec remains mandatory by default for every persisted change",
+    "Classify standard changes primarily by behavior risk",
+    "secondarily by file",
+    "S-tier",
+    "M-tier",
+    "L-tier",
+    "compact proposal, design, task, spec, verification",
+    "fullest task breakdown",
+    "risk notes, verification scope, and review evidence",
+    "Tiers scale evidence depth; they do not remove gate order",
+]
 
 
 class DevelopmentWorkflowSkillTest(unittest.TestCase):
@@ -385,6 +398,18 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
         content = SKILL_FILE.read_text(encoding="utf-8")
 
         for marker in FULL_COMMIT_MARKERS:
+            self.assertIn(marker, content)
+
+    def test_skill_scales_standard_change_evidence_by_risk(self):
+        """
+        Standard changes must keep OpenSpec while scaling evidence by risk.
+
+        Author: lvdaxianer@yeah.net
+        Date: 2026-07-16
+        """
+        content = SKILL_FILE.read_text(encoding="utf-8")
+
+        for marker in RISK_TIER_MARKERS:
             self.assertIn(marker, content)
 
 
