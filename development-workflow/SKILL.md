@@ -81,12 +81,16 @@ If any required source cannot be read, stop and report the missing source.
   default.
   OpenSpec planning files are committed with the first atomic task commit that
   carries a complete business module.
-- For new feature implementation, create or switch to a dedicated feature branch
-  before production implementation begins. The branch name must follow
-  `feature/<source-branch>-<中文任务短名>`, where `<source-branch>` records the
-  branch used as the base for the feature branch and `<中文任务短名>` describes the
-  feature purpose in Chinese. Example: a login feature branched from `main`
-  can use `feature/main-新增登录`.
+- For new feature or bug fix implementation, create or switch to a dedicated
+  branch before production implementation begins. A feature branch must follow
+  `feature/<source-branch>_<中文功能短名>`, and a bug-fix branch must follow
+  `fix/<source-branch>_<中文修复短名>`. The `<source-branch>` value records the
+  actual branch used as the base, including any `/` in that branch name. The
+  Chinese suffix describes the current feature or fix. Examples: a login
+  feature based on `main` can use `feature/main_新增登录`; a login timeout fix
+  based on `develop` can use `fix/develop_修复登录超时`.
+- The agent must not begin implementation until the required feature or bug-fix
+  branch has been created or selected.
 - A standalone OpenSpec or documentation commit is allowed only when the change
   is documentation-only or when no business implementation remains to carry the
   document update.
@@ -169,7 +173,10 @@ For each development task, execute this exact order:
 1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
 3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
-4. For new feature implementation, create or switch to the dedicated feature branch named `feature/<source-branch>-<中文任务短名>` before production implementation begins.
+4. Classify the change as a new feature or bug fix before implementation. Create
+   or switch to `feature/<source-branch>_<中文功能短名>` for feature work or
+   `fix/<source-branch>_<中文修复短名>` for bug-fix work. The agent must not begin
+   implementation on the source branch.
 5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
 6. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
 7. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
@@ -200,6 +207,8 @@ For each development task, execute this exact order:
 - Do not ask for confirmation when the next action is mandated by this workflow.
 - Do not skip validation, even for small or documentation-only changes.
 - Do not implement production code before the OpenSpec plan has been written and validated.
+- Do not begin new feature or bug-fix implementation until the correctly named
+  dedicated branch has been created or selected.
 - Do not write the RED test before the task boundary and agent dispatch plan has
   been defined.
 - Do not use direct main-agent execution without recording why delegation is

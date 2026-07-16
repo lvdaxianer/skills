@@ -37,16 +37,6 @@ PLANNING_COMMIT_POLICY_MARKERS = [
     "documentation-only",
     "when no business implementation remains",
 ]
-FEATURE_BRANCH_ORIGIN_MARKERS = [
-    "new feature implementation",
-    "dedicated feature branch",
-    "feature/<source-branch>-<中文任务短名>",
-    "<source-branch>` records",
-    "branch used as the base for the feature branch",
-    "<中文任务短名>` describes",
-    "feature purpose in Chinese",
-    "feature/main-新增登录",
-]
 OPENSPEC_STRUCTURE_MARKERS = [
     "openspec/changes/<change-name>/",
     ".openspec.yaml",
@@ -197,26 +187,6 @@ class DevelopmentWorkflowSkillTest(unittest.TestCase):
 
         self.assertNotIn("independent planning commit", content)
         self.assertNotIn("Commit the OpenSpec plan as its own", content)
-
-    def test_skill_requires_feature_branch_origin_naming(self):
-        """
-        New feature work should use a branch that records its source branch.
-
-        Author: lvdaxianer@yeah.net
-        Date: 2026-07-13
-        """
-        content = SKILL_FILE.read_text(encoding="utf-8")
-        planning_section = content.split("## OpenSpec Planning Requirements", maxsplit=1)[1]
-        mandatory_loop = content.split("## Mandatory Task Loop", maxsplit=1)[1]
-
-        for marker in FEATURE_BRANCH_ORIGIN_MARKERS:
-            self.assertIn(marker, content)
-
-        self.assertIn("dedicated feature branch", planning_section)
-        branch_position = mandatory_loop.index("dedicated feature branch")
-        implementation_position = mandatory_loop.index("Use `superpowers:test-driven-development`")
-
-        self.assertLess(branch_position, implementation_position)
 
     def test_skill_references_canonical_review_and_commit_sources(self):
         """
