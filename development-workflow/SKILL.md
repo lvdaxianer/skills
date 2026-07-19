@@ -83,12 +83,11 @@ If any required source cannot be read, stop and report the missing source.
   carries a complete business module.
 - For new feature or bug fix implementation, create or switch to a dedicated
   branch before production implementation begins. A feature branch must follow
-  `feat/<source-branch>_<中文功能短名>`, and a bug-fix branch must follow
-  `fix/<source-branch>_<中文修复短名>`. The `<source-branch>` value records the
-  actual branch used as the base, including any `/` in that branch name. The
-  Chinese suffix describes the current feature or fix. Examples: a login
-  feature based on `main` can use `feat/main_新增登录`; a login timeout fix
-  based on `develop` can use `fix/develop_修复登录超时`.
+  `features/<明确业务功能>`, and a bug-fix branch must follow
+  `fixes/<明确问题>`. The suffix should be a clear business-oriented Chinese
+  name that directly identifies the feature or issue, without action words such
+  as "新增" or "修复". Examples: `features/订单导出`, `features/权限配置`,
+  `fixes/登录超时`, `fixes/导出乱码`.
 - The agent must not begin implementation until the required feature or bug-fix
   branch has been created or selected.
 - A standalone OpenSpec or documentation commit is allowed only when the change
@@ -205,9 +204,9 @@ For each development task, execute this exact order:
 2. Use `OpenSpec` to create or update the written change, including the OpenSpec plan and task checklist.
 3. Validate the OpenSpec change and keep those planning files available for the first related task commit.
 4. Classify the change as a new feature or bug fix before implementation. Create
-   or switch to `feat/<source-branch>_<中文功能短名>` for feature work or
-   `fix/<source-branch>_<中文修复短名>` for bug-fix work. The agent must not begin
-   implementation on the source branch.
+   or switch to `features/<明确业务功能>` for feature work or
+   `fixes/<明确问题>` for bug-fix work. The agent must not begin implementation
+   on the original branch.
 5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
 6. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
 7. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
