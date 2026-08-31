@@ -25,8 +25,20 @@ Load and follow these skills at their required workflow stages:
 - `superpowers:subagent-driven-development` for bounded multi-agent task execution when tasks can be safely delegated.
 - `superpowers:test-driven-development` for RED/GREEN/REFACTOR discipline before production code.
 - `superpowers:verification-before-completion` or the closest available Superpowers audit skill for plan-implementation consistency audit.
-- `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`.
-- `$logging-boundaries` from `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md` whenever a task writes, modifies, reviews, tests, or advises on production logging.
+- `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`
+  whenever a task writes, modifies, reviews, or formats source code.
+- `logging-boundaries` from `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md`
+  whenever a task writes, modifies, reviews, tests, or advises on production logging.
+- `backend-reliability-guidelines` whenever a task touches backend APIs, services,
+  controllers, jobs, queues, webhooks, migrations, configuration, validation,
+  authorization, idempotency, transactions, concurrency, error handling, or
+  backend observability.
+- `frontend-interaction-guidelines` whenever a task touches frontend pages,
+  components, forms, modals, lists, dashboards, editors, workflows, buttons,
+  loading, empty/error states, submit/save/delete/publish/pay/upload/batch
+  actions, debounce/throttle, keyboard behavior, motion, responsive
+  interaction, accessibility interaction quality, operation reliability, or
+  cross-page state consistency.
 - `commit` from `/Users/lvdaxianer/.codex/skills/commit/SKILL.md`.
 
 The project `openspec/` directory stores change and specification assets; it is
@@ -58,25 +70,38 @@ If any required source cannot be read, stop and report the missing source.
   tasks, lists unfinished tasks, and includes a final review summary before the
   workflow is considered fully closed.
 
-## Logging-Specific Requirements
+## Domain Authority Delegation
 
-- For any task that touches log statements, log levels, logged fields, redaction,
-  trace context, MDC propagation, DEBUG controls, or log-volume behavior, read
-  `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md` first, then read
-  its Claude canonical source completely before making logging decisions.
-- Load every `logging-boundaries` reference or scenario file required by the
-  touched logging context. Do not approximate a scenario rule from the pointer,
-  this workflow, or general code-review guidance.
-- Treat `logging-boundaries` as authoritative for all logging-specific decisions.
-  If it conflicts with `code-review-spec` or another general source on a logging
-  concern, follow `logging-boundaries`; continue applying the general source to
-  non-logging quality concerns.
-- Include the applicable `logging-boundaries` rules and scenario files in the
+This workflow controls process only. It does not encode standards. Whenever a
+task touches a domain listed below, the corresponding skill is authoritative
+and must be executed strictly and item-by-item against its canonical sources
+(SKILL.md, spec.md, and every applicable `references/*` file). Summaries,
+impressions, "close enough", or selective coverage do not satisfy a domain
+skill.
+
+| Domain trigger | Authoritative skill |
+|---|---|
+| Any source code writing, modification, review, or formatting | `code-review-spec` |
+| Production logging: log statements, levels, fields, redaction, trace/MDC, DEBUG controls, log-volume behavior | `logging-boundaries` |
+| Backend implementation and backend review: APIs, services, jobs, queues, webhooks, migrations, configuration, validation, authorization, idempotency, transactions, concurrency, error handling, observability | `backend-reliability-guidelines` |
+| Frontend interaction implementation and review: pages, components, forms, modals, editors, workflows, buttons, loading/empty/error/disabled states, submit/save/delete/publish/pay/upload/batch actions, debounce/throttle, keyboard, motion, responsive interaction, accessibility interaction quality, operation reliability, cross-page state consistency | `frontend-interaction-guidelines` |
+
+Delegation rules:
+
+- Read the pointer skill and every canonical source file it requires before
+  making decisions in that domain. Do not approximate a rule from this workflow,
+  from another skill, or from general knowledge.
+- When two domain skills overlap on the same concern, the more specific domain
+  wins on that concern (logging concern → `logging-boundaries`;
+  frontend-interaction concern → `frontend-interaction-guidelines`;
+  backend-reliability concern → `backend-reliability-guidelines`).
+  `code-review-spec` continues to govern all non-domain code quality concerns.
+- Include the applied domain rules and reference files as evidence in the
   focused test, plan-implementation consistency audit, and `code-review-spec`
-  evidence for the task.
-- If the Codex pointer, Claude canonical skill, or a required logging reference or
-  scenario file cannot be read, stop the affected task or gate and report the
-  unavailable source. Never invent or approximate missing logging rules.
+  gates for the task.
+- If any pointer, canonical skill, or required reference file cannot be read,
+  stop the affected task or gate and report the unavailable source. Never
+  invent, summarize, or approximate a missing rule.
 
 ## OpenSpec Planning Requirements
 
@@ -183,25 +208,28 @@ unclear, choose the higher-risk tier until evidence supports a narrower scope.
 
 ## Commit Message Requirements
 
-- Apply `commit --style=full` for every workflow-created task, archive,
-  or documentation commit unless the user explicitly requests `--style=simple`.
-- Every workflow-created commit MUST be a Chinese Conventional Commit with a
-  mapped emoji subject, a non-empty body, and a non-empty footer.
-- The commit body MUST explain what changed and why, including relevant
-  verification evidence when useful.
-- The commit footer MUST include traceability metadata. Use `Refs:` when no
-  breaking change, issue, co-author, or review reference applies.
-- For OpenSpec-driven task commits, prefer footer values such as
-  `Refs: OpenSpec <change-name> task <task-id>`.
+Commit message format is delegated to the `commit` skill; this workflow does
+not restate that standard.
 
-## code-review-spec 执行要求
-
-- 当任务涉及代码审查、格式化或代码修改时，必须严格执行 `code-review-spec`，不得用“差不多”“大致符合”或选择性覆盖代替。
-- 执行 `code-review-spec` 时，必须逐项对照 canonical 的 `SKILL.md`、`spec.md` 以及相关 `references/*` 检查；未覆盖的项必须明确说明原因，不能默认合格。
-- 如果 canonical `code-review-spec` 的任一要求不满足，必须视为未通过，直到修复并重新验证通过为止。
-- 任何 `code-review-spec` 结论都必须基于实际对照结果，而不是摘要、印象判断或部分规则检查。
+- Every workflow-created commit — task implementations, OpenSpec archives,
+  and workflow-driven documentation — MUST invoke `commit --style=full`
+  unless the user explicitly requests `--style=simple`. Follow the canonical
+  `commit` skill item-by-item; do not accept summaries or "close enough"
+  substitutes.
+- For OpenSpec-driven task commits, the footer SHOULD carry
+  `Refs: OpenSpec <change-name> task <task-id>` so traceability lands on the
+  OpenSpec change. All other formatting rules (subject emoji, non-empty
+  body/footer, Chinese Conventional Commit style, etc.) are owned by the
+  `commit` skill.
 
 ## Task Boundary And Agent Dispatch Requirements
+
+Subagent orchestration principles are delegated to
+`superpowers:subagent-driven-development` and `dispatching-parallel-agents`;
+this workflow does not restate them. The rules below are workflow-local
+policy that layers on top of those authoritative skills — task boundary
+contents required by this workflow, the merge-review loop this workflow
+enforces, and concurrency numbers this workflow caps for safety.
 
 - Before RED, the selected OpenSpec task must define a task boundary and agent
   dispatch plan.
@@ -301,9 +329,16 @@ For each development task, execute this exact order:
   branch as the merge target.
 - Do not begin new feature or bug-fix work until the correctly named dedicated
   branch and its project worktree have been created or selected.
-- Do not write, modify, review, test, or approve production logging until the
-  `logging-boundaries` pointer, canonical skill, and relevant scenario files have
-  been read and their applicable requirements have been recorded as evidence.
+- Do not decide, implement, review, test, or approve any domain-triggered work
+  until the authoritative domain skill listed in Domain Authority Delegation
+  has been read from its canonical sources and its applicable requirements
+  have been recorded as evidence. This applies to `code-review-spec`,
+  `logging-boundaries`, `backend-reliability-guidelines`, and
+  `frontend-interaction-guidelines`.
+- Do not replace a domain skill with a summary, impression, "close enough"
+  judgment, or partial rule coverage. Every applicable rule from the
+  authoritative domain skill must be checked; any uncovered rule must be
+  explicitly accounted for.
 - Do not write the RED test before the task boundary and agent dispatch plan has
   been defined.
 - Do not use direct main-agent execution without recording why delegation is
