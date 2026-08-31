@@ -17,6 +17,12 @@ before substantive frontend interaction implementation or review decisions.
 If the reference cannot be read, stop and report that frontend interaction
 guidelines are unavailable.
 
+## Scope
+
+This skill covers interaction behavior: states, feedback, recovery, operability,
+and consistency. It does not cover visual style, code style, build and tooling,
+bundle performance, or backend API design.
+
 ## Mode Selection
 
 ### Implementation mode
@@ -41,13 +47,14 @@ Use Review mode when auditing existing frontend interaction experience.
 1. Identify the page, component, or workflow being reviewed.
 2. Read the checklist reference and inspect the relevant dimensions.
 3. Prioritize findings by user impact and reliability risk.
-4. Report findings with this severity grouping:
-   - `必须修复`: Causes misoperation, data loss, duplicate submission,
+4. Report findings with this severity grouping (labels stay in Chinese for
+   consistency with product-facing reports):
+   - `必须修复` (must-fix): Causes misoperation, data loss, duplicate submission,
      inaccessible interaction, broken recovery, or blocked core flow.
-   - `应该修复`: Clearly harms speed, clarity, consistency, feedback, or
-     stability.
-   - `可优化`: Improves polish, delight, expert efficiency, or perceived
-     responsiveness.
+   - `应该修复` (should-fix): Clearly harms speed, clarity, consistency,
+     feedback, or stability.
+   - `可优化` (nice-to-have): Improves polish, delight, expert efficiency, or
+     perceived responsiveness.
 
 ## Non-Negotiable Interaction Rules
 
@@ -66,6 +73,9 @@ Use Review mode when auditing existing frontend interaction experience.
   applied consistently across every surface.
 - Frontend debounce/throttle does not replace backend idempotency when duplicate
   requests can change data.
+- Out-of-date async responses must not overwrite newer state: rapid search,
+  filter, or tab switching must cancel or ignore stale results (for example
+  through request sequencing or `AbortController`).
 - Optimistic updates must include failure rollback or visible recovery.
 - The same product must use consistent loading, empty, error, success, disabled,
   confirmation, destructive action, offline, permission-denied, and long-running

@@ -28,6 +28,8 @@ communicates, and how safely the interaction behaves.
 - Validation explains how to fix the issue and preserves entered data.
 - Focus, Enter, Escape, paste, formatting, and submission behavior are
   predictable.
+- File upload covers drag-over, progress, cancel, and failure-retry states, and
+  communicates type and size constraints before the upload starts.
 
 ### Error and recovery experience
 
@@ -35,6 +37,9 @@ communicates, and how safely the interaction behaves.
 - Retry, undo, cancel, back, draft save, or contact paths exist when they matter.
 - The user does not lose work because of validation, network failure, navigation,
   or refresh.
+- Low-cost reversible actions prefer undo over blocking confirmation; the undo
+  affordance and its time window are visible. High-cost or irreversible actions
+  still require explicit confirmation.
 
 ### Loading and waiting experience
 
@@ -43,6 +48,9 @@ communicates, and how safely the interaction behaves.
 - Skeletons, progress, optimistic updates, or queued states are used when they
   reduce uncertainty.
 - Loading does not freeze unrelated usable parts of the page.
+- Feedback timing matches the wait: work under roughly 300 ms shows no loader to
+  avoid flicker, medium waits show a local spinner or skeleton, and long waits
+  show progress or an estimate with a cancel path when the work can be stopped.
 
 ### Empty and boundary states
 
@@ -58,6 +66,9 @@ communicates, and how safely the interaction behaves.
 - Back, breadcrumb, tabs, sidebars, dialogs, drawers, and nested routes preserve
   expected orientation.
 - Modal and overlay layering does not trap users without a clear exit.
+- Dialogs, tabs, filters, and pagination that represent shareable state are
+  reflected in the URL, and browser back/forward and refresh restore the expected
+  view.
 
 ### Operability and hit targets
 
@@ -118,6 +129,17 @@ communicates, and how safely the interaction behaves.
   conflict states, and collaborative edits are visible when relevant.
 - Realtime updates do not steal focus or erase in-progress user work.
 - The user can distinguish saved, saving, failed, and unsaved changes.
+- Connection loss in polling or websocket-driven views is visible, with automatic
+  reconnect and a clear recovered state.
+
+### Notifications and transient feedback
+
+- Toasts auto-dismiss at a readable speed, can be dismissed manually, and never
+  cover the content or actions they relate to.
+- Repeated or simultaneous notifications stack, deduplicate, or summarize instead
+  of flooding the screen.
+- Critical outcomes are not communicated only through transient messages; the
+  result stays discoverable in the interface and is announced to screen readers.
 
 ### Permission, privacy, and safety
 
@@ -146,6 +168,9 @@ communicates, and how safely the interaction behaves.
 - Every optimistic update has failure rollback or a visible recovery path.
 - Page navigation, refresh, request failure, cancellation, and retry behavior are
   defined for long-running operations.
+- Stale async responses cannot overwrite newer state: rapid search, filter, or
+  tab switching cancels or ignores out-of-date results (for example through
+  request sequencing or `AbortController`).
 
 ### Cross-page state and action consistency
 
