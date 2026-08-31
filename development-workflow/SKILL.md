@@ -1,0 +1,350 @@
+---
+name: development-workflow
+description: Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task.
+---
+
+# Development Workflow
+
+The workflow is mandatory. Do not treat it as optional guidance. Any deviation from the workflow is noncompliant.
+
+Use this skill to enforce a strict development loop. It applies to every code, test,
+documentation, configuration, and refactoring task unless the user explicitly provides a
+stricter workflow.
+
+## Required Sources
+
+Load and follow these skills at their required workflow stages:
+
+- `superpowers:brainstorming` for requirement discussion, alternatives, and approved design.
+- The action-specific OpenSpec skill suite for durable change assets:
+  - `openspec-new-change` with `openspec-continue-change`, or `openspec-ff-change`, for planning.
+  - `openspec-apply-change` for implementation.
+  - `openspec-verify-change` for implementation verification.
+  - `openspec-sync-specs` when approved delta specs must be synchronized.
+  - `openspec-archive-change` for archival.
+- `superpowers:subagent-driven-development` for bounded multi-agent task execution when tasks can be safely delegated.
+- `superpowers:test-driven-development` for RED/GREEN/REFACTOR discipline before production code.
+- `superpowers:verification-before-completion` or the closest available Superpowers audit skill for plan-implementation consistency audit.
+- `code-review-spec` from `/Users/lvdaxianer/.agents/skills/code-review-spec/SKILL.md`.
+- `$logging-boundaries` from `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md` whenever a task writes, modifies, reviews, tests, or advises on production logging.
+- `commit` from `/Users/lvdaxianer/.codex/skills/commit/SKILL.md`.
+
+The project `openspec/` directory stores change and specification assets; it is
+not a skill package. Do not search for or require `openspec/SKILL.md`.
+
+Canonical rule sources used through those pointer skills:
+
+- `/Users/lvdaxianer/.claude/skills/code-review-spec/SKILL.md`
+- `/Users/lvdaxianer/.claude/skills/code-review-spec/spec.md`
+- `/Users/lvdaxianer/.claude/skills/code-review-spec/references/*`
+- `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md`
+- `/Users/lvdaxianer/.claude/skills/logging-boundaries/SKILL.md`
+- `/Users/lvdaxianer/.claude/commands/commit.md`
+
+If any required source cannot be read, stop and report the missing source.
+
+## Stage Boundaries
+
+- Requirement discussion uses `superpowers:brainstorming`. While the user is still
+  clarifying requirements, alternatives, trade-offs, or acceptance criteria, do not
+  require OpenSpec files.
+- Requirement persistence uses OpenSpec. Once the user chooses to write the
+  requirement into files, create or update exactly one OpenSpec change for the
+  independent change.
+- Implementation first defines a task boundary and agent dispatch plan after the
+  OpenSpec planning asset has been created and validated, then uses
+  `superpowers:test-driven-development`.
+- After all planned tasks finish, emit a final audit report that lists completed
+  tasks, lists unfinished tasks, and includes a final review summary before the
+  workflow is considered fully closed.
+
+## Logging-Specific Requirements
+
+- For any task that touches log statements, log levels, logged fields, redaction,
+  trace context, MDC propagation, DEBUG controls, or log-volume behavior, read
+  `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md` first, then read
+  its Claude canonical source completely before making logging decisions.
+- Load every `logging-boundaries` reference or scenario file required by the
+  touched logging context. Do not approximate a scenario rule from the pointer,
+  this workflow, or general code-review guidance.
+- Treat `logging-boundaries` as authoritative for all logging-specific decisions.
+  If it conflicts with `code-review-spec` or another general source on a logging
+  concern, follow `logging-boundaries`; continue applying the general source to
+  non-logging quality concerns.
+- Include the applicable `logging-boundaries` rules and scenario files in the
+  focused test, plan-implementation consistency audit, and `code-review-spec`
+  evidence for the task.
+- If the Codex pointer, Claude canonical skill, or a required logging reference or
+  scenario file cannot be read, stop the affected task or gate and report the
+  unavailable source. Never invent or approximate missing logging rules.
+
+## OpenSpec Planning Requirements
+
+- Use `superpowers:brainstorming` before writing the plan so the plan captures the intended behavior, constraints, trade-offs, and acceptance criteria.
+- Use `openspec-new-change` with `openspec-continue-change`, or use
+  `openspec-ff-change`, to create or update the written change asset under
+  `openspec/changes/<change-name>/`.
+- Before creating or updating the written change asset, verify that the project
+  root contains a non-hidden `openspec/` directory. If it is missing,
+  initialize the OpenSpec scaffold first and select Codex and Claude instruction targets.
+  Hidden `.openspec` paths do not satisfy the project OpenSpec root requirement.
+- Future persisted changes and approved specs must be based on the project OpenSpec workflow.
+  Keep changes under `openspec/changes/` and approved specs under `openspec/specs/`.
+  Non-OpenSpec documents do not replace OpenSpec change/spec assets as the
+  authoritative source.
+- Use the local OpenSpec `spec-driven` layout:
+  - `openspec/changes/<change-name>/.openspec.yaml`
+  - `openspec/changes/<change-name>/proposal.md`
+  - `openspec/changes/<change-name>/design.md`
+  - `openspec/changes/<change-name>/tasks.md`
+  - `openspec/changes/<change-name>/specs/<capability>/spec.md`
+- Validate the OpenSpec change with `openspec validate <change-name> --strict`.
+- The OpenSpec plan is a required project asset. Validate it before implementing
+  production code. The workflow does not require a standalone planning commit by
+  default.
+  OpenSpec planning files are committed with the first atomic task commit that
+  carries a complete business module.
+- For every new feature or bug fix, create or select a dedicated branch and a
+  dedicated project Git worktree as one mandatory setup step before any
+  task-owned file is written. A feature branch must follow
+  `features/<明确业务功能>`, and a bug-fix branch must follow
+  `fixes/<明确问题>`. The suffix should be a clear business-oriented Chinese
+  name that directly identifies the feature or issue, without action words such
+  as "新增" or "修复". Examples: `features/订单导出`, `features/权限配置`,
+  `fixes/登录超时`, `fixes/导出乱码`.
+- The dedicated worktree must be a separate checkout of the project and should
+  use an explicit sibling path such as `../<project>-worktrees/<task-name>` or
+  the repository's established worktree directory. The agent must verify
+  `git worktree list --porcelain`, `git branch --show-current`, and `pwd` before
+  writing, and must record the selected worktree path as evidence.
+- Before creating the feature branch and worktree, record
+  `SOURCE_BRANCH=$(git branch --show-current)` and the source worktree path.
+  Create the isolated branch with `git worktree add -b <feature-branch>
+  <worktree-path> "$SOURCE_BRANCH"` or an equivalent `checkout -b` flow that
+  preserves the recorded source branch.
+- Planning, implementation, tests, verification, review, task-list updates, and
+  commits for the task must run from the dedicated worktree. The original or
+  currently active checkout must remain available for unrelated work and must
+  not receive task-owned file writes or commits. It may only be used for
+  inspection and explicit branch/worktree management commands.
+- The agent must not begin task work until both the required branch and its
+  dedicated worktree have been created or selected and the worktree preflight
+  checks pass. If the branch is checked out elsewhere, the path is occupied, or
+  the current directory is not the selected worktree, stop and repair setup
+  before continuing.
+- A standalone OpenSpec or documentation commit is allowed only when the change
+  is documentation-only or when no business implementation remains to carry the
+  document update.
+- Every planned task must have one durable checkbox or equivalent status marker. Mark exactly one completed task immediately after its gate passes. Do not batch-complete tasks at the end.
+- If a session resumes mid-change, read the OpenSpec task list first, continue from the first unchecked task, and preserve already completed task markers.
+- After every OpenSpec change is fully executed and verified, archive the completed OpenSpec change according to the repository's OpenSpec archive process.
+- After the final audit and archive flow completes, produce a final audit report that lists completed tasks and lists unfinished tasks for the completed change.
+  The report must include a final review summary with these exact topics:
+  what this modification did well, why it was good,
+  what was poor in the original code or workflow, why it was poor, and
+  how to correct or improve it.
+- After the final audit and OpenSpec archive work pass, return to a clean
+  checkout/worktree of the recorded source branch and merge the completed
+  feature branch into it. Verify the source branch after the merge. Merge
+  conflicts, a missing source worktree, or unrelated uncommitted source changes
+  are blocking conditions; preserve existing work and do not claim completion
+  until integration succeeds.
+
+## Risk-Based Standard Change Tiers
+
+OpenSpec remains mandatory by default for every persisted change unless the user
+explicitly opts out. Risk tiers only scale evidence depth; they do not remove
+OpenSpec traceability, required gate order, task completion markers, commits,
+final audit, or OpenSpec archive.
+
+Classify standard changes primarily by behavior risk and secondarily by file
+count or module span before implementation:
+
+- S-tier: localized low-risk behavior changes, such as a small bug fix, a local
+  validation adjustment, or a narrow test/configuration update. Keep an OpenSpec
+  change by default, but use compact proposal, design, task, spec, verification,
+  and review evidence. A single task is usually enough. Do not add subagent
+  orchestration when the task is better handled directly; record the direct
+  execution fallback reason before RED.
+- M-tier: normal feature, bugfix, configuration, test, documentation, or
+  refactoring changes with clear behavior risk and bounded module impact. Use
+  the complete workflow with concise evidence, focused task boundaries, focused
+  and broader verification commands, and canonical review. Dispatch subagents
+  only when clear ownership boundaries make delegation useful and safe.
+- L-tier: broad or risk-sensitive standard changes, including cross-module
+  behavior, public contract changes, migrations, permissions, concurrency, data
+  consistency, or architecture-boundary work. Use the fullest task breakdown,
+  risk notes, verification scope, and review evidence. Prefer smaller task
+  commits, reduce implementation concurrency for shared or high-risk areas, and
+  run the strongest relevant broader verification.
+
+Tiers scale evidence depth; they do not remove gate order. If the tier is
+unclear, choose the higher-risk tier until evidence supports a narrower scope.
+
+## Commit Message Requirements
+
+- Apply `commit --style=full` for every workflow-created task, archive,
+  or documentation commit unless the user explicitly requests `--style=simple`.
+- Every workflow-created commit MUST be a Chinese Conventional Commit with a
+  mapped emoji subject, a non-empty body, and a non-empty footer.
+- The commit body MUST explain what changed and why, including relevant
+  verification evidence when useful.
+- The commit footer MUST include traceability metadata. Use `Refs:` when no
+  breaking change, issue, co-author, or review reference applies.
+- For OpenSpec-driven task commits, prefer footer values such as
+  `Refs: OpenSpec <change-name> task <task-id>`.
+
+## code-review-spec 执行要求
+
+- 当任务涉及代码审查、格式化或代码修改时，必须严格执行 `code-review-spec`，不得用“差不多”“大致符合”或选择性覆盖代替。
+- 执行 `code-review-spec` 时，必须逐项对照 canonical 的 `SKILL.md`、`spec.md` 以及相关 `references/*` 检查；未覆盖的项必须明确说明原因，不能默认合格。
+- 如果 canonical `code-review-spec` 的任一要求不满足，必须视为未通过，直到修复并重新验证通过为止。
+- 任何 `code-review-spec` 结论都必须基于实际对照结果，而不是摘要、印象判断或部分规则检查。
+
+## Task Boundary And Agent Dispatch Requirements
+
+- Before RED, the selected OpenSpec task must define a task boundary and agent
+  dispatch plan.
+- The task boundary and agent dispatch plan must include:
+  - module-oriented agent name
+  - owned responsibility
+  - allowed files or modules
+  - out-of-scope work
+  - dependencies
+  - focused and broader verification commands
+  - handoff evidence
+- Use `superpowers:subagent-driven-development` as the default multi-agent
+  orchestration principle for safely delegable tasks.
+- multi-agent orchestration is the default execution principle when task
+  boundaries are clear and delegation is safe.
+- The main agent remains responsible for planning, context curation, dispatch,
+  verification evidence, plan-implementation consistency audit,
+  `code-review-spec`, task mark-complete, commits, final audit, OpenSpec
+  archive, and final reporting.
+- The main agent verifies the returned evidence before advancing gates.
+- Direct main-agent execution is allowed only when delegation is unavailable, unsafe, or not useful. The workflow must record the fallback reason before RED.
+- Parallel implementation is allowed only with disjoint write scopes or isolated worktrees.
+- The workflow does not dispatch multiple implementation agents to edit overlapping files or modules in the same working tree.
+- Analysis, review, and verification agents may run in parallel when they do not
+  mutate overlapping files.
+- The default maximum parallel implementer subagents is 3.
+- The default maximum total parallel agents is 5 across implementer, analysis,
+  review, and verification agents.
+- The concurrency limit is a safety ceiling, not a target. Do not start agents
+  only to fill capacity.
+- When the limit is reached, queue additional agent work until a running agent
+  completes or is closed.
+- If a delegated task enters a repair loop, reuse the same subagent for that repair loop instead of starting a new implementer agent.
+- For shared files, shared modules, or high-risk changes, reduce implementation concurrency to 1 even when the default limit would allow more agents.
+- The subagent merge-review loop is mandatory for delegated implementation:
+  merge or apply the subagent result into the task worktree, run main agent
+  review, send the findings back to the same subagent when issues exist, and
+  repeat merge, review, and fix until the main agent review passes.
+- Do not mark delegated work complete from a subagent report alone. The main
+  task worktree must contain the merged or applied result before review gates can pass.
+
+## Mandatory Task Loop
+
+For each development task, execute this exact order:
+
+1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
+2. Classify the change as a new feature or bug fix. Create or select the
+   correctly named branch and its dedicated project worktree. Before creating
+   the branch, record `SOURCE_BRANCH=$(git branch --show-current)`, then verify
+   the branch, worktree path, and current directory. Do not write task files
+   from the original checkout.
+3. Use `OpenSpec` from the dedicated worktree to create or update the written
+   change, including the OpenSpec plan and task checklist.
+4. Validate the OpenSpec change and keep those planning files available for the first related task commit.
+5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
+6. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
+7. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
+8. For delegated implementation, merge or apply the subagent result into the task worktree before accepting the task result.
+9. Run main agent review on the merged or applied result.
+10. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
+11. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
+12. Run the focused test and confirm the RED failure is caused by missing behavior.
+13. Implement the minimal GREEN change required by the failing test.
+14. Run the focused test again and confirm it passes.
+15. Run the relevant broader test, lint, build, or documentation check for the touched area.
+16. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
+17. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
+18. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
+   before making clear quality, correctness, maintainability, performance, or security fixes.
+19. Re-run the focused and broader verification commands after fixes.
+20. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
+21. Create one atomic Chinese Conventional Commit for this task from the dedicated
+    worktree by applying
+    `commit --style=full`; the message must include a non-empty body and
+    non-empty footer. Include uncommitted related OpenSpec planning files in this
+    commit when the task carries a complete business module.
+22. Only after the commit succeeds, move to the next task.
+23. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
+24. Archive the completed OpenSpec change, then commit the archive/update from the dedicated worktree if the archive modifies repository files.
+25. After the final audit and OpenSpec archive work pass, return to the recorded source branch from its clean source checkout/worktree and run
+   `git merge <feature-branch>`. If merge conflicts occur or the source
+   worktree has unrelated uncommitted changes, stop and preserve that work.
+   Verify the source branch contains the feature changes before reporting
+   completion; a failed merge must not claim completion.
+
+## Gate Rules
+
+- Do not ask for confirmation when the next action is mandated by this workflow.
+- Do not skip validation, even for small or documentation-only changes.
+- Do not implement production code before the OpenSpec plan has been written and validated.
+- Do not write task-owned files or create task commits from the original/current
+  checkout. Use a dedicated project worktree paired with the correctly named
+  branch, and verify it with `git worktree list --porcelain`,
+  `git branch --show-current`, and `pwd` before continuing.
+- Do not lose the source branch identity: record `SOURCE_BRANCH=$(git branch
+  --show-current)` before creating the feature branch, and use that recorded
+  branch as the merge target.
+- Do not begin new feature or bug-fix work until the correctly named dedicated
+  branch and its project worktree have been created or selected.
+- Do not write, modify, review, test, or approve production logging until the
+  `logging-boundaries` pointer, canonical skill, and relevant scenario files have
+  been read and their applicable requirements have been recorded as evidence.
+- Do not write the RED test before the task boundary and agent dispatch plan has
+  been defined.
+- Do not use direct main-agent execution without recording why delegation is
+  unavailable, unsafe, or not useful.
+- Do not run overlapping implementation agents in the same working tree.
+- Do not exceed 3 parallel implementer subagents or 5 total parallel agents by
+  default; queue extra work instead.
+- Do not treat the concurrency limit as a target.
+- Do not start a new subagent for a repair loop when the original subagent can
+  receive the findings and continue.
+- Do not advance delegated work from subagent report alone; first merge or apply
+  the subagent result into the task worktree, run main agent review, and send
+  findings back to the same subagent until the review passes.
+- Do not claim completion until the verified feature branch has been merged into
+  the recorded source branch. A dirty source worktree, missing source worktree,
+  or merge conflicts must stop the integration gate and preserve unrelated work.
+- Do not create standalone planning commits by default; carry OpenSpec planning
+  files with the first atomic task commit for a complete business module.
+- Do not create a standalone OpenSpec or documentation commit unless the change
+  is documentation-only or no business implementation remains to carry it.
+- Do not keep implementation code that was written before a failing test unless the user
+  explicitly exempted the task from TDD.
+- Do not mark a task complete before RED, GREEN, broader verification, plan-implementation consistency audit, `code-review-spec`, fixes, re-verification, and commit gates all pass.
+- Do not batch-complete tasks at the end. Progress must be durable after every finished task.
+- Do not combine unrelated plan tasks into one commit.
+- Do not commit unrelated user changes. Preserve existing dirty work that is outside the task.
+- If a gate fails, fix the failure and re-run the same gate before continuing.
+- If a clear fix is available during review, make it immediately and verify again.
+- If the same blocker prevents progress after repeated attempts, report the blocker with
+  exact command output and the affected file path.
+- For `code-review-spec`, a gate only passes after every applicable rule has been checked and any uncovered rule has been explicitly accounted for.
+- The final audit gate only passes when the OpenSpec checklist, implementation diff, tests, and review evidence agree that the planned change is complete.
+
+## Required Status Format
+
+When reporting progress, include the current task and gate:
+
+```markdown
+Current task: <task name>
+Gate: <brainstorming | worktree setup | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Evidence: <command or file checked>
+```
+
+Keep reports concise. Problems or risks come before summaries.

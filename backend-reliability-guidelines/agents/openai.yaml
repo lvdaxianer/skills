@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Reliability Guidelines"
+  short_description: "Reliable backend behavior rules"
+  default_prompt: "Use $backend-reliability-guidelines to implement or review backend APIs, services, jobs, webhooks, migrations, configuration, idempotency, authorization, transactions, concurrency, observability, security, and recovery behavior."
