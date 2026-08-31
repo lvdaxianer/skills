@@ -13,6 +13,82 @@ brainstorm → OpenSpec 建 change → 独立 worktree → TDD RED/GREEN →
 一致性审计 → code-review → 逐任务提交 → OpenSpec 归档
 ```
 
+### 可视化流程图（25 步完整循环）
+
+```mermaid
+flowchart TD
+    Start([用户任务开始]) --> G1[1. brainstorming 门]
+    G1 -->|调用| SK1[superpowers:brainstorming]
+    SK1 --> G2[2. worktree-setup 门]
+    G2 -->|调用| SK2[using-git-worktrees]
+    G2 -->|调用| SK3[git-branch-worktree-convention]
+    SK2 --> G3[3. OpenSpec plan 门]
+    SK3 --> G3
+    G3 -->|调用| SK4[openspec-new-change /<br/>openspec-continue-change]
+    SK4 --> G4[4. OpenSpec validation 门]
+    G4 -->|调用| SK5[openspec-verify-change]
+    SK5 --> G5[5. task boundary 门]
+    G5 -->|可选调用| SK6[superpowers:subagent-driven-development]
+    SK6 --> G6[6. RED 门]
+    G6 --> |写失败测试| G7[7. GREEN 门]
+    G7 --> |实现代码让测试通过| G8[8. broader verification 门]
+    G8 --> |运行完整测试套件| G9[9. plan-implementation<br/>consistency audit 门]
+    G9 --> |检查实现与 OpenSpec 一致| G10[10. code-review-spec 门]
+    G10 -->|调用| SK7[code-review-spec]
+    G10 -->|触及后端| SK8[backend-reliability-guidelines]
+    G10 -->|触及前端| SK9[frontend-interaction-guidelines]
+    G10 -->|触及日志| SK10[logging-boundaries]
+    SK7 --> G11[11. task mark-complete 门]
+    SK8 --> G11
+    SK9 --> G11
+    SK10 --> G11
+    G11 --> |标记任务完成| G12[12. commit 门]
+    G12 -->|调用| SK11[commit]
+    SK11 --> G13{还有未完成任务?}
+    G13 -->|是| G6
+    G13 -->|否| G14[13. final audit 门]
+    G14 --> G15[14. OpenSpec archive 门]
+    G15 -->|调用| SK12[openspec-archive-change]
+    SK12 --> G16[15. source-branch integration 门]
+    G16 --> |merge 回 main| End([任务完成])
+    
+    style G1 fill:#e1f5ff
+    style G2 fill:#e1f5ff
+    style G3 fill:#e1f5ff
+    style G4 fill:#e1f5ff
+    style G5 fill:#e1f5ff
+    style G6 fill:#fff4e1
+    style G7 fill:#fff4e1
+    style G8 fill:#fff4e1
+    style G9 fill:#ffe1e1
+    style G10 fill:#ffe1e1
+    style G11 fill:#ffe1e1
+    style G12 fill:#e1ffe1
+    style G13 fill:#f0f0f0
+    style G14 fill:#e1ffe1
+    style G15 fill:#e1ffe1
+    style G16 fill:#e1ffe1
+    
+    style SK1 fill:#d4edff,stroke:#0066cc
+    style SK2 fill:#d4edff,stroke:#0066cc
+    style SK3 fill:#ffebcc,stroke:#ff9900
+    style SK4 fill:#d4edff,stroke:#0066cc
+    style SK5 fill:#d4edff,stroke:#0066cc
+    style SK6 fill:#d4edff,stroke:#0066cc
+    style SK7 fill:#ffebcc,stroke:#ff9900
+    style SK8 fill:#ffebcc,stroke:#ff9900
+    style SK9 fill:#ffebcc,stroke:#ff9900
+    style SK10 fill:#ffebcc,stroke:#ff9900
+    style SK11 fill:#d4edff,stroke:#0066cc
+    style SK12 fill:#d4edff,stroke:#0066cc
+```
+
+**图例**：
+- 🔵 **蓝色方框**（门禁）：workflow 定义的检查点，决定能否进入下一步
+- 🔵 **蓝色圆角框**（外部 skill）：需要从公网/内部镜像单独安装
+- 🟠 **橙色圆角框**（本仓库 skill）：跟随本仓库安装
+- 🔄 **循环**：G6-G13 形成任务内循环（RED → GREEN → review → commit → 下一任务）
+
 **它本身不管**：
 - 分支怎么命名（委托给 `git-branch-worktree-convention`）
 - 代码注释占比几成（委托给 `code-review-spec`）
