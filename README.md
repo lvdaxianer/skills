@@ -23,7 +23,7 @@
 
 这是一个 **Claude Code Skills** 仓库，每个子目录是一个可独立启用的 skill，为 Claude Code 在特定场景下加载相应规范。定位是"工程红线 + 深化引用"：
 
-- **红线**：字面可判定的规则（方法 ≤20 行、`@author=lvdaxianerplus`、日志必须带 traceId 等）
+- **红线**：字面可判定的规则（方法 ≤20 行、`@author=lvdaxianer@yeah.net`、日志必须带 traceId 等）
 - **深化引用**：当规则跨领域时，只在权威 skill 里详细定义，其它 skill 显式引用不复述
 
 目标：Claude Code 在做后端 / 前端 / 审查 / 日志 / DDD 工作时，都能自动加载相应 skill 并给出一致结果，不出现"这个规则在 A skill 说要 X，在 B skill 说要 Y"的分裂。

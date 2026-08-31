@@ -23,7 +23,7 @@
 
 A **Claude Code Skills** repository. Each subdirectory is an independently installable skill that Claude Code loads on demand. The philosophy is "red lines + deep references":
 
-- **Red lines**: literal, mechanically-checkable rules (method ≤20 lines, `@author=lvdaxianerplus`, every log line carries `traceId`, etc.)
+- **Red lines**: literal, mechanically-checkable rules (method ≤20 lines, `@author=lvdaxianer@yeah.net`, every log line carries `traceId`, etc.)
 - **Deep references**: when a rule crosses domains, only the authoritative skill defines it in detail; the others cite it without restating
 
 Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD work, it loads the right skill and gives consistent output — no more "rule X in skill A contradicts rule Y in skill B".
