@@ -9,7 +9,7 @@
 ## 目录
 
 - [是什么](#是什么)
-- [七个 skill 一览](#七个-skill-一览)
+- [八个 skill 一览](#八个-skill-一览)
 - [关系与优先级](#关系与优先级)
 - [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
@@ -31,12 +31,13 @@
 
 ---
 
-## 七个 skill 一览
+## 八个 skill 一览
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
 | [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制"brainstorm → OpenSpec 建 change → 独立 worktree → TDD RED/GREEN → 一致性审计 → code-review → 逐任务提交 → OpenSpec 归档"的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git 分支与 worktree 约定**：emoji 前缀父子分支层级（📦 父、✅ 子）、中文描述、SOURCE_BRANCH 记录、原 checkout 读写隔离 | 创建分支、建 worktree、检查分支名合规、task merge 回父分支 |
+| [`commit`](./commit/SKILL.md) | **提交规范**：中文 Conventional Commit + emoji 前缀 + body/footer 非空 | 创建提交、生成提交信息、`/commit` 指令 |
 | [`code-review-spec`](./code-review-spec/spec.md) | **代码级红线**：`@author`、方法长度、注释占比、命名、if-else 注释、异常处理、日志、SQL、Git 提交等语言无关规范 | 代码变动、PR 审查、`/code-review-spec` 指令 |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | **系统级可靠性**：幂等、事务、并发、迁移、环境隔离、fail-fast、错误契约、业务审计、可观测性 | 后端 API、Service、Job、Queue、Webhook、迁移、配置变更 |
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **前端交互质量**：提交/删除/支付防重、乐观更新可回滚、loading/empty/error/disabled/offline/permission 一致性、破坏性操作确认 | Web/移动端页面、表单、弹窗、列表、编辑器、工作流 |
@@ -50,6 +51,7 @@
 ```
 development-workflow  (入口, 强制流程)
     ├── 分支与 worktree → git-branch-worktree-convention
+    ├── 提交规范 → commit
     ├── 代码审查阶段 → code-review-spec
     │       ├── 日志相关红线 → 授权 logging-boundaries
     │       ├── 后端可靠性红线 → 授权 backend-reliability-guidelines
@@ -72,7 +74,7 @@ development-workflow  (入口, 强制流程)
 `development-workflow` 是本仓库唯一的**流程编排 skill**，它串联了本仓库 6 个 skill + 外部 superpowers/OpenSpec 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
 
 **核心特点**：
-- 组合 skill：本仓库 6 个（内置）+ 外部 9 个（需单独安装）
+- 组合 skill：本仓库 7 个（内置）+ 外部 6 个（需单独安装，不含 commit）
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
 - 强制循环：brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
 
@@ -96,6 +98,7 @@ Claude Code 会自动扫描 `~/.claude/skills/` 或项目 `.claude/skills/` 目�
 mkdir -p ~/.claude/skills
 cp -R backend-reliability-guidelines   ~/.claude/skills/
 cp -R code-review-spec                 ~/.claude/skills/
+cp -R commit                           ~/.claude/skills/
 cp -R ddd                              ~/.claude/skills/
 cp -R development-workflow             ~/.claude/skills/
 cp -R frontend-interaction-guidelines  ~/.claude/skills/
@@ -113,7 +116,7 @@ cp -R backend-reliability-guidelines   .claude/skills/
 ```bash
 mkdir -p ~/.claude/skills
 REPO="$(pwd)"
-for skill in backend-reliability-guidelines code-review-spec ddd \
+for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
@@ -176,6 +179,8 @@ lvdaxianer-skills/
 │   ├── spec.md                            ← 详细规范条款
 │   ├── README.md                          ← Hook 自动触发配置
 │   └── references/
+├── commit/
+│   └── SKILL.md
 ├── ddd/
 │   └── SKILL.md
 ├── development-workflow/
@@ -204,6 +209,7 @@ lvdaxianer-skills/
 | DDD 战术/战略设计（聚合、领域事件、Repository 边界、四层架构） | `ddd` |
 | 代码级红线（注释、命名、方法长度、空值、参数、重复、魔法数字等） | `code-review-spec` |
 | Git 分支命名、worktree 路径、SOURCE_BRANCH、原 checkout 隔离 | `git-branch-worktree-convention` |
+| 提交信息格式（中文、emoji、body/footer 非空） | `commit` |
 | 强制开发流程（brainstorm、OpenSpec、TDD、逐任务提交） | `development-workflow` |
 
 发现冲突时的处理流程：

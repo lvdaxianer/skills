@@ -105,20 +105,21 @@ flowchart TD
 
 ## 二、它组合了哪些 skill
 
-### 本仓库内置（6 个）
+### 本仓库内置（7 个）
 
 这些 skill 跟随本仓库安装，无需额外下载：
 
 | Skill | 在哪个阶段调用 | 职责 |
 |------|--------------|------|
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | worktree-setup 门 | 验证分支名（emoji 前缀 📦/✅ + 中文）、记录 SOURCE_BRANCH、确保原 checkout 隔离 |
+| [`commit`](./commit/SKILL.md) | commit 门 | 中文 Conventional Commit + emoji 前缀 + body/footer 非空 |
 | [`code-review-spec`](./code-review-spec/spec.md) | code-review-spec 门 | 检查 `@author`、方法长度、注释占比、命名、异常处理、日志、SQL、Git 提交格式 |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | 触及后端 API/Service/Job/迁移时自动 | 幂等、事务、并发、迁移、环境隔离、fail-fast、错误契约、业务审计、可观测性 |
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | 触及前端页面/表单/按钮时自动 | 防重、乐观更新、loading/empty/error/disabled 一致性、删除确认、破坏性视觉 |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | 触及日志代码时自动 | traceId 强制、脱敏、MDC 跨线程、Actuator 热开、级别语义 |
 | [`ddd`](./ddd/SKILL.md) | 领域建模讨论时手动调用 | Bounded Context、聚合边界、Entity/VO/Domain Event/Repository、四层架构 |
 
-**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 6 个 skill 会一起装进 `~/.claude/skills/`。
+**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 7 个 skill 会一起装进 `~/.claude/skills/`。
 
 ---
 
@@ -130,7 +131,6 @@ flowchart TD
 |-----------|------|--------------|------|
 | **superpowers 套件** | https://github.com/cline/superpowers (或内部镜像) | brainstorming 门 + subagent-driven-development 门 | 需求讨论、多 agent 编排原则 |
 | **OpenSpec 套件** | https://github.com/spec-dev/openspec-skills (或内部镜像) | OpenSpec plan 门 + OpenSpec validation 门 + OpenSpec archive 门 | 创建/继续/归档 OpenSpec change、验证一致性 |
-| **commit** | https://github.com/anthropics/commit-skill (或内部镜像) | commit 门 | 提交信息格式（中文 Conventional Commit + emoji + body/footer 非空） |
 | **using-git-worktrees** | https://github.com/git-worktrees/claude-skill (或内部镜像) | worktree-setup 门（与 `git-branch-worktree-convention` 配合） | worktree 创建机制、目录选择、安全校验 |
 
 **安装方式示例**（假设你用 git clone 方式）：
@@ -243,35 +243,7 @@ ls ~/.claude/skills/openspec-archive-change/SKILL.md
 
 ---
 
-#### 3. commit skill
-
-**作用**：提供中文 Conventional Commit 提交规范（emoji + body/footer 非空）。
-
-**安装**：
-
-```bash
-cd ~/.claude/skills
-
-# 方式 1：Git clone
-git clone https://github.com/anthropics/commit-skill.git commit
-
-# 方式 2：如果你们已有本地 commit 目录，确保包含 SKILL.md
-# （你的环境已经有 ~/.claude/skills/commit/，可以跳过这步）
-```
-
-**特别注意**：本项目要求 commit 必须中文 + body/footer 非空。你的 `~/.claude/skills/commit/SKILL.md` 指向 `~/.claude/commands/commit.md`，我们已经在顶部加了"项目级硬性要求"章节强制中文。
-
-**验证**：
-
-```bash
-ls ~/.claude/skills/commit/SKILL.md
-cat ~/.claude/commands/commit.md | head -30
-# 应该看到顶部有 "🚨 项目级硬性要求" 章节
-```
-
----
-
-#### 4. using-git-worktrees skill
+#### 3. using-git-worktrees skill
 
 **作用**：提供 worktree 创建机制、目录选择、安全校验（与本仓库的 `git-branch-worktree-convention` 配合）。
 
@@ -294,7 +266,7 @@ ls ~/.claude/skills/using-git-worktrees/SKILL.md
 
 ### 一键安装脚本（公网环境）
 
-如果你的开发环境**有公网访问**，可以用这个脚本一次装完 4 套外部 skill：
+如果你的开发环境**有公网访问**，可以用这个脚本一次装完 3 套外部 skill：
 
 ```bash
 #!/bin/bash
@@ -327,16 +299,7 @@ else
 fi
 
 echo ""
-echo "==> 3. 安装 commit skill..."
-if [ ! -d "commit" ]; then
-  git clone https://github.com/anthropics/commit-skill.git commit
-  echo "✓ commit 安装完成"
-else
-  echo "⊘ commit 已存在，跳过"
-fi
-
-echo ""
-echo "==> 4. 安装 using-git-worktrees..."
+echo "==> 3. 安装 using-git-worktrees..."
 if [ ! -d "using-git-worktrees" ]; then
   git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
   echo "✓ using-git-worktrees 安装完成"
@@ -348,7 +311,7 @@ echo ""
 echo "==> 全部外部 skill 安装完成！"
 echo ""
 echo "验证安装："
-echo "  ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-archive-change,commit,using-git-worktrees}/SKILL.md"
+echo "  ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-archive-change,using-git-worktrees}/SKILL.md"
 ```
 
 **使用**：
@@ -374,7 +337,6 @@ cd claude-external-skills
 
 git clone https://github.com/cline/superpowers.git
 git clone https://github.com/spec-dev/openspec-skills.git
-git clone https://github.com/anthropics/commit-skill.git commit
 git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
 
 cd ..
@@ -399,7 +361,6 @@ cd claude-external-skills
 # 移动到 ~/.claude/skills/
 mv superpowers ~/.claude/skills/
 mv openspec-skills ~/.claude/skills/
-mv commit ~/.claude/skills/
 mv using-git-worktrees ~/.claude/skills/
 
 # 创建 OpenSpec 软链接
@@ -423,11 +384,10 @@ echo "离线安装完成"
 ```bash
 cd ~/.claude/skills/superpowers && git rev-parse HEAD
 cd ~/.claude/skills/openspec-skills && git rev-parse HEAD
-cd ~/.claude/skills/commit && git rev-parse HEAD
 cd ~/.claude/skills/using-git-worktrees && git rev-parse HEAD
 ```
 
-把这 4 个 commit hash 写进团队文档（例如本仓库的 `EXTERNAL_SKILL_VERSIONS.md`），全员安装时 checkout 到同一 hash：
+把这 3 个 commit hash 写进团队文档（例如本仓库的 `EXTERNAL_SKILL_VERSIONS.md`），全员安装时 checkout 到同一 hash：
 
 ```bash
 cd ~/.claude/skills/superpowers
@@ -440,7 +400,6 @@ git checkout <记录的 commit hash>
 ```bash
 cd ~/.claude/skills/superpowers && git pull
 cd ~/.claude/skills/openspec-skills && git pull
-cd ~/.claude/skills/commit && git pull
 cd ~/.claude/skills/using-git-worktrees && git pull
 
 # 更新后重新记录 commit hash，通知全员同步
@@ -457,6 +416,7 @@ development-workflow (本仓库, 流程编排器)
 │
 ├─ 本仓库内置 skill (跟随本仓库安装)
 │  ├─ git-branch-worktree-convention
+│  ├─ commit
 │  ├─ code-review-spec
 │  ├─ backend-reliability-guidelines
 │  ├─ frontend-interaction-guidelines
@@ -471,7 +431,6 @@ development-workflow (本仓库, 流程编排器)
    ├─ openspec-ff-change
    ├─ openspec-verify-change
    ├─ openspec-archive-change
-   ├─ commit
    └─ using-git-worktrees
 ```
 
@@ -482,11 +441,11 @@ development-workflow (本仓库, 流程编排器)
 安装完本仓库 + 外部 skill 后，用以下命令验证：
 
 ```bash
-# 检查本仓库 6 个 skill
-ls ~/.claude/skills/{git-branch-worktree-convention,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd}/SKILL.md
+# 检查本仓库 7 个 skill
+ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd}/SKILL.md
 
 # 检查外部依赖
-ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-verify-change,openspec-archive-change,commit,using-git-worktrees}/SKILL.md
+ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-verify-change,openspec-archive-change,using-git-worktrees}/SKILL.md
 ```
 
 如果任一文件不存在，说明对应 skill 未安装或路径不对，`development-workflow` 会在运行到对应门时报错 "skill unavailable"。

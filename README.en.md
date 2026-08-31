@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Seven Skills at a Glance](#seven-skills-at-a-glance)
+- [Eight Skills at a Glance](#eight-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,12 +31,13 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Seven Skills at a Glance
+## Eight Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
 | [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → OpenSpec change → isolated worktree → TDD RED/GREEN → consistency audit → code review → per-task commit → OpenSpec archive" | Any task involving code, tests, docs, config, refactoring, or commits |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git branch & worktree conventions**: emoji-prefixed parent/task hierarchy (📦 parent, ✅ task), Chinese descriptions, SOURCE_BRANCH recording, original-checkout write isolation | Branch creation, worktree setup, branch name validation, task merge to parent |
+| [`commit`](./commit/SKILL.md) | **Commit standard**: Chinese Conventional Commit + emoji prefix + mandatory body/footer | Creating commits, generating commit messages, `/commit` command |
 | [`code-review-spec`](./code-review-spec/spec.md) | **Code-level red lines**: `@author`, method length, comment ratio, naming, if-else annotations, exception handling, logging, SQL, git commit format — language-agnostic | Code changes, PR reviews, explicit `/code-review-spec` |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | **System-level reliability**: idempotency, transactions, concurrency, migrations, environment isolation, fail-fast, error contracts, business audit, observability | Backend APIs, services, jobs, queues, webhooks, migrations, config changes |
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **Frontend interaction quality**: submit/delete/pay deduplication, revertible optimistic updates, consistent loading/empty/error/disabled/offline/permission states, destructive-action confirmation | Web/mobile pages, forms, modals, lists, editors, workflows |
@@ -50,6 +51,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 ```
 development-workflow  (entry, mandatory loop)
     ├── branch & worktree → git-branch-worktree-convention
+    ├── commit standard → commit
     ├── review phase → code-review-spec
     │       ├── logging red lines   → delegates to logging-boundaries
     │       ├── reliability red lines → delegates to backend-reliability-guidelines
@@ -72,7 +74,7 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 `development-workflow` is the only **process orchestration skill** in this repository. It chains together the 6 local skills + external superpowers/OpenSpec suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
 
 **Key characteristics**:
-- Composite skill: 6 local (bundled) + 9 external (require separate installation)
+- Composite skill: 7 local (bundled) + 6 external (require separate installation, excluding commit)
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
 - Mandatory loop: brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
 
@@ -96,6 +98,7 @@ Claude Code auto-discovers skills under `~/.claude/skills/` (global) or `.claude
 mkdir -p ~/.claude/skills
 cp -R backend-reliability-guidelines   ~/.claude/skills/
 cp -R code-review-spec                 ~/.claude/skills/
+cp -R commit                           ~/.claude/skills/
 cp -R ddd                              ~/.claude/skills/
 cp -R development-workflow             ~/.claude/skills/
 cp -R frontend-interaction-guidelines  ~/.claude/skills/
@@ -113,7 +116,7 @@ cp -R backend-reliability-guidelines   .claude/skills/
 ```bash
 mkdir -p ~/.claude/skills
 REPO="$(pwd)"
-for skill in backend-reliability-guidelines code-review-spec ddd \
+for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
@@ -176,6 +179,8 @@ lvdaxianer-skills/
 │   ├── spec.md                            ← detailed rules
 │   ├── README.md                          ← hook auto-trigger setup
 │   └── references/
+├── commit/
+│   └── SKILL.md
 ├── ddd/
 │   └── SKILL.md
 ├── development-workflow/
@@ -204,6 +209,7 @@ lvdaxianer-skills/
 | DDD strategic/tactical design (aggregates, domain events, repository boundaries, four-layer architecture) | `ddd` |
 | Code-level red lines (comments, naming, method length, null safety, params, duplication, magic numbers) | `code-review-spec` |
 | Git branch naming, worktree paths, SOURCE_BRANCH, original-checkout isolation | `git-branch-worktree-convention` |
+| Commit message format (Chinese, emoji, mandatory body/footer) | `commit` |
 | Mandatory workflow (brainstorm, OpenSpec, TDD, per-task commits) | `development-workflow` |
 
 Resolution procedure:
