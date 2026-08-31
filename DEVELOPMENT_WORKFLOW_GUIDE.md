@@ -155,6 +155,299 @@ git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
 
 **注意**：上述 GitHub URL 是示意，实际地址请查各 skill 的官方仓库或你们内部 git 镜像地址。如果你的环境无法访问公网，请联系管理员获取内部镜像或离线包。
 
+### 外部 skill 详细安装步骤
+
+#### 1. superpowers 套件
+
+**作用**：提供 `brainstorming` 和 `subagent-driven-development` 两个 skill。
+
+**安装方式 A：从官方源**
+
+```bash
+cd ~/.claude/skills
+
+# 方式 1：Git clone（推荐，便于更新）
+git clone https://github.com/cline/superpowers.git
+
+# 方式 2：下载 zip 解压
+curl -LO https://github.com/cline/superpowers/archive/refs/heads/main.zip
+unzip main.zip && mv superpowers-main superpowers
+```
+
+**安装方式 B：从内部镜像**（如果你的环境无公网）
+
+```bash
+# 假设你们有内部 GitLab
+git clone https://gitlab.your-company.com/claude-skills/superpowers.git ~/.claude/skills/superpowers
+```
+
+**验证**：
+
+```bash
+ls ~/.claude/skills/superpowers/{brainstorming,subagent-driven-development}/SKILL.md
+# 应该看到两个 SKILL.md 文件
+```
+
+---
+
+#### 2. OpenSpec 套件
+
+**作用**：提供 `openspec-new-change`、`openspec-continue-change`、`openspec-ff-change`、`openspec-verify-change`、`openspec-archive-change` 五个 skill。
+
+**安装**：
+
+```bash
+cd ~/.claude/skills
+
+# Step 1: Clone OpenSpec 套件仓库
+git clone https://github.com/spec-dev/openspec-skills.git
+
+# Step 2: 为每个 skill 创建软链接（因为 Claude Code 需要顶级目录就是 skill 名）
+ln -sfn openspec-skills/openspec-new-change openspec-new-change
+ln -sfn openspec-skills/openspec-continue-change openspec-continue-change
+ln -sfn openspec-skills/openspec-ff-change openspec-ff-change
+ln -sfn openspec-skills/openspec-verify-change openspec-verify-change
+ln -sfn openspec-skills/openspec-archive-change openspec-archive-change
+
+# 或者用循环批量创建
+for skill in openspec-new-change openspec-continue-change openspec-ff-change \
+             openspec-verify-change openspec-archive-change; do
+  ln -sfn openspec-skills/$skill $skill
+done
+```
+
+**为什么要软链接**？
+
+OpenSpec 套件结构是：
+```
+openspec-skills/
+├── openspec-new-change/
+├── openspec-continue-change/
+├── openspec-ff-change/
+├── openspec-verify-change/
+└── openspec-archive-change/
+```
+
+但 Claude Code 扫描 `~/.claude/skills/` 时期望顶级就是 skill 名（例如 `~/.claude/skills/openspec-new-change/SKILL.md`），所以需要软链接把 5 个子目录"提升"到顶级。
+
+**验证**：
+
+```bash
+ls -l ~/.claude/skills/openspec-*
+# 应该看到 5 个软链接，都指向 openspec-skills/<对应子目录>
+
+ls ~/.claude/skills/openspec-new-change/SKILL.md
+ls ~/.claude/skills/openspec-archive-change/SKILL.md
+# 应该能读到 SKILL.md
+```
+
+---
+
+#### 3. commit skill
+
+**作用**：提供中文 Conventional Commit 提交规范（emoji + body/footer 非空）。
+
+**安装**：
+
+```bash
+cd ~/.claude/skills
+
+# 方式 1：Git clone
+git clone https://github.com/anthropics/commit-skill.git commit
+
+# 方式 2：如果你们已有本地 commit 目录，确保包含 SKILL.md
+# （你的环境已经有 ~/.claude/skills/commit/，可以跳过这步）
+```
+
+**特别注意**：本项目要求 commit 必须中文 + body/footer 非空。你的 `~/.claude/skills/commit/SKILL.md` 指向 `~/.claude/commands/commit.md`，我们已经在顶部加了"项目级硬性要求"章节强制中文。
+
+**验证**：
+
+```bash
+ls ~/.claude/skills/commit/SKILL.md
+cat ~/.claude/commands/commit.md | head -30
+# 应该看到顶部有 "🚨 项目级硬性要求" 章节
+```
+
+---
+
+#### 4. using-git-worktrees skill
+
+**作用**：提供 worktree 创建机制、目录选择、安全校验（与本仓库的 `git-branch-worktree-convention` 配合）。
+
+**安装**：
+
+```bash
+cd ~/.claude/skills
+
+# Git clone
+git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
+```
+
+**验证**：
+
+```bash
+ls ~/.claude/skills/using-git-worktrees/SKILL.md
+```
+
+---
+
+### 一键安装脚本（公网环境）
+
+如果你的开发环境**有公网访问**，可以用这个脚本一次装完 4 套外部 skill：
+
+```bash
+#!/bin/bash
+# install-external-skills.sh
+
+set -e
+cd ~/.claude/skills
+
+echo "==> 1. 安装 superpowers..."
+if [ ! -d "superpowers" ]; then
+  git clone https://github.com/cline/superpowers.git
+  echo "✓ superpowers 安装完成"
+else
+  echo "⊘ superpowers 已存在，跳过"
+fi
+
+echo ""
+echo "==> 2. 安装 OpenSpec 套件..."
+if [ ! -d "openspec-skills" ]; then
+  git clone https://github.com/spec-dev/openspec-skills.git
+  
+  # 创建软链接
+  for skill in openspec-new-change openspec-continue-change openspec-ff-change \
+               openspec-verify-change openspec-archive-change; do
+    ln -sfn openspec-skills/$skill $skill
+  done
+  echo "✓ OpenSpec 套件安装完成（5 个 skill）"
+else
+  echo "⊘ openspec-skills 已存在，跳过"
+fi
+
+echo ""
+echo "==> 3. 安装 commit skill..."
+if [ ! -d "commit" ]; then
+  git clone https://github.com/anthropics/commit-skill.git commit
+  echo "✓ commit 安装完成"
+else
+  echo "⊘ commit 已存在，跳过"
+fi
+
+echo ""
+echo "==> 4. 安装 using-git-worktrees..."
+if [ ! -d "using-git-worktrees" ]; then
+  git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
+  echo "✓ using-git-worktrees 安装完成"
+else
+  echo "⊘ using-git-worktrees 已存在，跳过"
+fi
+
+echo ""
+echo "==> 全部外部 skill 安装完成！"
+echo ""
+echo "验证安装："
+echo "  ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-archive-change,commit,using-git-worktrees}/SKILL.md"
+```
+
+**使用**：
+
+```bash
+chmod +x install-external-skills.sh
+./install-external-skills.sh
+```
+
+---
+
+### 离线环境安装
+
+如果开发环境**无法访问公网**：
+
+#### Step 1：在有网机器上打包
+
+```bash
+# 有网机器
+cd /tmp
+mkdir claude-external-skills
+cd claude-external-skills
+
+git clone https://github.com/cline/superpowers.git
+git clone https://github.com/spec-dev/openspec-skills.git
+git clone https://github.com/anthropics/commit-skill.git commit
+git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
+
+cd ..
+tar -czf claude-external-skills.tar.gz claude-external-skills/
+```
+
+#### Step 2：传到离线机器
+
+```bash
+# 通过 U 盘、内网文件服务器、或 scp 传输
+scp claude-external-skills.tar.gz user@offline-machine:/tmp/
+```
+
+#### Step 3：离线机器解压安装
+
+```bash
+# 离线机器
+cd /tmp
+tar -xzf claude-external-skills.tar.gz
+cd claude-external-skills
+
+# 移动到 ~/.claude/skills/
+mv superpowers ~/.claude/skills/
+mv openspec-skills ~/.claude/skills/
+mv commit ~/.claude/skills/
+mv using-git-worktrees ~/.claude/skills/
+
+# 创建 OpenSpec 软链接
+cd ~/.claude/skills
+for skill in openspec-new-change openspec-continue-change openspec-ff-change \
+             openspec-verify-change openspec-archive-change; do
+  ln -sfn openspec-skills/$skill $skill
+done
+
+echo "离线安装完成"
+```
+
+---
+
+### 版本管理与更新
+
+**推荐做法**（团队协作）：
+
+1. **锁定版本**：在有网机器上 clone 后，记录每个仓库的 commit hash：
+
+```bash
+cd ~/.claude/skills/superpowers && git rev-parse HEAD
+cd ~/.claude/skills/openspec-skills && git rev-parse HEAD
+cd ~/.claude/skills/commit && git rev-parse HEAD
+cd ~/.claude/skills/using-git-worktrees && git rev-parse HEAD
+```
+
+把这 4 个 commit hash 写进团队文档（例如本仓库的 `EXTERNAL_SKILL_VERSIONS.md`），全员安装时 checkout 到同一 hash：
+
+```bash
+cd ~/.claude/skills/superpowers
+git fetch origin
+git checkout <记录的 commit hash>
+```
+
+2. **定期更新**（例如每月）：
+
+```bash
+cd ~/.claude/skills/superpowers && git pull
+cd ~/.claude/skills/openspec-skills && git pull
+cd ~/.claude/skills/commit && git pull
+cd ~/.claude/skills/using-git-worktrees && git pull
+
+# 更新后重新记录 commit hash，通知全员同步
+```
+
+3. **测试兼容性**：更新外部 skill 后，跑一个小任务测试 `development-workflow` 是否仍能正常走完 25 步循环。
+
 ---
 
 ## 三、完整依赖树
