@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Six Skills at a Glance](#six-skills-at-a-glance)
+- [Seven Skills at a Glance](#seven-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -30,11 +30,12 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Six Skills at a Glance
+## Seven Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
 | [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → OpenSpec change → isolated worktree → TDD RED/GREEN → consistency audit → code review → per-task commit → OpenSpec archive" | Any task involving code, tests, docs, config, refactoring, or commits |
+| [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git branch & worktree conventions**: emoji-prefixed parent/task hierarchy (📦 parent, ✅ task), Chinese descriptions, SOURCE_BRANCH recording, original-checkout write isolation | Branch creation, worktree setup, branch name validation, task merge to parent |
 | [`code-review-spec`](./code-review-spec/spec.md) | **Code-level red lines**: `@author`, method length, comment ratio, naming, if-else annotations, exception handling, logging, SQL, git commit format — language-agnostic | Code changes, PR reviews, explicit `/code-review-spec` |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | **System-level reliability**: idempotency, transactions, concurrency, migrations, environment isolation, fail-fast, error contracts, business audit, observability | Backend APIs, services, jobs, queues, webhooks, migrations, config changes |
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **Frontend interaction quality**: submit/delete/pay deduplication, revertible optimistic updates, consistent loading/empty/error/disabled/offline/permission states, destructive-action confirmation | Web/mobile pages, forms, modals, lists, editors, workflows |
@@ -47,6 +48,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ```
 development-workflow  (entry, mandatory loop)
+    ├── branch & worktree → git-branch-worktree-convention
     ├── review phase → code-review-spec
     │       ├── logging red lines   → delegates to logging-boundaries
     │       ├── reliability red lines → delegates to backend-reliability-guidelines
@@ -78,6 +80,7 @@ cp -R code-review-spec                 ~/.claude/skills/
 cp -R ddd                              ~/.claude/skills/
 cp -R development-workflow             ~/.claude/skills/
 cp -R frontend-interaction-guidelines  ~/.claude/skills/
+cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
@@ -92,7 +95,8 @@ cp -R backend-reliability-guidelines   .claude/skills/
 mkdir -p ~/.claude/skills
 REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec ddd \
-             development-workflow frontend-interaction-guidelines logging-boundaries; do
+             development-workflow frontend-interaction-guidelines \
+             git-branch-worktree-convention logging-boundaries; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -160,6 +164,8 @@ lvdaxianer-skills/
 ├── frontend-interaction-guidelines/
 │   ├── SKILL.md
 │   └── references/
+├── git-branch-worktree-convention/
+│   └── SKILL.md
 └── logging-boundaries/
     ├── SKILL.md
     └── references/
@@ -178,6 +184,7 @@ lvdaxianer-skills/
 | Production logging discipline (levels, traceId, masking, MDC propagation, Actuator hot-toggle) | `logging-boundaries` |
 | DDD strategic/tactical design (aggregates, domain events, repository boundaries, four-layer architecture) | `ddd` |
 | Code-level red lines (comments, naming, method length, null safety, params, duplication, magic numbers) | `code-review-spec` |
+| Git branch naming, worktree paths, SOURCE_BRANCH, original-checkout isolation | `git-branch-worktree-convention` |
 | Mandatory workflow (brainstorm, OpenSpec, TDD, per-task commits) | `development-workflow` |
 
 Resolution procedure:
