@@ -11,6 +11,7 @@
 - [What Is This](#what-is-this)
 - [Seven Skills at a Glance](#seven-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
+- [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Directory Structure](#directory-structure)
@@ -63,6 +64,24 @@ development-workflow  (entry, mandatory loop)
 3. Language-specific rules override generic rules
 
 See each skill's "Skill Conflict Resolution" section for the full table.
+
+---
+
+## Development Workflow Explained
+
+`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 6 local skills + external superpowers/OpenSpec suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
+
+**Key characteristics**:
+- Composite skill: 6 local (bundled) + 9 external (require separate installation)
+- Process-only: defines "when to call which skill", not "what that skill's rules are"
+- Mandatory loop: brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
+
+**Detailed guide**: [DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) covers:
+- Local bundled vs external dependencies checklist
+- Complete dependency tree & installation verification
+- Auto-trigger vs explicit invocation
+- FAQ (skip OpenSpec, review-only, offline install, etc.)
+- Troubleshooting checklist
 
 ---
 

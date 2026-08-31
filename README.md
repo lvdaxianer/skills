@@ -11,6 +11,7 @@
 - [是什么](#是什么)
 - [七个 skill 一览](#七个-skill-一览)
 - [关系与优先级](#关系与优先级)
+- [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
 - [使用方式](#使用方式)
 - [目录结构](#目录结构)
@@ -63,6 +64,24 @@ development-workflow  (入口, 强制流程)
 3. 语言特定规则 > 通用规则
 
 详见每个 skill 的"Skill Conflict Resolution / 冲突处理原则"章节。
+
+---
+
+## Development Workflow 详解
+
+`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联了本仓库 6 个 skill + 外部 superpowers/OpenSpec 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
+
+**核心特点**：
+- 组合 skill：本仓库 6 个（内置）+ 外部 9 个（需单独安装）
+- 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
+- 强制循环：brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
+
+**详细说明**：[DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) 包含：
+- 本仓库内置 vs 外部依赖清单
+- 完整依赖树与安装验证
+- 自动触发 vs 显式调用
+- 常见问题（跳过 OpenSpec、只审代码、离线安装等）
+- 故障排查清单
 
 ---
 
