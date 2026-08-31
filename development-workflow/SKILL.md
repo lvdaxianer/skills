@@ -15,6 +15,9 @@ stricter workflow.
 
 Load and follow these skills at their required workflow stages:
 
+- `git-branch-worktree-convention` whenever creating or validating branch names,
+  setting up worktrees, recording SOURCE_BRANCH, or enforcing original-checkout
+  write protection.
 - `superpowers:brainstorming` for requirement discussion, alternatives, and approved design.
 - The action-specific OpenSpec skill suite for durable change assets:
   - `openspec-new-change` with `openspec-continue-change`, or `openspec-ff-change`, for planning.
@@ -131,27 +134,12 @@ Delegation rules:
   carries a complete business module.
 - For every new feature or bug fix, create or select a dedicated branch and a
   dedicated project Git worktree as one mandatory setup step before any
-  task-owned file is written. A feature branch must follow
-  `features/<明确业务功能>`, and a bug-fix branch must follow
-  `fixes/<明确问题>`. The suffix should be a clear business-oriented Chinese
-  name that directly identifies the feature or issue, without action words such
-  as "新增" or "修复". Examples: `features/订单导出`, `features/权限配置`,
-  `fixes/登录超时`, `fixes/导出乱码`.
-- The dedicated worktree must be a separate checkout of the project and should
-  use an explicit sibling path such as `../<project>-worktrees/<task-name>` or
-  the repository's established worktree directory. The agent must verify
-  `git worktree list --porcelain`, `git branch --show-current`, and `pwd` before
-  writing, and must record the selected worktree path as evidence.
-- Before creating the feature branch and worktree, record
-  `SOURCE_BRANCH=$(git branch --show-current)` and the source worktree path.
-  Create the isolated branch with `git worktree add -b <feature-branch>
-  <worktree-path> "$SOURCE_BRANCH"` or an equivalent `checkout -b` flow that
-  preserves the recorded source branch.
-- Planning, implementation, tests, verification, review, task-list updates, and
-  commits for the task must run from the dedicated worktree. The original or
-  currently active checkout must remain available for unrelated work and must
-  not receive task-owned file writes or commits. It may only be used for
-  inspection and explicit branch/worktree management commands.
+  task-owned file is written. Branch naming, worktree paths, SOURCE_BRANCH
+  recording, and original-checkout write protection are delegated to
+  `git-branch-worktree-convention`. This workflow does not restate those rules.
+- The dedicated worktree must be created using the branch naming and path
+  conventions specified in `git-branch-worktree-convention` (emoji-prefixed
+  parent/task hierarchy, `.claude/worktrees/` root).
 - The agent must not begin task work until both the required branch and its
   dedicated worktree have been created or selected and the worktree preflight
   checks pass. If the branch is checked out elsewhere, the path is occupied, or
@@ -163,11 +151,10 @@ Delegation rules:
 - Every planned task must have one durable checkbox or equivalent status marker. Mark exactly one completed task immediately after its gate passes. Do not batch-complete tasks at the end.
 - If a session resumes mid-change, read the OpenSpec task list first, continue from the first unchecked task, and preserve already completed task markers.
 - After every OpenSpec change is fully executed and verified, archive the completed OpenSpec change according to the repository's OpenSpec archive process.
-- After the final audit and archive flow completes, produce a final audit report that lists completed tasks and lists unfinished tasks for the completed change.
-  The report must include a final review summary with these exact topics:
-  what this modification did well, why it was good,
-  what was poor in the original code or workflow, why it was poor, and
-  how to correct or improve it.
+- After the final audit and archive flow completes, produce a final audit report
+  that lists completed tasks and lists unfinished tasks for the completed change.
+  The report format and required topics are delegated to `openspec-archive-change`.
+  This workflow does not restate report structure rules.
 - After the final audit and OpenSpec archive work pass, return to a clean
   checkout/worktree of the recorded source branch and merge the completed
   feature branch into it. Verify the source branch after the merge. Merge
