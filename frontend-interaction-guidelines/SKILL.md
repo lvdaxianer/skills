@@ -55,6 +55,15 @@ Use Review mode when auditing existing frontend interaction experience.
   against repeated triggering and slow networks.
 - Destructive or irreversible actions must not rely only on debounce; use
   confirmation, undo, or clear consequence communication.
+- Delete actions must require an explicit confirmation step (confirmation
+  dialog, typed confirmation, or equivalent) before the delete request is
+  sent. A single click on a delete control must never execute the delete
+  directly, regardless of surface (button, icon button, menu item, row
+  action, batch action, keyboard shortcut).
+- Delete and other destructive action controls must use a distinct destructive
+  visual treatment so users can recognize them before activation. The default
+  destructive color is red; any product-level override must be documented and
+  applied consistently across every surface.
 - Frontend debounce/throttle does not replace backend idempotency when duplicate
   requests can change data.
 - Optimistic updates must include failure rollback or visible recovery.

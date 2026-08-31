@@ -65,6 +65,9 @@ communicates, and how safely the interaction behaves.
   large enough and spaced well enough for the device.
 - Common actions are near the content they affect.
 - Dangerous actions are separated from frequent safe actions.
+- Delete and other destructive controls use a distinct destructive visual
+  treatment (default red) recognizable before activation, applied consistently
+  across button, icon button, menu item, row action, and batch action surfaces.
 
 ### Keyboard and shortcut behavior
 
@@ -122,6 +125,11 @@ communicates, and how safely the interaction behaves.
   exposure, payment, publishing, and irreversible changes communicate risk.
 - The interface makes consequences clear before high-risk actions.
 - Recovery or support paths exist when the user cannot proceed.
+- Delete actions always require an explicit confirmation step (confirmation
+  dialog, typed confirmation, or equivalent) before the delete request is
+  sent. A single click on a delete control never executes the delete directly
+  on any surface (button, icon button, menu item, row action, batch action,
+  keyboard shortcut).
 
 ### Operation reliability
 
