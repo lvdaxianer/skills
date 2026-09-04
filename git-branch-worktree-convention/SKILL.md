@@ -52,7 +52,8 @@ fixes/📦BUG-055--库存扣减并发问题
 - `--` (double hyphen) separates change-id from Chinese description
 - Chinese description: ≥4 Chinese characters, meaningful, no spaces or shell
   special chars (`$`, `` ` ``, `|`, `;`, `&`, `(`, `)`)
-- Parent branch is created from `main`/`master` when OpenSpec change starts
+- Parent branch is created from **current branch** when OpenSpec change starts
+  (not forced to start from main/master)
 
 ### Task branch (OpenSpec task level)
 
@@ -292,7 +293,7 @@ git rev-parse --path-format=relative --git-common-dir 2>/dev/null | grep -q work
 - [ ] Change-id format is uppercase letters + hyphen + digits
 - [ ] Chinese description ≥4 characters, no spaces/special chars
 - [ ] Emoji is `📦` (U+1F4E6), not a similar-looking character
-- [ ] Parent branch is being created from `main`/`master`, not from another feature branch
+- [ ] Parent branch is being created from **current branch** (which may be main/master or another feature branch)
 
 ### Before creating task worktree + branch
 - [ ] Parent branch exists and matches `(features|fixes)/📦<change-id>--<中文>` pattern
