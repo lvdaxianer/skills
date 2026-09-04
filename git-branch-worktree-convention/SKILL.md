@@ -54,6 +54,8 @@ fixes/📦BUG-055--库存扣减并发问题
   special chars (`$`, `` ` ``, `|`, `;`, `&`, `(`, `)`)
 - Parent branch is created from **current branch** when OpenSpec change starts
   (not forced to start from main/master)
+- Parent branch MUST record its SOURCE_BRANCH (the branch it was created from)
+  for later merge-back traceability
 
 ### Task branch (OpenSpec task level)
 
@@ -131,6 +133,29 @@ All task worktrees live under `.claude/worktrees/`:
 
 ### SOURCE_BRANCH recording
 
+#### For parent branches
+
+When creating a parent branch, record the branch it was created from:
+
+```bash
+# Current branch when creating parent branch
+CURRENT_BRANCH=$(git branch --show-current)
+
+# Create parent branch
+git checkout -b features/📦CHG-001--订单系统重构
+
+# Record source branch
+echo "SOURCE_BRANCH=$CURRENT_BRANCH" > .git/refs/source-branch/features/📦CHG-001--订单系统重构
+```
+
+**Rules**:
+- Record SOURCE_BRANCH immediately after creating parent branch
+- Store in `.git/refs/source-branch/<full-parent-branch-name>`
+- On parent branch completion, merge back to SOURCE_BRANCH (not forced to main)
+- Traceability chain: task → parent → parent's source → ... → main
+
+#### For task branches
+
 Before starting work in a task worktree, record the parent branch:
 
 ```bash
@@ -142,31 +167,38 @@ echo "SOURCE_BRANCH=$SOURCE_BRANCH" > \
 **Rules**:
 - `.source_branch` file is written before first commit in worktree
 - File format: single line `SOURCE_BRANCH=<parent-branch-name>`
-- On task completion (before worktree removal), verify all worktree commits
-  are reachable from SOURCE_BRANCH (via merge or rebase)
-- If not reachable, block worktree removal and warn user
+- On task completion (before worktree removal), merge task branch back to its
+  SOURCE_BRANCH parent
+- If not reachable from SOURCE_BRANCH after merge, block worktree removal and
+  warn user
 
 ### Worktree lifecycle
 
 **Creation** (handled by `using-git-worktrees` + this skill):
 ```bash
-# 1. Validate parent branch exists
+# 1. Record SOURCE_BRANCH for parent branch (when creating parent)
+CURRENT_BRANCH=$(git branch --show-current)
+git checkout -b features/📦CHG-001--订单系统重构
+mkdir -p .git/refs/source-branch
+echo "SOURCE_BRANCH=$CURRENT_BRANCH" > .git/refs/source-branch/features/📦CHG-001--订单系统重构
+
+# 2. Validate parent branch exists (when creating task)
 git show-ref --verify refs/heads/features/📦CHG-001--订单系统重构
 
-# 2. Create task branch + worktree from parent
+# 3. Create task branch + worktree from parent
 git worktree add \
   .claude/worktrees/features/✅CHG-001-T1--支付模块改造 \
   -b features/✅CHG-001-T1--支付模块改造 \
   features/📦CHG-001--订单系统重构
 
-# 3. Record SOURCE_BRANCH
+# 4. Record SOURCE_BRANCH for task
 echo "SOURCE_BRANCH=features/📦CHG-001--订单系统重构" > \
   .claude/worktrees/features/✅CHG-001-T1--支付模块改造/.source_branch
 ```
 
 **Removal** (development-workflow OpenSpec-archive gate):
 ```bash
-# 1. Verify task branch merged to SOURCE_BRANCH
+# 1. Merge task branch back to its SOURCE_BRANCH parent
 SOURCE_BRANCH=$(cat .claude/worktrees/features/✅CHG-001-T1--支付模块改造/.source_branch | cut -d= -f2)
 git checkout "$SOURCE_BRANCH"
 git merge --no-ff features/✅CHG-001-T1--支付模块改造
@@ -177,7 +209,13 @@ git worktree remove .claude/worktrees/features/✅CHG-001-T1--支付模块改造
 # 3. Delete task branch
 git branch -d features/✅CHG-001-T1--支付模块改造
 
-# 4. Clean up .source_branch file (already removed with worktree dir)
+# 4. When all tasks complete, merge parent branch back to its SOURCE_BRANCH
+PARENT_SOURCE=$(cat .git/refs/source-branch/features/📦CHG-001--订单系统重构 | cut -d= -f2)
+git checkout "$PARENT_SOURCE"
+git merge --no-ff features/📦CHG-001--订单系统重构
+
+# 5. Delete parent branch source record
+rm .git/refs/source-branch/features/📦CHG-001--订单系统重构
 ```
 
 **Cleanup** (monthly maintenance):
@@ -294,6 +332,7 @@ git rev-parse --path-format=relative --git-common-dir 2>/dev/null | grep -q work
 - [ ] Chinese description ≥4 characters, no spaces/special chars
 - [ ] Emoji is `📦` (U+1F4E6), not a similar-looking character
 - [ ] Parent branch is being created from **current branch** (which may be main/master or another feature branch)
+- [ ] Record SOURCE_BRANCH in `.git/refs/source-branch/<parent-branch-name>` immediately after creation
 
 ### Before creating task worktree + branch
 - [ ] Parent branch exists and matches `(features|fixes)/📦<change-id>--<中文>` pattern
@@ -310,11 +349,13 @@ git rev-parse --path-format=relative --git-common-dir 2>/dev/null | grep -q work
 - [ ] No uncommitted changes in worktree
 - [ ] `.source_branch` file exists and points to valid parent branch
 
-### Before merging parent branch to main
+### Before merging parent branch to its SOURCE_BRANCH
 - [ ] All task branches for this change have been merged to parent branch
 - [ ] No active worktrees reference this parent branch
 - [ ] Parent branch has passed code-review-spec gate
 - [ ] Parent branch build and tests pass
+- [ ] Parent branch SOURCE_BRANCH record exists in `.git/refs/source-branch/`
+- [ ] Merge parent branch back to its SOURCE_BRANCH (not forced to main)
 
 ## Non-Negotiable Rules
 
@@ -326,9 +367,10 @@ git rev-parse --path-format=relative --git-common-dir 2>/dev/null | grep -q work
 - Task branches MUST be created from parent branches, not from main. Creating
   `features/✅CHG-001-T1--<task>` directly from main bypasses the parent
   branch aggregation point and is noncompliant.
-- SOURCE_BRANCH MUST be recorded before worktree work starts and verified
-  before worktree removal. Losing traceability to the parent branch is
-  noncompliant.
+- SOURCE_BRANCH MUST be recorded for both parent branches (in `.git/refs/source-branch/`)
+  and task branches (in worktree `.source_branch` file) before work starts.
+- Merge-back MUST follow SOURCE_BRANCH chain: task → parent → parent's SOURCE_BRANCH.
+  Merging to a different branch than SOURCE_BRANCH breaks traceability and is noncompliant.
 - Original checkout MUST NOT be used for task implementation when a worktree
   exists for that task. Writing task code outside the worktree breaks
   isolation and is noncompliant.
