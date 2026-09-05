@@ -35,7 +35,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 | Skill | Role | Trigger |
 |------|------|---------|
-| [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → OpenSpec change → isolated worktree → TDD RED/GREEN → consistency audit → code review → per-task commit → OpenSpec archive" | Any task involving code, tests, docs, config, refactoring, or commits |
+| [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → confirm integration branch and task worktree → OpenSpec → task boundary/dispatch → TDD RED/GREEN → audit/review → per-task commit and merge → archive" | Any task involving code, tests, docs, config, refactoring, or commits |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git branch & worktree conventions**: confirm one integration branch first, then use emoji-prefixed task branches (✅), Chinese descriptions, SOURCE_BRANCH recording, and original-checkout write isolation | Task branch creation, worktree setup, branch validation, task merge to the integration branch |
 | [`commit`](./commit/SKILL.md) | **Commit standard**: Chinese Conventional Commit + emoji prefix + mandatory body/footer | Creating commits, generating commit messages, `/commit` command |
 | [`code-review-spec`](./code-review-spec/spec.md) | **Code-level red lines**: `@author`, method length, comment ratio, naming, if-else annotations, exception handling, logging, SQL, git commit format — language-agnostic | Code changes, PR reviews, explicit `/code-review-spec` |
@@ -50,7 +50,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ```
 development-workflow  (entry, mandatory loop)
-    ├── branch & worktree → git-branch-worktree-convention
+    ├── branch, worktree & per-task integration → git-branch-worktree-convention
     ├── commit standard → commit
     ├── review phase → code-review-spec
     │       ├── logging red lines   → delegates to logging-boundaries
@@ -71,12 +71,13 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 
 ## Development Workflow Explained
 
-`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 6 local skills + external superpowers/OpenSpec suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
+`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 7 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
 
 **Key characteristics**:
-- Composite skill: 7 local (bundled) + 6 external (require separate installation, excluding commit)
+- Composite skill: 8 local skills including the entry skill, plus external dependency suites
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
-- Mandatory loop: brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
+- Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree → OpenSpec → task boundary and dispatch → TDD → verification/audit/review → commit → merge to `SOURCE_BRANCH` and clean up → final audit/archive
+- Integration model: one change confirms one integration branch. Each independently verifiable task starts from it in its own branch and worktree, then merges back after verification. No parent branch aggregates task branches.
 
 **Detailed guide**: [DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) covers:
 - Local bundled vs external dependencies checklist
@@ -210,7 +211,7 @@ lvdaxianer-skills/
 | Code-level red lines (comments, naming, method length, null safety, params, duplication, magic numbers) | `code-review-spec` |
 | Git branch naming, worktree paths, SOURCE_BRANCH, original-checkout isolation | `git-branch-worktree-convention` |
 | Commit message format (Chinese, emoji, mandatory body/footer) | `commit` |
-| Mandatory workflow (brainstorm, OpenSpec, TDD, per-task commits) | `development-workflow` |
+| Mandatory workflow (brainstorm, OpenSpec, task worktrees, TDD, per-task commits/merges) | `development-workflow` |
 
 Resolution procedure:
 
@@ -224,7 +225,7 @@ Resolution procedure:
 
 - Before editing a skill, read its "Skill Conflict Resolution" section
 - When adding a new red line, first decide domain ownership to avoid cross-skill duplication
-- Every change goes through the full `development-workflow` loop: OpenSpec change + TDD + code review
+- Every change follows the complete `development-workflow` loop: confirm the integration branch, use an isolated worktree per task, apply OpenSpec, TDD, audit/review, and per-task commit/merge; OpenSpec is skipped only when the user explicitly opts out
 - Keep the Chinese and English READMEs in sync
 
 ---

@@ -6,88 +6,72 @@
 
 ## 一、它是什么
 
-`development-workflow` 强制执行一个固定循环：
+`development-workflow` 强制执行一个固定的 25 步循环：
 
 ```
-brainstorm → OpenSpec 建 change → 独立 worktree → TDD RED/GREEN → 
-一致性审计 → code-review → 逐任务提交 → OpenSpec 归档
+brainstorm → 确认集成分支并创建任务 worktree → OpenSpec → 任务边界/调度 →
+TDD RED/GREEN → 验证/审计/review → 逐任务提交并合并 → final audit → OpenSpec 归档
 ```
 
-### 可视化流程图（25 步完整循环）
+一个 change 只确认一个集成分支。每个可独立验证的任务都从该分支创建 emoji
+前缀的 task branch 与独立 worktree；验证和提交通过后，立即合并回工作树中记录的
+`SOURCE_BRANCH`，清理 task branch/worktree，再从已更新的集成分支开始下一个任务。
+不存在用于汇总任务的 parent/change branch。
+
+### 可视化流程图
 
 ```mermaid
 flowchart TD
-    Start([用户任务开始]) --> G1[1. brainstorming 门]
-    G1 -->|调用| SK1[superpowers:brainstorming]
-    SK1 --> G2[2. worktree-setup 门]
-    G2 -->|调用| SK2[using-git-worktrees]
-    G2 -->|调用| SK3[git-branch-worktree-convention]
-    SK2 --> G3[3. OpenSpec plan 门]
-    SK3 --> G3
-    G3 -->|调用| SK4[openspec-new-change /<br/>openspec-continue-change]
-    SK4 --> G4[4. OpenSpec validation 门]
-    G4 -->|调用| SK5[openspec-verify-change]
-    SK5 --> G5[5. task boundary 门]
-    G5 -->|可选调用| SK6[superpowers:subagent-driven-development]
-    SK6 --> G6[6. RED 门]
-    G6 --> |写失败测试| G7[7. GREEN 门]
-    G7 --> |实现代码让测试通过| G8[8. broader verification 门]
-    G8 --> |运行完整测试套件| G9[9. plan-implementation<br/>consistency audit 门]
-    G9 --> |检查实现与 OpenSpec 一致| G10[10. code-review-spec 门]
-    G10 -->|调用| SK7[code-review-spec]
-    G10 -->|触及后端| SK8[backend-reliability-guidelines]
-    G10 -->|触及前端| SK9[frontend-interaction-guidelines]
-    G10 -->|触及日志| SK10[logging-boundaries]
-    SK7 --> G11[11. task mark-complete 门]
-    SK8 --> G11
-    SK9 --> G11
-    SK10 --> G11
-    G11 --> |标记任务完成| G12[12. commit 门]
-    G12 -->|调用| SK11[commit]
-    SK11 --> G13{还有未完成任务?}
-    G13 -->|是| G6
-    G13 -->|否| G14[13. final audit 门]
-    G14 --> G15[14. OpenSpec archive 门]
-    G15 -->|调用| SK12[openspec-archive-change]
-    SK12 --> G16[15. source-branch integration 门]
-    G16 --> |merge 回 main| End([任务完成])
+    Start([用户任务开始]) --> B[1. brainstorming]
+    B --> W[2. 确认集成分支<br/>创建并校验 task branch/worktree]
+    W --> P[3-4. 创建并验证 OpenSpec change]
+    P --> T[5-7. 选择任务<br/>定义边界与调度]
+    T --> D{可安全委派?}
+    D -->|是| R[8-10. 应用结果<br/>主 agent review 与修复循环]
+    D -->|否，记录原因| Red[11-12. RED]
+    R --> Red
+    Red --> Green[13-15. GREEN 与 broader verification]
+    Green --> Audit[16-19. 一致性审计<br/>code-review-spec、修复与复验]
+    Audit --> C[20-22. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
+    C --> More{还有未完成任务?}
+    More -->|是| T
+    More -->|否| F[23-25. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
+    F --> End([任务完成])
     
-    style G1 fill:#e1f5ff
-    style G2 fill:#e1f5ff
-    style G3 fill:#e1f5ff
-    style G4 fill:#e1f5ff
-    style G5 fill:#e1f5ff
-    style G6 fill:#fff4e1
-    style G7 fill:#fff4e1
-    style G8 fill:#fff4e1
-    style G9 fill:#ffe1e1
-    style G10 fill:#ffe1e1
-    style G11 fill:#ffe1e1
-    style G12 fill:#e1ffe1
-    style G13 fill:#f0f0f0
-    style G14 fill:#e1ffe1
-    style G15 fill:#e1ffe1
-    style G16 fill:#e1ffe1
-    
-    style SK1 fill:#d4edff,stroke:#0066cc
-    style SK2 fill:#d4edff,stroke:#0066cc
-    style SK3 fill:#ffebcc,stroke:#ff9900
-    style SK4 fill:#d4edff,stroke:#0066cc
-    style SK5 fill:#d4edff,stroke:#0066cc
-    style SK6 fill:#d4edff,stroke:#0066cc
-    style SK7 fill:#ffebcc,stroke:#ff9900
-    style SK8 fill:#ffebcc,stroke:#ff9900
-    style SK9 fill:#ffebcc,stroke:#ff9900
-    style SK10 fill:#ffebcc,stroke:#ff9900
-    style SK11 fill:#d4edff,stroke:#0066cc
-    style SK12 fill:#d4edff,stroke:#0066cc
+    style B fill:#e1f5ff
+    style W fill:#e1f5ff
+    style P fill:#e1f5ff
+    style T fill:#fff4e1
+    style R fill:#fff4e1
+    style Red fill:#fff4e1
+    style Green fill:#fff4e1
+    style Audit fill:#ffe1e1
+    style C fill:#e1ffe1
+    style F fill:#e1ffe1
 ```
 
 **图例**：
 - 🔵 **蓝色方框**（门禁）：workflow 定义的检查点，决定能否进入下一步
-- 🔵 **蓝色圆角框**（外部 skill）：需要从公网/内部镜像单独安装
-- 🟠 **橙色圆角框**（本仓库 skill）：跟随本仓库安装
-- 🔄 **循环**：G6-G13 形成任务内循环（RED → GREEN → review → commit → 下一任务）
+- 🔄 **循环**：每一个任务都在步骤 5-22 内完成；步骤 22 已完成 task merge，下一任务必须从更新后的集成分支创建
+- 👤 **主 agent**：保持对任务边界、验证证据、审计、review、完成标记、提交和集成的最终责任
+
+### 25 步执行顺序
+
+| 步骤 | 关卡 | 必做事项 |
+|------|------|----------|
+| 1 | brainstorming | 用 `superpowers:brainstorming` 澄清需求并获得设计批准。 |
+| 2 | worktree setup | 判定变更类型；首次任务确认当前分支为 change 的集成分支，创建 task branch/worktree，记录 `SOURCE_BRANCH` 并校验隔离环境。 |
+| 3-4 | OpenSpec plan / validation | 在 task worktree 创建或更新 change、计划和任务清单，并严格验证。 |
+| 5 | next task | 只选择第一个未完成任务。 |
+| 6-7 | task boundary and dispatch | 定义模块职责、允许文件、依赖、验证命令与交接证据；能安全委派时派发 implementer，否则在 RED 前记录直接执行原因。 |
+| 8-10 | delegated review loop | 对委派结果先应用到 task worktree，再由主 agent review；有问题交回同一 implementer 修复并复审。 |
+| 11-14 | RED / GREEN | 按 TDD 写最小失败测试，确认失败原因；实现最小变更并确认 focused test 通过。 |
+| 15 | broader verification | 执行适用于改动范围的测试、lint、build 或文档检查。 |
+| 16-19 | audit / review | 审计计划一致性；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
+| 20 | task mark-complete | 所有关卡通过后，立即只标记一个任务完成。 |
+| 21 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交。 |
+| 22 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
+| 23-25 | completion | 完成 final audit，归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
 **它本身不管**：
 - 分支怎么命名（委托给 `git-branch-worktree-convention`）
@@ -99,13 +83,13 @@ flowchart TD
 **它只管**：
 - 什么时候调哪个 skill（在"worktree-setup"门调 `git-branch-worktree-convention`，在"code-review-spec"门调 `code-review-spec`）
 - 门禁通过条件（RED 门要求测试失败，GREEN 门要求测试通过）
-- 任务顺序（brainstorm 必须在 OpenSpec plan 前，commit 必须在 code-review 后）
+- 任务顺序（brainstorm 必须在 OpenSpec plan 前，commit 必须在 code-review 后，task merge 必须在下一任务前）
 
 ---
 
 ## 二、它组合了哪些 skill
 
-### 本仓库内置（7 个）
+### 本仓库内置（除入口 skill 外的 7 个）
 
 这些 skill 跟随本仓库安装，无需额外下载：
 
@@ -129,8 +113,8 @@ flowchart TD
 
 | Skill 套件 | 来源 | 在哪个阶段调用 | 职责 |
 |-----------|------|--------------|------|
-| **superpowers 套件** | https://github.com/cline/superpowers (或内部镜像) | brainstorming 门 + subagent-driven-development 门 | 需求讨论、多 agent 编排原则 |
-| **OpenSpec 套件** | https://github.com/spec-dev/openspec-skills (或内部镜像) | OpenSpec plan 门 + OpenSpec validation 门 + OpenSpec archive 门 | 创建/继续/归档 OpenSpec change、验证一致性 |
+| **superpowers 套件** | https://github.com/cline/superpowers (或内部镜像) | brainstorming、任务调度、TDD 与一致性审计门 | 需求讨论、多 agent 编排、RED/GREEN/REFACTOR、一致性审计 |
+| **OpenSpec 套件** | https://github.com/spec-dev/openspec-skills (或内部镜像) | OpenSpec plan、apply、validation、sync 与 archive 门 | 创建/继续/快速创建、执行、验证、同步和归档 OpenSpec change |
 | **using-git-worktrees** | https://github.com/git-worktrees/claude-skill (或内部镜像) | worktree-setup 门（与 `git-branch-worktree-convention` 配合） | worktree 创建机制、目录选择、安全校验 |
 
 **安装方式示例**（假设你用 git clone 方式）：
@@ -145,11 +129,12 @@ git clone https://github.com/spec-dev/openspec-skills.git
 ln -sfn openspec-skills/openspec-new-change openspec-new-change
 ln -sfn openspec-skills/openspec-continue-change openspec-continue-change
 ln -sfn openspec-skills/openspec-ff-change openspec-ff-change
+ln -sfn openspec-skills/openspec-apply-change openspec-apply-change
 ln -sfn openspec-skills/openspec-verify-change openspec-verify-change
+ln -sfn openspec-skills/openspec-sync-specs openspec-sync-specs
 ln -sfn openspec-skills/openspec-archive-change openspec-archive-change
 
-# 3. 安装 commit 和 using-git-worktrees
-git clone https://github.com/anthropics/commit-skill.git commit
+# 3. 安装 using-git-worktrees
 git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
 ```
 
@@ -159,7 +144,9 @@ git clone https://github.com/git-worktrees/claude-skill.git using-git-worktrees
 
 #### 1. superpowers 套件
 
-**作用**：提供 `brainstorming` 和 `subagent-driven-development` 两个 skill。
+**作用**：提供 `brainstorming`、`subagent-driven-development`、
+`test-driven-development` 与 `verification-before-completion`（或等效审计
+skill）等流程能力。
 
 **安装方式 A：从官方源**
 
@@ -184,15 +171,18 @@ git clone https://gitlab.your-company.com/claude-skills/superpowers.git ~/.claud
 **验证**：
 
 ```bash
-ls ~/.claude/skills/superpowers/{brainstorming,subagent-driven-development}/SKILL.md
-# 应该看到两个 SKILL.md 文件
+ls ~/.claude/skills/superpowers/{brainstorming,subagent-driven-development,test-driven-development,verification-before-completion}/SKILL.md
+# 应该看到四个流程所需的 SKILL.md 文件
 ```
 
 ---
 
 #### 2. OpenSpec 套件
 
-**作用**：提供 `openspec-new-change`、`openspec-continue-change`、`openspec-ff-change`、`openspec-verify-change`、`openspec-archive-change` 五个 skill。
+**作用**：提供 `openspec-new-change`、`openspec-continue-change`、
+`openspec-ff-change`、`openspec-apply-change`、`openspec-verify-change`、
+`openspec-sync-specs`、`openspec-archive-change` 等 skill；其中新建/继续与
+快速创建是可选路径，不要求同时使用。
 
 **安装**：
 
@@ -206,12 +196,15 @@ git clone https://github.com/spec-dev/openspec-skills.git
 ln -sfn openspec-skills/openspec-new-change openspec-new-change
 ln -sfn openspec-skills/openspec-continue-change openspec-continue-change
 ln -sfn openspec-skills/openspec-ff-change openspec-ff-change
+ln -sfn openspec-skills/openspec-apply-change openspec-apply-change
 ln -sfn openspec-skills/openspec-verify-change openspec-verify-change
+ln -sfn openspec-skills/openspec-sync-specs openspec-sync-specs
 ln -sfn openspec-skills/openspec-archive-change openspec-archive-change
 
 # 或者用循环批量创建
 for skill in openspec-new-change openspec-continue-change openspec-ff-change \
-             openspec-verify-change openspec-archive-change; do
+             openspec-apply-change openspec-verify-change openspec-sync-specs \
+             openspec-archive-change; do
   ln -sfn openspec-skills/$skill $skill
 done
 ```
@@ -224,17 +217,19 @@ openspec-skills/
 ├── openspec-new-change/
 ├── openspec-continue-change/
 ├── openspec-ff-change/
+├── openspec-apply-change/
 ├── openspec-verify-change/
+├── openspec-sync-specs/
 └── openspec-archive-change/
 ```
 
-但 Claude Code 扫描 `~/.claude/skills/` 时期望顶级就是 skill 名（例如 `~/.claude/skills/openspec-new-change/SKILL.md`），所以需要软链接把 5 个子目录"提升"到顶级。
+但 Claude Code 扫描 `~/.claude/skills/` 时期望顶级就是 skill 名（例如 `~/.claude/skills/openspec-new-change/SKILL.md`），所以需要软链接把所需子目录"提升"到顶级。
 
 **验证**：
 
 ```bash
 ls -l ~/.claude/skills/openspec-*
-# 应该看到 5 个软链接，都指向 openspec-skills/<对应子目录>
+# 应该看到流程所需的 OpenSpec 软链接，都指向 openspec-skills/<对应子目录>
 
 ls ~/.claude/skills/openspec-new-change/SKILL.md
 ls ~/.claude/skills/openspec-archive-change/SKILL.md
@@ -290,10 +285,11 @@ if [ ! -d "openspec-skills" ]; then
   
   # 创建软链接
   for skill in openspec-new-change openspec-continue-change openspec-ff-change \
-               openspec-verify-change openspec-archive-change; do
+               openspec-apply-change openspec-verify-change openspec-sync-specs \
+               openspec-archive-change; do
     ln -sfn openspec-skills/$skill $skill
   done
-  echo "✓ OpenSpec 套件安装完成（5 个 skill）"
+  echo "✓ OpenSpec 套件安装完成"
 else
   echo "⊘ openspec-skills 已存在，跳过"
 fi
@@ -366,7 +362,8 @@ mv using-git-worktrees ~/.claude/skills/
 # 创建 OpenSpec 软链接
 cd ~/.claude/skills
 for skill in openspec-new-change openspec-continue-change openspec-ff-change \
-             openspec-verify-change openspec-archive-change; do
+             openspec-apply-change openspec-verify-change openspec-sync-specs \
+             openspec-archive-change; do
   ln -sfn openspec-skills/$skill $skill
 done
 
@@ -426,10 +423,14 @@ development-workflow (本仓库, 流程编排器)
 └─ 外部 skill (需单独安装)
    ├─ superpowers:brainstorming
    ├─ superpowers:subagent-driven-development
+   ├─ superpowers:test-driven-development
+   ├─ superpowers:verification-before-completion（或等效审计 skill）
    ├─ openspec-new-change
    ├─ openspec-continue-change
    ├─ openspec-ff-change
+   ├─ openspec-apply-change
    ├─ openspec-verify-change
+   ├─ openspec-sync-specs
    ├─ openspec-archive-change
    └─ using-git-worktrees
 ```
@@ -441,11 +442,11 @@ development-workflow (本仓库, 流程编排器)
 安装完本仓库 + 外部 skill 后，用以下命令验证：
 
 ```bash
-# 检查本仓库 7 个 skill
+# 检查本仓库 7 个配套 skill（`development-workflow` 本身另行安装）
 ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd}/SKILL.md
 
 # 检查外部依赖
-ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-verify-change,openspec-archive-change,using-git-worktrees}/SKILL.md
+ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-apply-change,openspec-verify-change,openspec-sync-specs,openspec-archive-change,using-git-worktrees}/SKILL.md
 ```
 
 如果任一文件不存在，说明对应 skill 未安装或路径不对，`development-workflow` 会在运行到对应门时报错 "skill unavailable"。
@@ -464,10 +465,11 @@ ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,op
 
 Claude Code 会：
 1. 自动加载 `development-workflow`
-2. 进入 brainstorming 门 → 调 `superpowers:brainstorming`
-3. 进入 OpenSpec plan 门 → 调 `openspec-new-change`
-4. 进入 worktree-setup 门 → 调 `using-git-worktrees` + `git-branch-worktree-convention`
-5. ... 按 25 步循环走完
+2. 在 brainstorming 门调用 `superpowers:brainstorming`
+3. 确认集成分支，并在 worktree-setup 门调用 `using-git-worktrees` + `git-branch-worktree-convention`
+4. 在 task worktree 中创建和验证 OpenSpec change
+5. 对每个任务完成 TDD、验证、审计/review、commit 和合并回 `SOURCE_BRANCH`
+6. 完成 final audit、archive，并确认集成分支包含所有任务
 
 ### 显式调用
 
@@ -495,7 +497,7 @@ Claude Code 会：
 
 ### Q2：我已经建好分支了，development-workflow 还会重新建吗？
 
-**不会**。`development-workflow` 在 worktree-setup 门检查当前是否已在合规 worktree 里，如果是就跳过创建步骤。但它仍会调 `git-branch-worktree-convention` 验证分支名是否符合 emoji 前缀规则。
+**不会重复创建合规 worktree**。它仍会确认当前集成分支、验证 task branch 名称、检查 `.source_branch`，并要求后续任务从已包含前序 merge 的集成分支创建。
 
 ---
 
@@ -511,7 +513,7 @@ Claude Code 会：
 这个任务跳过 OpenSpec，直接写代码
 ```
 
-但这样会失去变更追溯能力，代码审查时也没有"计划 vs 实现一致性"校验。
+但这样会失去 OpenSpec 变更追溯与其计划基线；仍应保留 worktree、测试、审计/review、提交和集成等其余强制关卡。
 
 ---
 
@@ -525,7 +527,7 @@ Claude Code 会：
 
 ---
 
-### Q5：我装了本仓库 6 个 skill，但 development-workflow 还报 "backend-reliability-guidelines unavailable"
+### Q5：我已安装配套 skill，但 development-workflow 还报 "backend-reliability-guidelines unavailable"
 
 **排查步骤**：
 
@@ -536,9 +538,9 @@ Claude Code 会：
 
 ---
 
-### Q6：我能只装 development-workflow，不装其他 6 个吗？
+### Q6：我能只装 development-workflow，不装其他配套 skill 吗？
 
-**技术上可以，但会频繁报错**。`development-workflow` 在 code-review-spec 门、worktree-setup 门、Domain Authority Delegation 表里硬引用了其他 6 个 skill。不装的话：
+**技术上可以，但会频繁报错**。`development-workflow` 在 code-review-spec 门、worktree-setup 门、Domain Authority Delegation 表里硬引用了相关配套 skill。不装的话：
 - worktree-setup 门报 `git-branch-worktree-convention unavailable`
 - code-review-spec 门报 `code-review-spec unavailable`
 - 触及后端代码时报 `backend-reliability-guidelines unavailable`
@@ -551,18 +553,18 @@ Claude Code 会：
 
 ### 初次使用
 
-1. **先装本仓库 6 个 skill**（按 [README 安装章节](./README.md#安装)）
-2. **再装外部 4 套 skill**（superpowers / OpenSpec / commit / using-git-worktrees）
+1. **先装本仓库全部 8 个 skill**（按 [README 安装章节](./README.md#安装)）
+2. **再装外部 3 套 skill**（superpowers / OpenSpec / using-git-worktrees）
 3. **验证依赖**（见上文"四、检查依赖是否就位"）
 4. **跑一个小任务测试**：
    ```
    /development-workflow 写一个 hello world 函数并测试
    ```
-   如果 25 步门全部通过，说明环境就位。
+如果 25 步门全部通过，并且 task branch 已合并回确认的集成分支，说明环境就位。
 
 ### 团队协作
 
-- **统一安装源**：团队用同一套外部 skill 版本（锁 commit hash 或 tag），避免"你的 commit skill v1.2 我的 v1.5"导致提交格式分裂
+- **统一安装源**：团队用同一套外部 skill 版本（锁 commit hash 或 tag），避免不同版本的流程行为分裂
 - **共享配置**：把本仓库作为 git submodule 加到项目 `.claude/skills/` 下，全员自动同步规范更新
 - **定期同步**：本仓库更新后（例如新增红线、修复冲突），通知全员 `git pull` 或 `git submodule update`
 
@@ -582,16 +584,16 @@ Claude Code 会：
 
 ### 关闭 TDD 强制（不推荐）
 
-找到 `## Mandatory Task Loop` 的 RED 门条款：
+找到 `## Mandatory Task Loop` 中步骤 11-14 的 TDD 条款：
 
 ```markdown
-- RED: Write failing focused tests first...
+11. Use `superpowers:test-driven-development` and write the smallest useful TDD test...
 ```
 
 改为：
 
 ```markdown
-- RED: Write focused tests (failing or passing)...
+11. Write focused tests before implementation...
 ```
 
 但这样会失去"测试先行"的约束。
@@ -601,15 +603,14 @@ Claude Code 会：
 找到 `## Risk-Based Standard Change Tiers` 的 S-tier 定义：
 
 ```markdown
-- S-tier: trivial documentation fix, typo, comment, log message, or single-line
-  non-behavior change. Use a compact OpenSpec change by default, but use compact
-  proposal, design, task, spec, verification, and review evidence.
+- S-tier: localized low-risk behavior change. Keep an OpenSpec change by
+  default, with compact planning, verification, and review evidence.
 ```
 
 改为：
 
 ```markdown
-- S-tier: ... Use a single-task OpenSpec change with minimal evidence.
+- S-tier: ... Use compact evidence while retaining every required gate.
 ```
 
 ---
@@ -620,6 +621,7 @@ Claude Code 会：
 |------|-----------|--------|
 | 分支名要不要 emoji？ | `git-branch-worktree-convention` | ❌ `development-workflow` 不管 |
 | 什么时候建分支？ | `development-workflow` (worktree-setup 门) | ❌ `git-branch-worktree-convention` 不管 |
+| task 完成后合并到哪里？ | `git-branch-worktree-convention`（读取 `SOURCE_BRANCH`） | ❌ 不能凭当前 checkout 猜测 |
 | 提交信息格式？ | `commit` | ❌ `development-workflow` 不管 |
 | 什么时候提交？ | `development-workflow` (commit 门) | ❌ `commit` 不管 |
 | 日志是否脱敏？ | `logging-boundaries` | ❌ `code-review-spec` 不管 |
@@ -637,7 +639,7 @@ Claude Code 会：
 2. **软链接失效**（方式二安装）：`readlink ~/.claude/skills/<skill-name>`，检查目标路径是否存在
 3. **权限问题**：`ls -l ~/.claude/skills/`，确保所有 SKILL.md 可读
 4. **Claude Code 未刷新索引**：重启 Claude Code，或 `rm -rf ~/.claude/cache`（如果有）
-5. **版本冲突**：本仓库 skill 要求 `commit` v1.5+，你装的是 v1.2 → 升级外部 skill
+5. **版本冲突**：对照已安装 skill 与本仓库当前 `SKILL.md` 的 required sources，升级或补齐缺失的依赖
 6. **路径写死**：`development-workflow/SKILL.md` 里某些路径可能硬编码为 `/Users/lvdaxianer/.agents/skills/`，改成你的实际路径
 
 ---
