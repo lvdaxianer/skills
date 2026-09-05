@@ -1,429 +1,307 @@
 ---
 name: git-branch-worktree-convention
-description: Project-level git branch naming and worktree path conventions - enforces emoji-prefixed parent/task branch hierarchy (📦 for parent change branches, ✅ for task branches), Chinese descriptions, SOURCE_BRANCH recording, and original-checkout write protection
+description: Project-level task branch and worktree convention. Use whenever creating or validating task branches, selecting a change integration branch, recording SOURCE_BRANCH, merging a completed task, or protecting the original checkout.
 ---
 
 # Git Branch and Worktree Convention
 
-Project-local git conventions for branch naming, worktree placement, and
-workspace isolation. This skill complements `using-git-worktrees` (worktree
-creation mechanism) and `development-workflow` (process gates): it defines
-**what branch names and paths** this project requires, not how to create
-worktrees or when to branch.
+Use one confirmed integration branch for a change, then create every task
+branch from that branch and merge every completed task back into it. `dev` is
+only an example: the integration branch is the branch the user confirms when
+the first task begins.
 
-## Skill Conflict Resolution (Meta-Rule)
+This skill defines branch names, source-branch traceability, and integration
+rules. `using-git-worktrees` owns safe worktree creation mechanics;
+`development-workflow` owns when each gate occurs; and `commit` owns commit
+message format.
 
-This skill must not contradict `using-git-worktrees`, `development-workflow`,
-`commit`, or git-workflow global rules. If a literal conflict appears:
+## Model
 
-| Domain | Authoritative skill |
-|--------|---------------------|
-| Branch naming format, worktree paths, SOURCE_BRANCH recording, original-checkout write protection | **this skill** |
-| Worktree creation mechanism, directory selection, safety verification | `using-git-worktrees` |
-| When to create worktree/branch (workflow gates) | `development-workflow` |
+```text
+confirmed integration branch (for example: dev)
+  ├─ task 1 branch -> verify -> merge back into dev
+  ├─ task 2 branch -> verify -> merge back into dev
+  └─ task N branch -> verify -> merge back into dev
+
+end state: remain on dev, which contains every merged task
+```
+
+There is no parent/change branch. Do not create a branch merely to aggregate
+task branches. The integration branch is the only aggregation point.
+
+## Authority and Conflicts
+
+| Concern | Authoritative source |
+| --- | --- |
+| Task branch name, integration source, `SOURCE_BRANCH`, merge target, original-checkout protection | This skill |
+| Worktree creation safety and baseline verification | `using-git-worktrees` |
+| Workflow timing, task gates, and final integration | `development-workflow` |
 | Commit message format | `commit` |
-| Git safety (force-push, reset, hook-skip, destructive ops) | git-workflow global rules |
+| Force-push, reset, hook skipping, and destructive Git operations | Project/global Git rules |
 
-When this skill's rules touch another domain, cite the authoritative skill
-rather than duplicating its detail.
+Follow the more specific authority when instructions overlap. Do not duplicate
+or weaken another skill's safety rules.
 
-## Branch Naming Rules
+## Integration Branch
 
-### Parent branch (OpenSpec change level)
+### Select it once
 
-**Format**:
-```
-features/📦<change-id>--<change中文名>
-fixes/📦<change-id>--<问题中文描述>
-```
+At the first task of a change:
 
-**Examples**:
-```
-features/📦CHG-001--订单系统重构
-features/📦CHG-002--用户权限管理优化
-fixes/📦BUG-055--库存扣减并发问题
-```
+1. Read the checked-out branch with `git branch --show-current`.
+2. Stop if Git reports a detached `HEAD`.
+3. Ask the user: `当前分支 <branch>，是否以它作为本次 change 的集成分支？`
+4. After confirmation, record that exact branch name as `INTEGRATION_BRANCH`
+   in the current change/task context.
 
-**Rules**:
-- Emoji prefix `📦` (U+1F4E6, "package") marks parent branch, making it
-  visually distinct in `git branch` output
-- `<change-id>` format: uppercase letters + hyphen + digits (e.g., `CHG-001`,
-  `BUG-055`, `REFACTOR-012`)
-- `--` (double hyphen) separates change-id from Chinese description
-- Chinese description: ≥4 Chinese characters, meaningful, no spaces or shell
-  special chars (`$`, `` ` ``, `|`, `;`, `&`, `(`, `)`)
-- Parent branch is created from **current branch** when OpenSpec change starts
-  (not forced to start from main/master)
-- Parent branch MUST record its SOURCE_BRANCH (the branch it was created from)
-  for later merge-back traceability
+The confirmed branch can be `dev`, `release/*`, `main`, or another valid
+working branch. Never assume that a branch literally named `dev` exists.
 
-### Task branch (OpenSpec task level)
+### Keep it fixed for the change
 
-**Format**:
-```
+- Every task branch for the change starts from `INTEGRATION_BRANCH`.
+- Every completed task merges back into that same branch.
+- Before starting the next task, switch to `INTEGRATION_BRANCH`; it now
+  includes the preceding task's merge.
+- Do not replace the integration branch because the operator happens to switch
+  branches mid-change. Ask before changing it; changing it starts a new
+  integration boundary.
+
+## Task Branch Naming
+
+Use one task branch per OpenSpec task or other independently verifiable task.
+
+```text
 features/✅<change-id>-T<task-num>--<task中文名>
 fixes/✅<change-id>-T<task-num>--<子问题中文名>
 ```
 
-**Examples**:
-```
+Examples:
+
+```text
 features/✅CHG-001-T1--支付模块改造
 features/✅CHG-001-T2--库存扣减逻辑
-features/✅CHG-001-T3--订单状态机重构
 fixes/✅BUG-055-T1--添加乐观锁
-fixes/✅BUG-055-T2--补充并发测试
 ```
 
-**Rules**:
-- Emoji prefix `✅` (U+2705, "check mark button") marks task branch
-- `<change-id>` matches parent branch's change-id
-- `-T<task-num>`: single hyphen + `T` + task number (e.g., `-T1`, `-T2`, `-T10`)
-- `--` (double hyphen) separates task-id from Chinese description
-- Chinese description: ≥3 Chinese characters, meaningful
-- Task branch is created from parent branch (not from `main`)
+Rules:
 
-### Main/master branch
+- `✅` (U+2705) identifies a task branch.
+- `<change-id>` is uppercase letters, a hyphen, then digits, such as
+  `CHG-001` or `BUG-055`.
+- `-T<task-num>` identifies the task number.
+- The Chinese task description contains at least three Chinese characters and
+  has no spaces or shell-special characters.
+- All tasks belonging to the same change use the same `<change-id>` and the
+  same `INTEGRATION_BRANCH`.
+- Do not use `📦` parent branches.
 
-- Protected. Direct commits forbidden unless explicitly authorized by project lead.
-- All work goes through feature/fix parent branches → code review → merge.
+Validation regex:
 
-### Branch name validation regex
-
-**Parent branch**:
-```regex
-^(features|fixes)/📦[A-Z]+-[0-9]+--[一-龥]{4,}$
-```
-
-**Task branch**:
 ```regex
 ^(features|fixes)/✅[A-Z]+-[0-9]+-T[0-9]+--[一-龥]{3,}$
 ```
 
-Before creating a branch or worktree, validate:
-1. Matches one of the two patterns above
-2. No spaces, tabs, or shell special characters in any part
-3. Emoji is the correct Unicode character (`📦` U+1F4E6 for parent, `✅` U+2705 for task)
-4. Change-id matches existing parent branch when creating task branch
+Before creating a task branch, confirm it matches the regex and that no local
+branch or worktree already uses the name.
 
-## Worktree Path Convention
+## Worktree and Source Recording
 
-### Worktree root directory
+All task worktrees live under:
 
-All task worktrees live under `.claude/worktrees/`:
-
-```
-.claude/worktrees/<full-branch-name>/
+```text
+.claude/worktrees/<full-task-branch-name>/
 ```
 
-**Examples**:
+The worktree root must be ignored by Git before creation. Use the safety and
+directory checks from `using-git-worktrees` before running the commands below.
+
+Record the merge target before any task-owned work begins. In the task
+worktree, create `.source_branch` containing exactly:
+
+```text
+SOURCE_BRANCH=<INTEGRATION_BRANCH>
 ```
-.claude/worktrees/features/✅CHG-001-T1--支付模块改造/
-.claude/worktrees/features/✅CHG-001-T2--库存扣减逻辑/
-.claude/worktrees/fixes/✅BUG-055-T1--添加乐观锁/
+
+For example, a task created from `dev` contains:
+
+```text
+SOURCE_BRANCH=dev
 ```
 
-**Rules**:
-- Parent branches typically do NOT get worktrees (they exist only to collect
-  merged task branches)
-- Task branches MUST use worktrees (development-workflow enforces this at
-  worktree-setup gate)
-- Worktree directory name = full branch name (including emoji prefix)
-- Worktree paths are never committed to git (`.claude/worktrees/` is in
-  `.gitignore`)
+`.source_branch` is local worktree metadata. It tells the completion step the
+only branch that may receive this task's merge.
 
-### SOURCE_BRANCH recording
+## Create a Task Branch and Worktree
 
-#### For parent branches
+`git worktree add -b` creates and checks out the branch in one operation. It
+is the worktree-safe equivalent of `git checkout -b <task-branch>`.
 
-When creating a parent branch, record the branch it was created from:
+Run these commands from the clean checkout of the confirmed integration branch:
 
 ```bash
-# Current branch when creating parent branch
-CURRENT_BRANCH=$(git branch --show-current)
+INTEGRATION_BRANCH=$(git branch --show-current)
+TASK_BRANCH='features/✅CHG-001-T1--支付模块改造'
+TASK_WORKTREE=".claude/worktrees/$TASK_BRANCH"
 
-# Create parent branch
-git checkout -b features/📦CHG-001--订单系统重构
+# Confirm INTEGRATION_BRANCH with the user before the first task.
+test -n "$INTEGRATION_BRANCH" || { echo 'detached HEAD'; exit 1; }
+test -z "$(git status --porcelain)" || { echo 'integration checkout is dirty'; exit 1; }
+git show-ref --verify "refs/heads/$INTEGRATION_BRANCH"
+if git show-ref --verify --quiet "refs/heads/$TASK_BRANCH"; then
+  echo "task branch already exists: $TASK_BRANCH"
+  exit 1
+fi
+test ! -e "$TASK_WORKTREE" || exit 1
 
-# Record source branch
-echo "SOURCE_BRANCH=$CURRENT_BRANCH" > .git/refs/source-branch/features/📦CHG-001--订单系统重构
+git worktree add "$TASK_WORKTREE" -b "$TASK_BRANCH" "$INTEGRATION_BRANCH"
 ```
 
-**Rules**:
-- Record SOURCE_BRANCH immediately after creating parent branch
-- Store in `.git/refs/source-branch/<full-parent-branch-name>`
-- On parent branch completion, merge back to SOURCE_BRANCH (not forced to main)
-- Traceability chain: task → parent → parent's source → ... → main
-
-#### For task branches
-
-Before starting work in a task worktree, record the parent branch:
+Then, before the first edit or commit, write the source record in the new
+worktree:
 
 ```bash
-SOURCE_BRANCH=features/📦CHG-001--订单系统重构
-echo "SOURCE_BRANCH=$SOURCE_BRANCH" > \
-  .claude/worktrees/features/✅CHG-001-T1--支付模块改造/.source_branch
+TASK_GIT_DIR=$(git -C "$TASK_WORKTREE" rev-parse --git-dir)
+mkdir -p "$TASK_GIT_DIR/info"
+printf '.source_branch\n' >> "$TASK_GIT_DIR/info/exclude"
+printf 'SOURCE_BRANCH=%s\n' "$INTEGRATION_BRANCH" > "$TASK_WORKTREE/.source_branch"
 ```
 
-**Rules**:
-- `.source_branch` file is written before first commit in worktree
-- File format: single line `SOURCE_BRANCH=<parent-branch-name>`
-- On task completion (before worktree removal), merge task branch back to its
-  SOURCE_BRANCH parent
-- If not reachable from SOURCE_BRANCH after merge, block worktree removal and
-  warn user
+Verify the setup:
 
-### Worktree lifecycle
-
-**Creation** (handled by `using-git-worktrees` + this skill):
 ```bash
-# 1. Record SOURCE_BRANCH for parent branch (when creating parent)
-CURRENT_BRANCH=$(git branch --show-current)
-git checkout -b features/📦CHG-001--订单系统重构
-mkdir -p .git/refs/source-branch
-echo "SOURCE_BRANCH=$CURRENT_BRANCH" > .git/refs/source-branch/features/📦CHG-001--订单系统重构
-
-# 2. Validate parent branch exists (when creating task)
-git show-ref --verify refs/heads/features/📦CHG-001--订单系统重构
-
-# 3. Create task branch + worktree from parent
-git worktree add \
-  .claude/worktrees/features/✅CHG-001-T1--支付模块改造 \
-  -b features/✅CHG-001-T1--支付模块改造 \
-  features/📦CHG-001--订单系统重构
-
-# 4. Record SOURCE_BRANCH for task
-echo "SOURCE_BRANCH=features/📦CHG-001--订单系统重构" > \
-  .claude/worktrees/features/✅CHG-001-T1--支付模块改造/.source_branch
+git worktree list --porcelain
+git -C "$TASK_WORKTREE" branch --show-current
+git -C "$TASK_WORKTREE" status --short
+cat "$TASK_WORKTREE/.source_branch"
 ```
 
-**Removal** (development-workflow OpenSpec-archive gate):
+All task edits, tests, and commits occur inside `TASK_WORKTREE`.
+
+## Merge a Completed Task
+
+Merge only after the task's required tests, review, and workflow gates pass.
+Read `.source_branch` from the task worktree instead of guessing the target.
+
 ```bash
-# 1. Merge task branch back to its SOURCE_BRANCH parent
-SOURCE_BRANCH=$(cat .claude/worktrees/features/✅CHG-001-T1--支付模块改造/.source_branch | cut -d= -f2)
-git checkout "$SOURCE_BRANCH"
-git merge --no-ff features/✅CHG-001-T1--支付模块改造
+TASK_WORKTREE='.claude/worktrees/features/✅CHG-001-T1--支付模块改造'
+TASK_BRANCH=$(git -C "$TASK_WORKTREE" branch --show-current)
+INTEGRATION_BRANCH=$(cut -d= -f2 "$TASK_WORKTREE/.source_branch")
 
-# 2. Remove worktree
-git worktree remove .claude/worktrees/features/✅CHG-001-T1--支付模块改造
-
-# 3. Delete task branch
-git branch -d features/✅CHG-001-T1--支付模块改造
-
-# 4. When all tasks complete, merge parent branch back to its SOURCE_BRANCH
-PARENT_SOURCE=$(cat .git/refs/source-branch/features/📦CHG-001--订单系统重构 | cut -d= -f2)
-git checkout "$PARENT_SOURCE"
-git merge --no-ff features/📦CHG-001--订单系统重构
-
-# 5. Delete parent branch source record
-rm .git/refs/source-branch/features/📦CHG-001--订单系统重构
+# Use the clean checkout/worktree where the integration branch is checked out.
+git switch "$INTEGRATION_BRANCH"
+test -z "$(git status --porcelain)" || { echo 'integration checkout is dirty'; exit 1; }
+git show-ref --verify "refs/heads/$INTEGRATION_BRANCH"
+git merge --no-ff "$TASK_BRANCH"
+git merge-base --is-ancestor "$TASK_BRANCH" "$INTEGRATION_BRANCH"
 ```
 
-**Cleanup** (monthly maintenance):
-```bash
-# Prune stale worktree references
-git worktree prune
+If the integration checkout has unrelated uncommitted changes or the merge
+conflicts, stop. Preserve those changes and resolve the issue before claiming
+the task integrated.
 
-# List unmerged branches
-git branch --no-merged main | grep -E '✅|📦'
+Only after the ancestry check succeeds and the task worktree is clean:
+
+```bash
+test -z "$(git -C "$TASK_WORKTREE" status --porcelain)" || {
+  echo 'task worktree is dirty'
+  exit 1
+}
+git worktree remove "$TASK_WORKTREE"
+git branch -d "$TASK_BRANCH"
+git switch "$INTEGRATION_BRANCH"
 ```
 
-## Original Checkout Write Protection
+The final `git switch` is intentional: after every task, and after the last
+task, remain on the confirmed integration branch.
 
-When a task worktree is active:
+## Start the Next Task
 
-### Original checkout (the directory where you ran `git worktree add`) is READ-ONLY for task files
+Before creating task `T2`:
 
-**Allowed**:
-- Read code: `cat`, `grep`, `find`, IDE file preview
-- Git operations: `git log`, `git status`, `git diff`, `git blame`
-- Non-task work: editing files unrelated to current task, checking out other branches for reference
+1. Return to `INTEGRATION_BRANCH`.
+2. Verify it is clean and contains the previous task merge.
+3. Create `T2` from `INTEGRATION_BRANCH`, not from `T1` and not from an older
+   commit.
+4. Record the same `SOURCE_BRANCH=<INTEGRATION_BRANCH>` in `T2`'s worktree.
+5. Repeat the normal test, review, merge, and cleanup gates.
 
-**Forbidden**:
-- Edit any file related to the current task
-- Create commits for the current task
-- Run tests that write task-related artifacts (build outputs, coverage reports, logs)
-- Modify task-related configuration or dependencies
+This makes the dependency chain explicit:
 
-### Worktree is the WRITE zone
+```text
+integration branch at start
+  -> task T1 -> merge into integration branch
+  -> task T2 starts from updated integration branch
+  -> merge into integration branch
+```
 
-- All edits, commits, test runs, build artifacts for the current task go in
-  the worktree
-- Original checkout stays stable for:
-  - Reference while working (read-only view of main or parent branch)
-  - Parallel work on other tasks (different worktrees)
-  - Code review and comparison
+## Original Checkout Protection
 
-### Enforcement mechanisms
+Once a task worktree exists, the checkout where the integration branch is
+checked out is read-only for that task.
 
-**development-workflow checks**:
-- At worktree-setup gate: block if task-related files have uncommitted changes
-  in original checkout
-- At focused-test gate: require test commands to run inside worktree path
-- At commit gate: verify commit author-date shows commits were created in
-  worktree, not original checkout
+Allowed there:
 
-**IDE/editor configuration** (recommended):
-- Configure IDE to open worktree path when task starts
-- Use IDE workspace files (`.vscode/`, `.idea/`) stored in worktree, not
-  original checkout
-- Set file watchers and formatters to target worktree paths
+- Read code and Git history.
+- Inspect status, logs, diffs, and blame.
+- Switch to the integration branch for the verified merge and cleanup.
 
-**Manual verification**:
+Forbidden there:
+
+- Edit task-owned files.
+- Create task commits.
+- Run task tests that write build, coverage, or log artifacts.
+- Change task-related dependencies or configuration.
+
+All task implementation and verification runs in the task worktree. Confirm
+the current directory before task work:
+
 ```bash
-# Check if current directory is inside a worktree
 git rev-parse --path-format=relative --git-common-dir 2>/dev/null | grep -q worktrees
-# Exit code 0 = inside worktree, 1 = original checkout
 ```
 
-## Integration Points
+An exit code of `0` means the command runs from a linked worktree.
 
-### with `using-git-worktrees`
+## Validation Checklists
 
-- `using-git-worktrees` provides: directory selection algorithm, safety
-  verification (no uncommitted changes, no conflicting worktrees), `git worktree add` execution
-- **this skill** provides: branch name format validation, worktree root path
-  (`.claude/worktrees/`), SOURCE_BRANCH recording, task branch creation from
-  parent branch
+### Before the first task
 
-**Call sequence**:
-1. `development-workflow` worktree-setup gate triggers worktree creation
-2. `using-git-worktrees` selects directory and verifies safety
-3. **this skill** validates branch name format, creates task branch from
-   parent, records SOURCE_BRANCH
-4. `using-git-worktrees` executes `git worktree add`
+- [ ] The current checkout is on a named branch, not detached `HEAD`.
+- [ ] The user confirmed the current branch as `INTEGRATION_BRANCH`.
+- [ ] The integration checkout is clean.
+- [ ] The task branch name matches the task regex.
+- [ ] No existing branch or worktree has the task name.
+- [ ] `.claude/worktrees/` is ignored.
 
-### with `development-workflow`
+### Before each task
 
-- `development-workflow` enforces: when to create parent branch (OpenSpec
-  change start), when to create task worktree (RED gate), when to merge task
-  branch back to parent (OpenSpec-archive gate), when to merge parent branch
-  to main (source-branch integration gate)
-- **this skill** enforces: branch naming format, worktree paths, SOURCE_BRANCH
-  traceability
+- [ ] Current branch is the confirmed `INTEGRATION_BRANCH`.
+- [ ] The integration checkout is clean.
+- [ ] The task branch is created from the current `INTEGRATION_BRANCH` tip.
+- [ ] The task worktree records `SOURCE_BRANCH=<INTEGRATION_BRANCH>`.
+- [ ] Edits, tests, and commits run only in the task worktree.
 
-**Parent branch lifecycle**:
-1. OpenSpec-new-change: user creates change → development-workflow prompts to
-   create parent branch → this skill validates name format
-2. Task loop: each task gets worktree + task branch from parent
-3. OpenSpec-archive: task branch merges back to parent → this skill verifies
-   SOURCE_BRANCH match
-4. Source-branch integration: parent branch merges to main → development-workflow checks all tasks merged
+### Before task cleanup
 
-**Task branch lifecycle**:
-1. Worktree-setup gate: development-workflow requires isolated workspace →
-   this skill creates task branch + worktree from parent
-2. RED/GREEN/commit gates: all work happens in worktree
-3. OpenSpec-archive gate: this skill merges task branch to parent, removes
-   worktree, deletes task branch
-
-### with `commit` skill
-
-- This skill does NOT govern commit message format (delegated to `commit` skill)
-- This skill only governs **which branch** commits land on (task branch, not
-  main or parent branch directly)
-- Commit message footer SHOULD carry `Refs: OpenSpec <change-name> task <task-id>`
-  for traceability (governed by `commit` skill + development-workflow)
-
-## Validation Checklist
-
-### Before creating parent branch
-- [ ] Branch name matches `(features|fixes)/📦<change-id>--<中文>{4,}` pattern
-- [ ] Change-id format is uppercase letters + hyphen + digits
-- [ ] Chinese description ≥4 characters, no spaces/special chars
-- [ ] Emoji is `📦` (U+1F4E6), not a similar-looking character
-- [ ] Parent branch is being created from **current branch** (which may be main/master or another feature branch)
-- [ ] Record SOURCE_BRANCH in `.git/refs/source-branch/<parent-branch-name>` immediately after creation
-
-### Before creating task worktree + branch
-- [ ] Parent branch exists and matches `(features|fixes)/📦<change-id>--<中文>` pattern
-- [ ] Task branch name matches `(features|fixes)/✅<change-id>-T<num>--<中文>{3,}` pattern
-- [ ] Task change-id matches parent branch change-id
-- [ ] Emoji is `✅` (U+2705), not a similar-looking character
-- [ ] Worktree path is `.claude/worktrees/<full-task-branch-name>/`
-- [ ] Original checkout has no uncommitted changes in task-related files
-- [ ] No existing worktree or branch with the same name
-
-### Before removing task worktree
-- [ ] Task branch has been merged to SOURCE_BRANCH parent branch
-- [ ] All task commits are reachable from SOURCE_BRANCH
-- [ ] No uncommitted changes in worktree
-- [ ] `.source_branch` file exists and points to valid parent branch
-
-### Before merging parent branch to its SOURCE_BRANCH
-- [ ] All task branches for this change have been merged to parent branch
-- [ ] No active worktrees reference this parent branch
-- [ ] Parent branch has passed code-review-spec gate
-- [ ] Parent branch build and tests pass
-- [ ] Parent branch SOURCE_BRANCH record exists in `.git/refs/source-branch/`
-- [ ] Merge parent branch back to its SOURCE_BRANCH (not forced to main)
+- [ ] The task's focused and broader verification gates passed.
+- [ ] The task worktree is clean.
+- [ ] `.source_branch` identifies an existing integration branch.
+- [ ] The integration checkout is clean before merging.
+- [ ] `git merge --no-ff <task-branch>` completed successfully.
+- [ ] `git merge-base --is-ancestor <task-branch> <integration-branch>` succeeds.
+- [ ] The task worktree and branch are removed only after the successful merge.
+- [ ] The final checkout is `INTEGRATION_BRANCH`.
 
 ## Non-Negotiable Rules
 
-- Feature/fix work MUST use task branches with worktrees. Direct commits to
-  parent branches or main for non-trivial tasks are noncompliant.
-- Branch names MUST use emoji prefixes (`📦` for parent, `✅` for task) and
-  Chinese descriptions. English branch names, abbreviation-only names, or
-  issue-ID-only names are noncompliant.
-- Task branches MUST be created from parent branches, not from main. Creating
-  `features/✅CHG-001-T1--<task>` directly from main bypasses the parent
-  branch aggregation point and is noncompliant.
-- SOURCE_BRANCH MUST be recorded for both parent branches (in `.git/refs/source-branch/`)
-  and task branches (in worktree `.source_branch` file) before work starts.
-- Merge-back MUST follow SOURCE_BRANCH chain: task → parent → parent's SOURCE_BRANCH.
-  Merging to a different branch than SOURCE_BRANCH breaks traceability and is noncompliant.
-- Original checkout MUST NOT be used for task implementation when a worktree
-  exists for that task. Writing task code outside the worktree breaks
-  isolation and is noncompliant.
-
-## Troubleshooting
-
-### Emoji not displaying correctly in terminal
-
-If emoji shows as `?` or `<U+1F4E6>` in your terminal:
-
-- Use a modern terminal emulator: iTerm2 (macOS), Windows Terminal (Windows),
-  or any terminal with full Unicode support
-- Install a font with emoji support: Noto Color Emoji, Apple Color Emoji, or
-  Segoe UI Emoji
-- If terminal emoji support is impossible, consider switching to
-  `parent-`/`task-` prefix scheme (see skill revision history for alternative)
-
-### Copy-paste branch name loses emoji
-
-If copying branch names from terminal strips emoji:
-
-```bash
-# Use git branch output directly in scripts
-BRANCH=$(git branch --show-current)
-
-# Or store branch names in shell variables
-PARENT_BRANCH="features/📦CHG-001--订单系统重构"
-```
-
-### Git commands fail with emoji in branch name
-
-Git fully supports Unicode in branch names since 2006. If you encounter
-issues:
-
-- Verify git version: `git --version` (should be ≥2.x)
-- Check locale: `echo $LANG` (should be UTF-8, e.g., `en_US.UTF-8`,
-  `zh_CN.UTF-8`)
-- If on Windows, ensure using Git Bash or WSL, not legacy Command Prompt
-
-### Multiple tasks need to be worked on in parallel
-
-Each task gets its own worktree + task branch:
-
-```bash
-# Task 1 worktree
-.claude/worktrees/features/✅CHG-001-T1--支付模块/
-
-# Task 2 worktree (parallel work)
-.claude/worktrees/features/✅CHG-001-T2--库存扣减/
-
-# Both task branches merge to same parent when complete
-features/📦CHG-001--订单系统重构
-```
-
-Switch between tasks by `cd` to different worktree directories. Each worktree
-is an independent workspace with its own checkout, staging area, and HEAD.
+- Use a task branch and dedicated worktree for every independently verifiable
+  implementation task.
+- Confirm the integration branch once at the beginning of a change; do not
+  silently change it later.
+- Create every task branch from the confirmed integration branch.
+- Merge every task only into the `SOURCE_BRANCH` recorded in its worktree.
+- Start each later task from the integration branch after prior task merges.
+- Do not create or use parent aggregation branches.
+- Do not edit task files or create task commits from the original checkout.
+- Do not delete a task worktree or branch until its merge is verified by the
+  ancestry check.

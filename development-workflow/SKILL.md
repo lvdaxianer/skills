@@ -137,9 +137,10 @@ Delegation rules:
   task-owned file is written. Branch naming, worktree paths, SOURCE_BRANCH
   recording, and original-checkout write protection are delegated to
   `git-branch-worktree-convention`. This workflow does not restate those rules.
-- The dedicated worktree must be created using the branch naming and path
+- The dedicated worktree must be created using the task-branch naming and path
   conventions specified in `git-branch-worktree-convention` (emoji-prefixed
-  parent/task hierarchy, `.claude/worktrees/` root).
+  task branches, `.claude/worktrees/` root). The user confirms the integration
+  branch once at the first task; each task starts from and merges back into it.
 - The agent must not begin task work until both the required branch and its
   dedicated worktree have been created or selected and the worktree preflight
   checks pass. If the branch is checked out elsewhere, the path is occupied, or
@@ -155,11 +156,12 @@ Delegation rules:
   that lists completed tasks and lists unfinished tasks for the completed change.
   The report format and required topics are delegated to `openspec-archive-change`.
   This workflow does not restate report structure rules.
-- After the final audit and OpenSpec archive work pass, return to a clean
-  checkout/worktree of the recorded source branch and merge the completed
-  feature branch into it. Verify the source branch after the merge. Merge
-  conflicts, a missing source worktree, or unrelated uncommitted source changes
-  are blocking conditions; preserve existing work and do not claim completion
+- After the final audit and OpenSpec archive work pass, return to the clean
+  checkout/worktree of the confirmed integration branch. Verify that every
+  completed task branch was merged into it and that it contains the change.
+  There is no extra parent/feature branch to merge at the end. Merge conflicts,
+  a missing source worktree, or unrelated uncommitted source changes are
+  blocking conditions; preserve existing work and do not claim completion
   until integration succeeds.
 
 ## Risk-Based Standard Change Tiers
@@ -263,11 +265,12 @@ enforces, and concurrency numbers this workflow caps for safety.
 For each development task, execute this exact order:
 
 1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
-2. Classify the change as a new feature or bug fix. Create or select the
-   correctly named branch and its dedicated project worktree. Before creating
-   the branch, record `SOURCE_BRANCH=$(git branch --show-current)`, then verify
-   the branch, worktree path, and current directory. Do not write task files
-   from the original checkout.
+2. Classify the change as a new feature or bug fix. At the first task, ask the
+   user whether the current branch is the change's integration branch. Create
+   the correctly named task branch and its dedicated project worktree from that
+   confirmed branch, record it as `SOURCE_BRANCH`, then verify the branch,
+   worktree path, and current directory. Do not write task files from the
+   original checkout.
 3. Use `OpenSpec` from the dedicated worktree to create or update the written
    change, including the OpenSpec plan and task checklist.
 4. Validate the OpenSpec change and keep those planning files available for the first related task commit.
@@ -293,14 +296,19 @@ For each development task, execute this exact order:
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module.
-22. Only after the commit succeeds, move to the next task.
+22. After the commit succeeds, merge the task branch into its recorded
+   `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
+   return to the confirmed integration branch before starting the next task.
 23. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
-24. Archive the completed OpenSpec change, then commit the archive/update from the dedicated worktree if the archive modifies repository files.
-25. After the final audit and OpenSpec archive work pass, return to the recorded source branch from its clean source checkout/worktree and run
-   `git merge <feature-branch>`. If merge conflicts occur or the source
-   worktree has unrelated uncommitted changes, stop and preserve that work.
-   Verify the source branch contains the feature changes before reporting
-   completion; a failed merge must not claim completion.
+24. Archive the completed OpenSpec change. If archival modifies repository
+   files, create one final dedicated task worktree from the confirmed
+   integration branch, commit the archive update, then merge and verify that
+   task using the same task-integration loop.
+25. After the final audit and OpenSpec archive work pass, return to the
+   confirmed integration branch and verify it contains every completed task.
+   If the source checkout has unrelated uncommitted changes, a merge conflict,
+   or a missing task merge, stop and preserve that work. A failed integration
+   must not claim completion.
 
 ## Gate Rules
 
@@ -311,9 +319,9 @@ For each development task, execute this exact order:
   checkout. Use a dedicated project worktree paired with the correctly named
   branch, and verify it with `git worktree list --porcelain`,
   `git branch --show-current`, and `pwd` before continuing.
-- Do not lose the source branch identity: record `SOURCE_BRANCH=$(git branch
-  --show-current)` before creating the feature branch, and use that recorded
-  branch as the merge target.
+- Do not lose the integration branch identity: ask the user to confirm the
+  current branch before the first task, record it as `SOURCE_BRANCH` in every
+  task worktree, and use it as the only merge target for that change.
 - Do not begin new feature or bug-fix work until the correctly named dedicated
   branch and its project worktree have been created or selected.
 - Do not decide, implement, review, test, or approve any domain-triggered work
@@ -339,9 +347,10 @@ For each development task, execute this exact order:
 - Do not advance delegated work from subagent report alone; first merge or apply
   the subagent result into the task worktree, run main agent review, and send
   findings back to the same subagent until the review passes.
-- Do not claim completion until the verified feature branch has been merged into
-  the recorded source branch. A dirty source worktree, missing source worktree,
-  or merge conflicts must stop the integration gate and preserve unrelated work.
+- Do not claim completion until every verified task branch has been merged into
+  the confirmed integration branch. A dirty source worktree, missing source
+  worktree, or merge conflicts must stop the integration gate and preserve
+  unrelated work.
 - Do not create standalone planning commits by default; carry OpenSpec planning
   files with the first atomic task commit for a complete business module.
 - Do not create a standalone OpenSpec or documentation commit unless the change

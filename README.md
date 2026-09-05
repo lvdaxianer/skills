@@ -36,7 +36,7 @@
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
 | [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制"brainstorm → OpenSpec 建 change → 独立 worktree → TDD RED/GREEN → 一致性审计 → code-review → 逐任务提交 → OpenSpec 归档"的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
-| [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git 分支与 worktree 约定**：emoji 前缀父子分支层级（📦 父、✅ 子）、中文描述、SOURCE_BRANCH 记录、原 checkout 读写隔离 | 创建分支、建 worktree、检查分支名合规、task merge 回父分支 |
+| [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git 分支与 worktree 约定**：首次确认集成分支、emoji 前缀 task 分支（✅）、中文描述、SOURCE_BRANCH 记录、原 checkout 读写隔离 | 创建 task 分支、建 worktree、检查分支名合规、task merge 回集成分支 |
 | [`commit`](./commit/SKILL.md) | **提交规范**：中文 Conventional Commit + emoji 前缀 + body/footer 非空 | 创建提交、生成提交信息、`/commit` 指令 |
 | [`code-review-spec`](./code-review-spec/spec.md) | **代码级红线**：`@author`、方法长度、注释占比、命名、if-else 注释、异常处理、日志、SQL、Git 提交等语言无关规范 | 代码变动、PR 审查、`/code-review-spec` 指令 |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | **系统级可靠性**：幂等、事务、并发、迁移、环境隔离、fail-fast、错误契约、业务审计、可观测性 | 后端 API、Service、Job、Queue、Webhook、迁移、配置变更 |
