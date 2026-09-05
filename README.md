@@ -35,7 +35,7 @@
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
-| [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制"brainstorm → OpenSpec 建 change → 独立 worktree → TDD RED/GREEN → 一致性审计 → code-review → 逐任务提交 → OpenSpec 归档"的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
+| [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制“brainstorm → 确认集成分支与任务 worktree → OpenSpec → 任务边界/调度 → TDD RED/GREEN → 审计/review → 逐任务提交并合并 → 归档”的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git 分支与 worktree 约定**：首次确认集成分支、emoji 前缀 task 分支（✅）、中文描述、SOURCE_BRANCH 记录、原 checkout 读写隔离 | 创建 task 分支、建 worktree、检查分支名合规、task merge 回集成分支 |
 | [`commit`](./commit/SKILL.md) | **提交规范**：中文 Conventional Commit + emoji 前缀 + body/footer 非空 | 创建提交、生成提交信息、`/commit` 指令 |
 | [`code-review-spec`](./code-review-spec/spec.md) | **代码级红线**：`@author`、方法长度、注释占比、命名、if-else 注释、异常处理、日志、SQL、Git 提交等语言无关规范 | 代码变动、PR 审查、`/code-review-spec` 指令 |
@@ -50,7 +50,7 @@
 
 ```
 development-workflow  (入口, 强制流程)
-    ├── 分支与 worktree → git-branch-worktree-convention
+    ├── 分支、worktree 与逐任务集成 → git-branch-worktree-convention
     ├── 提交规范 → commit
     ├── 代码审查阶段 → code-review-spec
     │       ├── 日志相关红线 → 授权 logging-boundaries
@@ -71,12 +71,13 @@ development-workflow  (入口, 强制流程)
 
 ## Development Workflow 详解
 
-`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联了本仓库 6 个 skill + 外部 superpowers/OpenSpec 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
+`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 7 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
 
 **核心特点**：
-- 组合 skill：本仓库 7 个（内置）+ 外部 6 个（需单独安装，不含 commit）
+- 组合 skill：本仓库 8 个（含入口 skill）+ 外部依赖套件
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
-- 强制循环：brainstorm → OpenSpec → worktree → TDD → code-review → commit → archive
+- 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree → OpenSpec → 任务边界与调度 → TDD → 验证/审计/review → commit → 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
+- 集成模型：一个 change 只确认一个集成分支；每个独立任务从它创建任务分支和 worktree，验证通过后立即合并回该分支。不存在用于汇总任务的父分支。
 
 **详细说明**：[DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) 包含：
 - 本仓库内置 vs 外部依赖清单
@@ -210,7 +211,7 @@ lvdaxianer-skills/
 | 代码级红线（注释、命名、方法长度、空值、参数、重复、魔法数字等） | `code-review-spec` |
 | Git 分支命名、worktree 路径、SOURCE_BRANCH、原 checkout 隔离 | `git-branch-worktree-convention` |
 | 提交信息格式（中文、emoji、body/footer 非空） | `commit` |
-| 强制开发流程（brainstorm、OpenSpec、TDD、逐任务提交） | `development-workflow` |
+| 强制开发流程（brainstorm、OpenSpec、任务 worktree、TDD、逐任务提交/合并） | `development-workflow` |
 
 发现冲突时的处理流程：
 
@@ -224,7 +225,7 @@ lvdaxianer-skills/
 
 - 修改任意 skill 前先阅读其 `SKILL.md` 顶部的"Skill Conflict Resolution / 冲突处理原则"
 - 新增红线时，先判断领域归属，避免跨 skill 重复定义
-- 每次改动通过 `development-workflow` 的完整流程，包括 OpenSpec change + TDD + code review
+- 每次改动通过 `development-workflow` 的完整流程：确认集成分支、每任务独立 worktree、OpenSpec、TDD、审计/review、逐任务提交与合并；仅在用户明确豁免时跳过 OpenSpec
 - 中英文 README 需同步维护
 
 ---
