@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Eight Skills at a Glance](#eight-skills-at-a-glance)
+- [Nine Skills at a Glance](#nine-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,7 +31,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Eight Skills at a Glance
+## Nine Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
@@ -43,6 +43,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **Frontend interaction quality**: submit/delete/pay deduplication, revertible optimistic updates, consistent loading/empty/error/disabled/offline/permission states, destructive-action confirmation | Web/mobile pages, forms, modals, lists, editors, workflows |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **Production log discipline**: Actuator hot-toggle, level semantics, mandatory traceId, PII masking, MDC cross-thread propagation, scenario-scoped loading (HTTP/scheduled-job/MQ/AOP/async) | Backend logs, traceId, MDC, `log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD architecture**: Bounded Context, Ubiquitous Language, Entity/VO/Aggregate/Domain Event/Repository/Factory, four-layer architecture, anti-pattern detection | Domain modeling, aggregate boundary discussions, CQRS/event sourcing |
+| [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 
 ---
 
@@ -56,7 +57,8 @@ development-workflow  (entry, mandatory loop)
     │       ├── logging red lines   → delegates to logging-boundaries
     │       ├── reliability red lines → delegates to backend-reliability-guidelines
     │       └── frontend red lines  → delegates to frontend-interaction-guidelines
-    └── DDD architecture tasks → ddd
+    ├── DDD architecture tasks → ddd
+    └── project init & baseline file sync → project-hygiene
 ```
 
 **Priority rules**:
@@ -71,12 +73,12 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 
 ## Development Workflow Explained
 
-`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 7 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
+`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 8 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
 
 **Key characteristics**:
-- Composite skill: 8 local skills including the entry skill, plus external dependency suites
+- Composite skill: 9 local skills including the entry skill, plus external dependency suites
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
-- Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree → OpenSpec → task boundary and dispatch → TDD → verification/audit/review → commit → merge to `SOURCE_BRANCH` and clean up → final audit/archive
+- Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree (with `project-hygiene` baseline check) → OpenSpec → task boundary and dispatch → TDD → verification/audit/review → commit (with secret/artifact leak check) → merge to `SOURCE_BRANCH` and clean up → final audit/archive
 - Integration model: one change confirms one integration branch. Each independently verifiable task starts from it in its own branch and worktree, then merges back after verification. No parent branch aggregates task branches.
 
 **Detailed guide**: [DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) covers:
@@ -105,6 +107,7 @@ cp -R development-workflow             ~/.claude/skills/
 cp -R frontend-interaction-guidelines  ~/.claude/skills/
 cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
+cp -R project-hygiene                  ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
 mkdir -p .claude/skills
@@ -119,7 +122,8 @@ mkdir -p ~/.claude/skills
 REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
-             git-branch-worktree-convention logging-boundaries; do
+             git-branch-worktree-convention logging-boundaries \
+             project-hygiene; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -155,6 +159,7 @@ Skills match against their `description`. Examples:
 /frontend-interaction-guidelines # frontend interaction audit
 /logging-boundaries              # logging audit
 /ddd                             # DDD architecture guidance
+/project-hygiene                 # detect & sync baseline files / secret leak check
 ```
 
 ### Combining skills
@@ -191,9 +196,11 @@ lvdaxianer-skills/
 │   └── references/
 ├── git-branch-worktree-convention/
 │   └── SKILL.md
-└── logging-boundaries/
-    ├── SKILL.md
-    └── references/
+├── logging-boundaries/
+│   ├── SKILL.md
+│   └── references/
+└── project-hygiene/
+    └── SKILL.md
 ```
 
 ---
@@ -212,6 +219,7 @@ lvdaxianer-skills/
 | Git branch naming, worktree paths, SOURCE_BRANCH, original-checkout isolation | `git-branch-worktree-convention` |
 | Commit message format (Chinese, emoji, mandatory body/footer) | `commit` |
 | Mandatory workflow (brainstorm, OpenSpec, task worktrees, TDD, per-task commits/merges) | `development-workflow` |
+| .gitignore/.gitattributes/.editorconfig/.env.example maintenance, secret leak prevention, editor/AI tool dir policy | `project-hygiene` |
 
 Resolution procedure:
 

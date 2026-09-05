@@ -18,6 +18,10 @@ Load and follow these skills at their required workflow stages:
 - `git-branch-worktree-convention` whenever creating or validating branch names,
   setting up worktrees, recording SOURCE_BRANCH, or enforcing original-checkout
   write protection.
+- `project-hygiene` whenever a change initializes a project, adds or removes
+  build manifests, introduces new tool, artifact, or binary file types, adds
+  environment variable references, or touches baseline files (`.gitignore`,
+  `.gitattributes`, `.editorconfig`, `.env.example`).
 - `superpowers:brainstorming` for requirement discussion, alternatives, and approved design.
 - The action-specific OpenSpec skill suite for durable change assets:
   - `openspec-new-change` with `openspec-continue-change`, or `openspec-ff-change`, for planning.
@@ -88,6 +92,7 @@ skill.
 | Production logging: log statements, levels, fields, redaction, trace/MDC, DEBUG controls, log-volume behavior | `logging-boundaries` |
 | Backend implementation and backend review: APIs, services, jobs, queues, webhooks, migrations, configuration, validation, authorization, idempotency, transactions, concurrency, error handling, observability | `backend-reliability-guidelines` |
 | Frontend interaction implementation and review: pages, components, forms, modals, editors, workflows, buttons, loading/empty/error/disabled states, submit/save/delete/publish/pay/upload/batch actions, debounce/throttle, keyboard, motion, responsive interaction, accessibility interaction quality, operation reliability, cross-page state consistency | `frontend-interaction-guidelines` |
+| Project baseline files: `.gitignore`/`.gitattributes`/`.editorconfig`/`.env.example` synchronization, secret-leak prevention, editor and AI tool directory policy | `project-hygiene` |
 
 Delegation rules:
 
@@ -270,7 +275,10 @@ For each development task, execute this exact order:
    the correctly named task branch and its dedicated project worktree from that
    confirmed branch, record it as `SOURCE_BRANCH`, then verify the branch,
    worktree path, and current directory. Do not write task files from the
-   original checkout.
+   original checkout. If the change initializes the project or adds/removes
+   build manifests, tool or artifact directories, binary file types, or
+   environment variable references, run the `project-hygiene` baseline sync
+   inside the task worktree before task-owned edits.
 3. Use `OpenSpec` from the dedicated worktree to create or update the written
    change, including the OpenSpec plan and task checklist.
 4. Validate the OpenSpec change and keep those planning files available for the first related task commit.
@@ -295,7 +303,9 @@ For each development task, execute this exact order:
     worktree by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
-    commit when the task carries a complete business module.
+    commit when the task carries a complete business module. Before committing,
+    run the `project-hygiene` secret-leak check (`git ls-files`) and confirm no
+    artifact, tool-local, or secret file is staged.
 22. After the commit succeeds, merge the task branch into its recorded
    `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
    return to the confirmed integration branch before starting the next task.
@@ -328,8 +338,8 @@ For each development task, execute this exact order:
   until the authoritative domain skill listed in Domain Authority Delegation
   has been read from its canonical sources and its applicable requirements
   have been recorded as evidence. This applies to `code-review-spec`,
-  `logging-boundaries`, `backend-reliability-guidelines`, and
-  `frontend-interaction-guidelines`.
+  `logging-boundaries`, `backend-reliability-guidelines`,
+  `frontend-interaction-guidelines`, and `project-hygiene`.
 - Do not replace a domain skill with a summary, impression, "close enough"
   judgment, or partial rule coverage. Every applicable rule from the
   authoritative domain skill must be checked; any uncovered rule must be
@@ -361,6 +371,11 @@ For each development task, execute this exact order:
 - Do not batch-complete tasks at the end. Progress must be durable after every finished task.
 - Do not combine unrelated plan tasks into one commit.
 - Do not commit unrelated user changes. Preserve existing dirty work that is outside the task.
+- Do not commit build artifacts, tool-local files, or secrets; run the
+  `project-hygiene` leak check at the commit gate.
+- Do not hand-edit the managed blocks of baseline files; when build manifests,
+  tool directories, binary file types, or environment variable references
+  change, delegate the baseline sync to `project-hygiene`.
 - If a gate fails, fix the failure and re-run the same gate before continuing.
 - If a clear fix is available during review, make it immediately and verify again.
 - If the same blocker prevents progress after repeated attempts, report the blocker with
@@ -374,7 +389,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | worktree setup | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
 Evidence: <command or file checked>
 ```
 

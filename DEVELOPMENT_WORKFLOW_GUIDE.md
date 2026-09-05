@@ -60,7 +60,7 @@ flowchart TD
 | 步骤 | 关卡 | 必做事项 |
 |------|------|----------|
 | 1 | brainstorming | 用 `superpowers:brainstorming` 澄清需求并获得设计批准。 |
-| 2 | worktree setup | 判定变更类型；首次任务确认当前分支为 change 的集成分支，创建 task branch/worktree，记录 `SOURCE_BRANCH` 并校验隔离环境。 |
+| 2 | worktree setup | 判定变更类型；首次任务确认当前分支为 change 的集成分支，创建 task branch/worktree，记录 `SOURCE_BRANCH` 并校验隔离环境；change 涉及清单/工具目录/环境变量变更时触发 `project-hygiene` 基线同步。 |
 | 3-4 | OpenSpec plan / validation | 在 task worktree 创建或更新 change、计划和任务清单，并严格验证。 |
 | 5 | next task | 只选择第一个未完成任务。 |
 | 6-7 | task boundary and dispatch | 定义模块职责、允许文件、依赖、验证命令与交接证据；能安全委派时派发 implementer，否则在 RED 前记录直接执行原因。 |
@@ -69,7 +69,7 @@ flowchart TD
 | 15 | broader verification | 执行适用于改动范围的测试、lint、build 或文档检查。 |
 | 16-19 | audit / review | 审计计划一致性；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
 | 20 | task mark-complete | 所有关卡通过后，立即只标记一个任务完成。 |
-| 21 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交。 |
+| 21 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
 | 22 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
 | 23-25 | completion | 完成 final audit，归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
@@ -89,13 +89,14 @@ flowchart TD
 
 ## 二、它组合了哪些 skill
 
-### 本仓库内置（除入口 skill 外的 7 个）
+### 本仓库内置（除入口 skill 外的 8 个）
 
 这些 skill 跟随本仓库安装，无需额外下载：
 
 | Skill | 在哪个阶段调用 | 职责 |
 |------|--------------|------|
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | worktree-setup 门 | 首次确认集成分支，验证 task 分支名（emoji 前缀 ✅ + 中文），记录 SOURCE_BRANCH，确保原 checkout 隔离 |
+| [`project-hygiene`](./project-hygiene/SKILL.md) | worktree-setup 门（基线同步）+ commit 门（泄漏检查） | 四份基线文件（.gitignore/.gitattributes/.editorconfig/.env.example）检测驱动同步、密钥与产物泄漏防线 |
 | [`commit`](./commit/SKILL.md) | commit 门 | 中文 Conventional Commit + emoji 前缀 + body/footer 非空 |
 | [`code-review-spec`](./code-review-spec/spec.md) | code-review-spec 门 | 检查 `@author`、方法长度、注释占比、命名、异常处理、日志、SQL、Git 提交格式 |
 | [`backend-reliability-guidelines`](./backend-reliability-guidelines/SKILL.md) | 触及后端 API/Service/Job/迁移时自动 | 幂等、事务、并发、迁移、环境隔离、fail-fast、错误契约、业务审计、可观测性 |
@@ -103,7 +104,7 @@ flowchart TD
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | 触及日志代码时自动 | traceId 强制、脱敏、MDC 跨线程、Actuator 热开、级别语义 |
 | [`ddd`](./ddd/SKILL.md) | 领域建模讨论时手动调用 | Bounded Context、聚合边界、Entity/VO/Domain Event/Repository、四层架构 |
 
-**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 7 个 skill 会一起装进 `~/.claude/skills/`。
+**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 8 个 skill 会一起装进 `~/.claude/skills/`。
 
 ---
 
@@ -418,7 +419,8 @@ development-workflow (本仓库, 流程编排器)
 │  ├─ backend-reliability-guidelines
 │  ├─ frontend-interaction-guidelines
 │  ├─ logging-boundaries
-│  └─ ddd
+│  ├─ ddd
+│  └─ project-hygiene
 │
 └─ 外部 skill (需单独安装)
    ├─ superpowers:brainstorming
@@ -442,8 +444,8 @@ development-workflow (本仓库, 流程编排器)
 安装完本仓库 + 外部 skill 后，用以下命令验证：
 
 ```bash
-# 检查本仓库 7 个配套 skill（`development-workflow` 本身另行安装）
-ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd}/SKILL.md
+# 检查本仓库 8 个配套 skill（`development-workflow` 本身另行安装）
+ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd,project-hygiene}/SKILL.md
 
 # 检查外部依赖
 ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-apply-change,openspec-verify-change,openspec-sync-specs,openspec-archive-change,using-git-worktrees}/SKILL.md
@@ -553,7 +555,7 @@ Claude Code 会：
 
 ### 初次使用
 
-1. **先装本仓库全部 8 个 skill**（按 [README 安装章节](./README.md#安装)）
+1. **先装本仓库全部 9 个 skill**（按 [README 安装章节](./README.md#安装)）
 2. **再装外部 3 套 skill**（superpowers / OpenSpec / using-git-worktrees）
 3. **验证依赖**（见上文"四、检查依赖是否就位"）
 4. **跑一个小任务测试**：
@@ -624,6 +626,8 @@ Claude Code 会：
 | task 完成后合并到哪里？ | `git-branch-worktree-convention`（读取 `SOURCE_BRANCH`） | ❌ 不能凭当前 checkout 猜测 |
 | 提交信息格式？ | `commit` | ❌ `development-workflow` 不管 |
 | 什么时候提交？ | `development-workflow` (commit 门) | ❌ `commit` 不管 |
+| 基线文件条目怎么写？ | `project-hygiene` | ❌ `development-workflow` 不管 |
+| 什么时候同步基线文件、做泄漏检查？ | `development-workflow`（worktree-setup / commit 门） | ❌ `project-hygiene` 不管 |
 | 日志是否脱敏？ | `logging-boundaries` | ❌ `code-review-spec` 不管 |
 | 什么时候检查日志？ | `development-workflow` (code-review-spec 门 + Domain Authority Delegation) | ❌ `logging-boundaries` 不管 |
 

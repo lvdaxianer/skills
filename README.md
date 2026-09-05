@@ -9,7 +9,7 @@
 ## 目录
 
 - [是什么](#是什么)
-- [八个 skill 一览](#八个-skill-一览)
+- [九个 skill 一览](#九个-skill-一览)
 - [关系与优先级](#关系与优先级)
 - [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
@@ -31,7 +31,7 @@
 
 ---
 
-## 八个 skill 一览
+## 九个 skill 一览
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
@@ -43,6 +43,7 @@
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **前端交互质量**：提交/删除/支付防重、乐观更新可回滚、loading/empty/error/disabled/offline/permission 一致性、破坏性操作确认 | Web/移动端页面、表单、弹窗、列表、编辑器、工作流 |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **生产日志治理**：Actuator 热开、级别语义、traceId 强制、脱敏、MDC 跨线程透传，按场景（HTTP/定时任务/MQ/AOP/异步）加载 | 后端日志、traceId、MDC、`log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD 架构**：Bounded Context、Ubiquitous Language、Entity/VO/Aggregate/Domain Event/Repository/Factory、四层架构、反模式识别 | 领域建模、聚合边界讨论、CQRS/事件溯源 |
+| [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 
 ---
 
@@ -56,7 +57,8 @@ development-workflow  (入口, 强制流程)
     │       ├── 日志相关红线 → 授权 logging-boundaries
     │       ├── 后端可靠性红线 → 授权 backend-reliability-guidelines
     │       └── 前端交互红线 → 授权 frontend-interaction-guidelines
-    └── DDD 架构任务 → ddd
+    ├── DDD 架构任务 → ddd
+    └── 项目初始化与基线文件同步 → project-hygiene
 ```
 
 **优先级规则**：
@@ -71,12 +73,12 @@ development-workflow  (入口, 强制流程)
 
 ## Development Workflow 详解
 
-`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 7 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
+`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 8 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
 
 **核心特点**：
-- 组合 skill：本仓库 8 个（含入口 skill）+ 外部依赖套件
+- 组合 skill：本仓库 9 个（含入口 skill）+ 外部依赖套件
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
-- 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree → OpenSpec → 任务边界与调度 → TDD → 验证/审计/review → commit → 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
+- 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree（触发 `project-hygiene` 基线检查）→ OpenSpec → 任务边界与调度 → TDD → 验证/审计/review → commit（含密钥与产物泄漏检查）→ 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
 - 集成模型：一个 change 只确认一个集成分支；每个独立任务从它创建任务分支和 worktree，验证通过后立即合并回该分支。不存在用于汇总任务的父分支。
 
 **详细说明**：[DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) 包含：
@@ -105,6 +107,7 @@ cp -R development-workflow             ~/.claude/skills/
 cp -R frontend-interaction-guidelines  ~/.claude/skills/
 cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
+cp -R project-hygiene                  ~/.claude/skills/
 
 # 或者只装项目级（只对当前仓库生效）
 mkdir -p .claude/skills
@@ -119,7 +122,8 @@ mkdir -p ~/.claude/skills
 REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
-             git-branch-worktree-convention logging-boundaries; do
+             git-branch-worktree-convention logging-boundaries \
+             project-hygiene; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -155,6 +159,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 /frontend-interaction-guidelines # 前端交互专项检查
 /logging-boundaries              # 日志专项检查
 /ddd                             # DDD 架构建议
+/project-hygiene                 # 检测并同步基线文件 / 密钥泄漏检查
 ```
 
 ### 组合调用示例
@@ -191,9 +196,11 @@ lvdaxianer-skills/
 │   └── references/
 ├── git-branch-worktree-convention/
 │   └── SKILL.md
-└── logging-boundaries/
-    ├── SKILL.md
-    └── references/
+├── logging-boundaries/
+│   ├── SKILL.md
+│   └── references/
+└── project-hygiene/
+    └── SKILL.md
 ```
 
 ---
@@ -212,6 +219,7 @@ lvdaxianer-skills/
 | Git 分支命名、worktree 路径、SOURCE_BRANCH、原 checkout 隔离 | `git-branch-worktree-convention` |
 | 提交信息格式（中文、emoji、body/footer 非空） | `commit` |
 | 强制开发流程（brainstorm、OpenSpec、任务 worktree、TDD、逐任务提交/合并） | `development-workflow` |
+| 四份基线文件（.gitignore/.gitattributes/.editorconfig/.env.example）维护机制、密钥防泄漏、编辑器/AI 工具目录取舍 | `project-hygiene` |
 
 发现冲突时的处理流程：
 
