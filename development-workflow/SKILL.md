@@ -1,15 +1,40 @@
 ---
 name: development-workflow
-description: Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task.
+description: Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task. Honors explicit user opt-outs: "不要 OpenSpec" skips OpenSpec stages, "不要分支" works directly on the current branch, "不要 workflow" disables this skill entirely.
 ---
 
 # Development Workflow
 
-The workflow is mandatory. Do not treat it as optional guidance. Any deviation from the workflow is noncompliant.
+The workflow is mandatory by default. Do not treat it as optional guidance. Any
+deviation from the workflow is noncompliant **unless the user explicitly opts out**
+using one of the phrases in "Explicit User Opt-Outs" below.
 
 Use this skill to enforce a strict development loop. It applies to every code, test,
 documentation, configuration, and refactoring task unless the user explicitly provides a
-stricter workflow.
+stricter workflow or an explicit opt-out.
+
+## Explicit User Opt-Outs
+
+The user can disable parts of this workflow, or the whole workflow, by stating one of
+the following phrases (or a clear equivalent) in the current conversation. Opt-outs
+apply only when the user states them explicitly — never assume an opt-out from silence,
+task size, or your own judgment.
+
+| User says | Effect |
+|---|---|
+| "不要 workflow" / "不用 workflow" / "no workflow" | Do not activate this skill at all. Exit immediately and handle the request as an ordinary task. None of the stages, gates, or status formats below apply. |
+| "不要 OpenSpec" / "不用 OpenSpec" / "skip OpenSpec" | Skip every OpenSpec stage: no `openspec/changes/` asset, no `openspec validate`, no OpenSpec archive, no `Refs: OpenSpec …` footer. Keep a durable task checklist outside OpenSpec (e.g., the task tracking tool) so progress still survives session breaks. All other stages and gates — branch/worktree setup, TDD, verification, review, per-task commit, final audit — still apply. |
+| "不要分支" / "不要 worktree" / "no branch" | Skip task branch and worktree creation. Edit, test, and commit directly on the current branch in the current checkout. Record the current branch name once, and skip merge-back, worktree cleanup, and source-branch integration steps. All other stages still apply. |
+
+Rules:
+
+- "不要 workflow" overrides everything, including any other opt-out.
+- "不要 OpenSpec" and "不要分支" compose: the user may state both at once.
+- An opt-out never relaxes the domain skills (`code-review-spec`,
+  `logging-boundaries`, `backend-reliability-guidelines`,
+  `frontend-interaction-guidelines`, `project-hygiene`). Opting out of those
+  requires the user to name them explicitly.
+- Echo every active opt-out in status reports via the `Opt-outs` line.
 
 ## Required Sources
 
@@ -390,6 +415,7 @@ When reporting progress, include the current task and gate:
 ```markdown
 Current task: <task name>
 Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Opt-outs: <none | no OpenSpec | no branch | ...>
 Evidence: <command or file checked>
 ```
 

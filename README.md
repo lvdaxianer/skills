@@ -80,6 +80,7 @@ development-workflow  (入口, 强制流程)
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
 - 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree（触发 `project-hygiene` 基线检查）→ OpenSpec → 任务边界与调度 → TDD → 验证/审计/review → commit（含密钥与产物泄漏检查）→ 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
 - 集成模型：一个 change 只确认一个集成分支；每个独立任务从它创建任务分支和 worktree，验证通过后立即合并回该分支。不存在用于汇总任务的父分支。
+- 显式豁免：用户说"**不要 OpenSpec**"即跳过全部 OpenSpec 阶段；说"**不要分支**"即直接在当前分支修改、不建任务分支/worktree；说"**不要 workflow**"即完全不启用本流程。豁免仅在用户当次明确说出时生效，且可组合（详见 `development-workflow/SKILL.md` 的 Explicit User Opt-Outs）
 
 **详细说明**：[DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) 包含：
 - 本仓库内置 vs 外部依赖清单
@@ -233,7 +234,7 @@ lvdaxianer-skills/
 
 - 修改任意 skill 前先阅读其 `SKILL.md` 顶部的"Skill Conflict Resolution / 冲突处理原则"
 - 新增红线时，先判断领域归属，避免跨 skill 重复定义
-- 每次改动通过 `development-workflow` 的完整流程：确认集成分支、每任务独立 worktree、OpenSpec、TDD、审计/review、逐任务提交与合并；仅在用户明确豁免时跳过 OpenSpec
+- 每次改动通过 `development-workflow` 的完整流程：确认集成分支、每任务独立 worktree、OpenSpec、TDD、审计/review、逐任务提交与合并；用户可用"不要 OpenSpec / 不要分支 / 不要 workflow"显式豁免对应环节
 - 中英文 README 需同步维护
 
 ---

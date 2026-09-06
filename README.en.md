@@ -80,6 +80,7 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
 - Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree (with `project-hygiene` baseline check) → OpenSpec → task boundary and dispatch → TDD → verification/audit/review → commit (with secret/artifact leak check) → merge to `SOURCE_BRANCH` and clean up → final audit/archive
 - Integration model: one change confirms one integration branch. Each independently verifiable task starts from it in its own branch and worktree, then merges back after verification. No parent branch aggregates task branches.
+- Explicit opt-outs: "**不要 OpenSpec**" skips all OpenSpec stages; "**不要分支**" edits directly on the current branch with no task branch/worktree; "**不要 workflow**" disables the whole workflow. Opt-outs take effect only when the user states them explicitly in the current conversation, and they compose (see "Explicit User Opt-Outs" in `development-workflow/SKILL.md`)
 
 **Detailed guide**: [DEVELOPMENT_WORKFLOW_GUIDE.md](./DEVELOPMENT_WORKFLOW_GUIDE.md) covers:
 - Local bundled vs external dependencies checklist
@@ -233,7 +234,7 @@ Resolution procedure:
 
 - Before editing a skill, read its "Skill Conflict Resolution" section
 - When adding a new red line, first decide domain ownership to avoid cross-skill duplication
-- Every change follows the complete `development-workflow` loop: confirm the integration branch, use an isolated worktree per task, apply OpenSpec, TDD, audit/review, and per-task commit/merge; OpenSpec is skipped only when the user explicitly opts out
+- Every change follows the complete `development-workflow` loop: confirm the integration branch, use an isolated worktree per task, apply OpenSpec, TDD, audit/review, and per-task commit/merge; the user can explicitly opt out with "不要 OpenSpec / 不要分支 / 不要 workflow"
 - Keep the Chinese and English READMEs in sync
 
 ---

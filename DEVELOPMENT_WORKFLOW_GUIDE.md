@@ -18,6 +18,12 @@ TDD RED/GREEN → 验证/审计/review → 逐任务提交并合并 → final au
 `SOURCE_BRANCH`，清理 task branch/worktree，再从已更新的集成分支开始下一个任务。
 不存在用于汇总任务的 parent/change branch。
 
+> **显式豁免（Opt-Outs）**：用户说"**不要 OpenSpec**"即跳过全部 OpenSpec 阶段；
+> 说"**不要分支**"即直接在当前分支修改、不建任务分支/worktree；
+> 说"**不要 workflow**"即完全不启用本流程。豁免仅在用户当次明确说出时生效，
+> 可组合使用，且不影响领域 skill（code-review-spec、logging 等）。
+> 详见 `development-workflow/SKILL.md` 的 Explicit User Opt-Outs 章节与下方 Q3。
+
 ### 可视化流程图
 
 ```mermaid
@@ -479,7 +485,7 @@ Claude Code 会：
 /development-workflow 我要重构订单模块
 ```
 
-强制走完整流程，即使任务看起来很小。
+强制走完整流程，即使任务看起来很小——除非用户显式豁免（"不要 OpenSpec / 不要分支 / 不要 workflow"，见 Q3）。
 
 ---
 
@@ -487,13 +493,17 @@ Claude Code 会：
 
 ### Q1：我只想审代码，不想走完整流程，能跳过 development-workflow 吗？
 
-**可以**。直接调 `/code-review-spec`：
+**可以**，两种方式：
 
-```
-/code-review-spec 审下这段 Java 代码
-```
+1. 直接调 `/code-review-spec`：
 
-这样只触发代码审查，不触发 brainstorm、OpenSpec、worktree 等流程。
+   ```
+   /code-review-spec 审下这段 Java 代码
+   ```
+
+   这样只触发代码审查，不触发 brainstorm、OpenSpec、worktree 等流程。
+
+2. 或直接说"**不要 workflow**"，本次任务完全不启用 development-workflow，按普通任务处理（见 Q3）。
 
 ---
 
@@ -505,17 +515,19 @@ Claude Code 会：
 
 ### Q3：我的项目不用 OpenSpec，能关掉吗？
 
-**不推荐，但可以**。`development-workflow/SKILL.md` 顶部有一句：
-
-> OpenSpec remains mandatory by default for every persisted change unless the user explicitly opts out.
-
-如果你明确不用 OpenSpec，在每次任务开始时告诉 Claude：
+**可以，一句话即可**。`development-workflow/SKILL.md` 顶部的 "Explicit User Opt-Outs" 定义了三个显式豁免口令：
 
 ```
-这个任务跳过 OpenSpec，直接写代码
+不要 OpenSpec     # 跳过所有 OpenSpec 阶段（无 changes 资产、validate、archive），其余关卡保留
+不要分支          # 不建 task 分支和 worktree，直接在当前分支上修改、提交
+不要 workflow     # 完全不启用 development-workflow，按普通任务处理
 ```
 
-但这样会失去 OpenSpec 变更追溯与其计划基线；仍应保留 worktree、测试、审计/review、提交和集成等其余强制关卡。
+规则要点：
+- 只在用户**当次会话明确说出**时生效，绝不默认豁免
+- "不要 OpenSpec" 与 "不要分支" 可组合；"不要 workflow" 覆盖一切
+- 豁免不影响领域 skill（code-review-spec、logging 等），豁免它们需要单独明说
+- 跳过 OpenSpec 时仍会保留一份持久的任务清单（不落地到 `openspec/`），避免进度丢失
 
 ---
 
