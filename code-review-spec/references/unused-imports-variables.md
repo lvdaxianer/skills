@@ -1,5 +1,7 @@
 # 未使用导入与变量清理规范
 
+> **说明**：示例中的 `{author}` 为占位符，实际值按 [../spec.md](../spec.md) 第 2 节"作者标识"的解析顺序确定，禁止写死固定值。
+
 ## 1. 未使用导入清理
 
 > **强制要求**：所有 import 语句必须被实际使用，不得存在任何冗余导入。
@@ -246,7 +248,7 @@ import java.util.Optional;
  * 甘孜州统一认证 OAuth2 登录 Controller
  * 提供 OAuth2 授权码模式的登录、回调、退出功能
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026/04/22
  */
 @Api("甘孜州 OAuth2 登录")

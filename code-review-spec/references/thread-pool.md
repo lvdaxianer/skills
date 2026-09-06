@@ -1,5 +1,7 @@
 # Java 线程池规范示例
 
+> **说明**：示例中的 `{author}` 为占位符，实际值按 [../spec.md](../spec.md) 第 2 节"作者标识"的解析顺序确定，禁止写死固定值。
+
 > **仅适用于 Java**：禁止使用已定义的线程池，必须使用自定义线程池。
 > **隔离要求**：不同业务必须使用不同线程池，避免订单、用户、消息等核心链路互相争抢资源。
 > **线程持有要求**：线程池任务不得无控制地长时间持有线程，避免线程池打满。
@@ -140,7 +142,7 @@ public void blockOnFuture(Future<Result> future) {
  * 错误示例：在线程池任务中同步 HTTP 调用，共用核心请求线程池且没有超时边界。
  *
  * @param order 订单
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-08-16
  */
 public void callUserService(Order order) {

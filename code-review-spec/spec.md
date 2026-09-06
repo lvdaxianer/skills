@@ -41,7 +41,13 @@ description: Use when performing or requesting code review, code formatting, or 
 
 ## 2. 作者标识
 
-仅**新添加的方法或类**，其 `@author` 必须填写 `lvdaxianer@yeah.net`。
+仅**新添加的方法或类**需要填写 `@author`，且**禁止写死任何固定作者**。作者标识按以下优先级解析：
+
+1. **用户明确指定**：本轮会话或需求中用户给定的作者（最高优先级）
+2. **默认作者**：用户说"默认"或要求使用默认值时，使用 `lvdaxianer@yeah.net`
+3. **项目既有约定**：当前仓库已有代码中使用的 `@author` 值（取占主导或最近使用的）
+4. **Git 配置**：`git config user.email`（或 `user.name`）
+5. **提问确认**：以上渠道都无法确定时，**必须先向用户提问作者写谁，得到答复后再继续**，不得擅自填写
 
 > 已存在的方法或类，无需修改原有 `@author`。
 
@@ -440,7 +446,7 @@ timestamp [thread-name] level class-name:line-number - message
 
 ### 13.1. 注释与文档（强制）
 
-- [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须填写 `lvdaxianer@yeah.net`（老方法/类无需修改）
+- [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须按 §2 的解析顺序确定（用户指定 → 默认作者 `lvdaxianer@yeah.net` → 项目既有约定 → git 配置 → 提问确认），禁止写死固定值（老方法/类无需修改）
 - [✅/❌/不适用] **方法注释**：所有方法都有完整注释（@param、@return、@author、@date）
 - [✅/❌/不适用] **类注释**：所有类都有 Javadoc 风格文档注释
 - [✅/❌/不适用] **分支注释**：所有 if-else 分支都有条件说明注释
@@ -555,7 +561,7 @@ timestamp [thread-name] level class-name:line-number - message
 [用户确认的审查范围：全部文件/特定文件/变更部分]
 
 ### 13.1 注释与文档
-- [✅/❌/不适用] 作者标识：新添加的方法/类是否填写 `lvdaxianer@yeah.net`（老方法/类无需修改）
+- [✅/❌/不适用] 作者标识：新添加的方法/类是否按 §2 解析顺序确定 `@author`（禁止写死；无法确定时须先向用户提问）
 - [✅/❌/不适用] 方法注释：具体说明
 - [✅/❌/不适用] 类注释：具体说明
 - [✅/❌/不适用] 分支注释：具体说明

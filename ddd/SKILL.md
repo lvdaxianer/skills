@@ -93,12 +93,14 @@ Value objects are immutable descriptions of qualities. They have no identity —
 
 **Example — Money:**
 
+> **Note on `@author {author}`**: `{author}` is a placeholder, never hardcode a fixed author. Resolve it in this order: explicitly given by the user in the current conversation → the prevailing `@author` convention in the repo → `git config user.email` → if none can be determined, ask the user who the author should be and wait for the answer before continuing.
+
 ```java
 /**
  * Value object representing a monetary amount with currency.
  * Immutable by design — all operations return new instances.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public final class Money {
@@ -111,7 +113,7 @@ public final class Money {
      *
      * @param amount   the monetary amount (must not be null, must be >= 0)
      * @param currency the currency code (must not be null, 3 chars ISO code)
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public Money(BigDecimal amount, Currency currency) {
@@ -131,7 +133,7 @@ public final class Money {
      * @param other the money to add (must have same currency)
      * @return new Money instance with sum
      * @throws IllegalArgumentException if currencies don't match
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public Money add(Money other) {
@@ -149,7 +151,7 @@ public final class Money {
      *
      * @param factor the multiplication factor
      * @return new Money instance with scaled amount
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public Money multiply(double factor) {
@@ -197,7 +199,7 @@ Entities are objects with a distinct identity that persists across state changes
  * Entity representing a customer order.
  * Identity is established at creation and never changes.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public class Order {
@@ -212,7 +214,7 @@ public class Order {
      * Creates a new order draft.
      *
      * @param customerId the customer placing the order
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public Order(CustomerId customerId) {
@@ -230,7 +232,7 @@ public class Order {
      * @param productId the product being ordered
      * @param quantity  the quantity (must be > 0)
      * @param unitPrice the price per unit (must not be null)
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public void addLine(ProductId productId, int quantity, Money unitPrice) {
@@ -251,7 +253,7 @@ public class Order {
      * Submits the order for processing.
      *
      * @throws OrderDomainException if order is in invalid state
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public void submit() {
@@ -293,7 +295,7 @@ An aggregate is a cluster of related entities and value objects with one as the 
  * Aggregate root for order management.
  * All external access goes through Order (the root).
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public class OrderAggregate {
@@ -333,7 +335,7 @@ Domain events represent something significant that happened in the domain. They 
  * Base class for all domain events.
  * Domain events are immutable records of things that happened.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public abstract class DomainEvent {
@@ -353,7 +355,7 @@ public abstract class DomainEvent {
 /**
  * Event raised when an order is submitted.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public class OrderSubmittedEvent extends DomainEvent {
@@ -389,7 +391,7 @@ Domain services handle operations that don't naturally belong to any entity or v
  * Domain service for pricing calculations.
  * Pricing logic spans multiple products and discount rules.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public class PricingService {
@@ -400,7 +402,7 @@ public class PricingService {
      * @param lines       the order lines to price
      * @param customerTier the customer's tier for discount eligibility
      * @return the final priced amount
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public Money calculatePrice(List<OrderLine> lines, CustomerTier customerTier) {
@@ -433,7 +435,7 @@ Repositories abstract the persistence of aggregates. They provide a collection-l
  * Repository for Order aggregate persistence.
  * Abstracts database access behind a collection-like interface.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public interface OrderRepository {
@@ -443,7 +445,7 @@ public interface OrderRepository {
      *
      * @param id the order ID
      * @return Optional containing the order if found
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     Optional<Order> findById(OrderId id);
@@ -453,7 +455,7 @@ public interface OrderRepository {
      *
      * @param customerId the customer ID
      * @return list of orders (never null)
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     List<Order> findByCustomerId(CustomerId customerId);
@@ -462,7 +464,7 @@ public interface OrderRepository {
      * Saves an order aggregate.
      *
      * @param order the order to save
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     void save(Order order);
@@ -471,7 +473,7 @@ public interface OrderRepository {
      * Removes an order from persistence.
      *
      * @param order the order to remove
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     void delete(Order order);
@@ -487,7 +489,7 @@ Factories encapsulate the complex logic of creating objects, especially aggregat
  * Factory for creating Order aggregates.
  * Encapsulates the construction logic and ensures valid initial state.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public class OrderFactory {
@@ -498,7 +500,7 @@ public class OrderFactory {
      * @param customerId the customer placing the order
      * @param items     the initial items (must not be empty if provided)
      * @return new OrderAggregate ready for use
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public OrderAggregate createOrder(CustomerId customerId, List<OrderItemData> items) {
@@ -571,7 +573,7 @@ The interfaces layer contains driving adapters that bridge external systems to t
  * REST controller for order operations.
  * Responsible for HTTP request/response handling only.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 @RestController
@@ -589,7 +591,7 @@ public class OrderController {
      *
      * @param request the order creation request
      * @return 201 Created with order ID
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     @PostMapping
@@ -613,7 +615,7 @@ public class OrderController {
      *
      * @param id the order ID
      * @return 200 OK with order details
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     @GetMapping("/{id}")
@@ -631,7 +633,7 @@ public class OrderController {
  * Request DTO for creating an order.
  * Immutable — designed for transfer only, not domain logic.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public record CreateOrderRequest(
@@ -645,7 +647,7 @@ public record CreateOrderRequest(
  * Response DTO for order data.
  * Immutable record representing API output format.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 public record OrderResponse(
@@ -684,7 +686,7 @@ The application layer coordinates the domain objects to accomplish user goals. I
  * Application service for order use cases.
  * Orchestrates domain objects but contains no business logic.
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2026-03-26
  */
 @Service
@@ -699,7 +701,7 @@ public class OrderApplicationService {
      *
      * @param command the place order command
      * @return the created order ID
-     * @author lvdaxianer@yeah.net
+     * @author {author}
      * @date 2026-03-26
      */
     public OrderId placeOrder(PlaceOrderCommand command) {

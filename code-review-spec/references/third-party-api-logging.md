@@ -1,5 +1,7 @@
 # 第三方接口调用日志示例
 
+> **说明**：示例中的 `{author}` 为占位符，实际值按 [../spec.md](../spec.md) 第 2 节"作者标识"的解析顺序确定，禁止写死固定值。
+
 ## 完整文件示例
 
 `ThirdPartyTokenClient.java`
@@ -17,7 +19,7 @@ import java.util.Optional;
  * <p>
  * 负责与第三方认证服务交互，获取 access_token。
  *
- * @author lvdaxianer@yeah.net
+ * @author {author}
  * @date 2024-01-15
  */
 @Slf4j
