@@ -80,6 +80,46 @@ communicates, and how safely the interaction behaves.
   treatment (default red) recognizable before activation, applied consistently
   across button, icon button, menu item, row action, and batch action surfaces.
 
+### Drag, drop, and reorder
+
+- Dragging shows clear state: the dragged item, valid drop targets, and invalid
+  drop targets are visually distinguishable.
+- Escape cancels an in-progress drag and restores the original state.
+- Dragging is never the only way to perform the action: keyboard and touch
+  users have an equivalent path (for example move buttons, menus, or
+  reorder controls).
+- Long lists auto-scroll when dragging near a container edge.
+- The drop result is confirmed visually, and moves with significant
+  consequences (cross-group moves, destructive reorders) offer undo.
+
+### Selection and batch operations
+
+- "Select all on this page" and "select all results" are distinct actions and
+  the interface makes clear which one is active.
+- Shift-click range selection works in multi-select lists where users expect
+  it, and the selected count is always visible.
+- The batch action bar has a stable position and does not cover the content or
+  controls it relates to.
+- Selection behavior across pagination, filter, and search changes is defined
+  and consistent: whether selections persist, shrink, or reset is never a
+  surprise.
+- Batch results support partial success: per-item success and failure are
+  reported, and failed items can be retried individually without re-running
+  the whole batch.
+
+### Tooltips, popovers, and menus
+
+- Hover-only functionality always has an equivalent click, keyboard, or touch
+  path; nothing is discoverable only by hovering.
+- Tooltips use a hover-intent delay so passing the cursor across the screen
+  does not flash tooltips.
+- Popovers and menus flip or reposition at viewport edges instead of being
+  clipped.
+- Close behavior is consistent: Escape and click-outside close transient
+  layers, and scroll or resize behavior (close, reposition, or follow) is
+  defined per layer type and applied consistently.
+- Nested layers close in order and a parent closing also closes its children.
+
 ### Keyboard and shortcut behavior
 
 - Tab order follows the visual and task order.
@@ -171,6 +211,30 @@ communicates, and how safely the interaction behaves.
 - Stale async responses cannot overwrite newer state: rapid search, filter, or
   tab switching cancels or ignores out-of-date results (for example through
   request sequencing or `AbortController`).
+
+### Runtime and page lifecycle
+
+- Page lifecycle events are handled: polling, timers, and subscriptions pause
+  or slow when the tab is hidden (`visibilitychange`), in-progress state
+  survives `pagehide`, and back/forward cache (bfcache) restores show fresh,
+  consistent data.
+- Long-lived pages do not leak: event listeners, subscriptions, timers, and
+  large caches are cleaned up on component unmount and route changes.
+- Runtime errors have boundaries: unexpected render or script errors show a
+  fallback UI instead of a white screen, and global error handling reports
+  failures.
+- Deployment version mismatches are handled: chunk or asset load failures
+  after a new release are detected and the user is guided to refresh.
+- Static resource failures degrade gracefully: script, style, font, or image
+  load failures have fallbacks, CDN unavailability is survivable, and
+  third-party script or SDK crashes are isolated so they cannot break the
+  main application.
+- Multiple tabs of the same user stay consistent: login state changes
+  propagate, concurrent edits to the same data are detected or resolved, and
+  storage events keep views in sync.
+- Runtime performance keeps interactions responsive: long tasks do not block
+  input or clicks for noticeable periods, and large lists or data sets use
+  virtualization, pagination, or incremental rendering.
 
 ### Cross-page state and action consistency
 

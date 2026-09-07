@@ -1,6 +1,6 @@
 ---
 name: frontend-interaction-guidelines
-description: "Use for frontend interaction implementation and frontend interaction review: pages, components, forms, modals, lists, dashboards, editors, workflows, buttons, loading, empty states, submit/delete actions, debounce/throttle, keyboard behavior, motion, responsive interaction, accessibility interaction quality, operation reliability, and cross-page state consistency."
+description: "Use for frontend interaction implementation and frontend interaction review: pages, components, forms, modals, lists, dashboards, editors, workflows, buttons, loading, empty states, submit/delete actions, debounce/throttle, drag and drop, selection and batch operations, tooltips/popovers/menus, keyboard behavior, motion, responsive interaction, accessibility interaction quality, operation reliability, cross-page state consistency, runtime resilience, and page lifecycle behavior."
 ---
 
 # Frontend Interaction Guidelines
@@ -21,7 +21,9 @@ guidelines are unavailable.
 
 This skill covers interaction behavior: states, feedback, recovery, operability,
 and consistency. It does not cover visual style, code style, build and tooling,
-bundle performance, or backend API design.
+build-time bundle performance, or backend API design. Runtime responsiveness is
+interaction quality and is in scope: long tasks, jank, memory leaks, error
+boundaries, resource load failures, and page lifecycle behavior.
 
 ## Mode Selection
 
