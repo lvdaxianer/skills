@@ -38,6 +38,29 @@ config, unauthorized callers, and production incident debugging.
 - Admin and internal paths have stronger controls than ordinary user paths and
   are not accidentally exposed.
 
+### Multi-tenant isolation
+
+- Tenant context is established at the entrypoint and propagated through the
+  whole request path, including async handoffs, jobs, and messages.
+- Tenant filtering is enforced at the data layer (row-level security, scoped
+  repositories, or equivalent) instead of relying on each query remembering
+  the filter.
+- Cache keys, logs, metrics, and message payloads carry tenant identity so
+  data cannot leak across tenants through shared infrastructure.
+- Cross-tenant access attempts are tested explicitly and produce
+  audit-worthy records.
+
+### Inbound rate limiting and abuse protection
+
+- APIs enforce per-caller, per-user, or per-tenant quotas and rate limits;
+  exceeded limits return 429 with `Retry-After` or an equivalent stable
+  contract.
+- Sensitive endpoints (login, password reset, SMS or email sending, payment,
+  export) have stricter anti-bruteforce and anti-abuse limits.
+- Expensive operations (large exports, heavy reports, broad searches) are
+  quota-limited, queued, or otherwise bounded so single callers cannot
+  monopolize capacity.
+
 ### Configuration and environment separation
 
 - Backend configuration is explicitly separated by environment, for example
@@ -130,6 +153,11 @@ config, unauthorized callers, and production incident debugging.
 - Sandbox and production endpoints are separated by environment configuration.
 - Local state is not marked finally successful before external success is known
   unless a compensation or reconciliation design exists.
+- External responses are not trusted blindly: response payloads are validated
+  against an expected schema, unknown fields are tolerated, and field type
+  drift is detected instead of silently misparsed.
+- Critical fields in external payloads (amounts, states, IDs) are verified
+  against local expectations before being persisted or acted on.
 
 ### Database and migrations
 
@@ -141,6 +169,57 @@ config, unauthorized callers, and production incident debugging.
   steps when old and new code may run at the same time.
 - Data repair scripts are auditable and include verification steps.
 - Deletes consider soft delete, archive, audit, retention, and recovery needs.
+
+### Backup, restore, and disaster recovery
+
+- Core data has backups with a defined schedule and retention, and the
+  restore procedure is rehearsed regularly; an untested backup is treated as
+  no backup.
+- Recovery objectives (RPO and RTO) are defined for core data and reviewed
+  against the actual backup and restore capability.
+- Soft-deleted and archived data has a defined final-erasure path and
+  retention limits.
+
+### Runtime and process lifecycle
+
+- Shutdown drains work: on a shutdown signal the process stops accepting new
+  requests and messages, lets in-flight work finish within a bounded wait, and
+  then exits.
+- Health checks distinguish liveness from readiness; traffic is not routed to
+  an instance before it is ready.
+- Startup behavior for unavailable dependencies (database, queue, cache) is
+  explicit: fail fast or start degraded, never silently assume they exist.
+- Inbound traffic and downstream calls use rate limits, circuit breakers,
+  bulkheads, or load shedding so a failing dependency or traffic spike does
+  not cascade.
+- Connection pools, thread pools, queue capacities, and batch sizes are
+  bounded; unbounded queues or batches are not acceptable.
+- Retries use exponential backoff with jitter so multiple instances do not
+  retry in sync and storm a recovering downstream.
+- Caching protects against penetration, breakdown, and avalanche: concurrent
+  reload protection for hot keys, negative caching where appropriate, and
+  jittered TTLs.
+- Time handling is explicit: store time in UTC, convert timezones only at
+  boundaries, tolerate clock skew in token and expiry checks, and avoid
+  local-time assumptions.
+- Rolling deployments keep adjacent versions compatible: API contracts,
+  message formats, and database schema must work while old and new code and
+  data coexist.
+- Long-running processes do not leak connections, file handles, streams, or
+  temporary files, and memory growth over time is observable.
+- Dependency failure behavior is classified in advance: which features degrade
+  or fail open (recommendations, analytics) and which must fail closed
+  (authentication, payment).
+
+### Release safety and feature flags
+
+- High-risk changes support gradual rollout (canary or percentage-based) and
+  a fast rollback path that does not require a full redeployment.
+- New or risky behavior is wrapped in feature flags so it can be disabled
+  immediately (kill switch) when something goes wrong.
+- Flags have a lifecycle: an owner, an expiry, and cleanup after full
+  rollout; permanent flag accumulation is not acceptable.
+- Runtime configuration and flag changes are audited and reversible.
 
 ### Observability
 
@@ -166,6 +245,10 @@ config, unauthorized callers, and production incident debugging.
 - Cookies, sessions, tokens, and internal admin endpoints use appropriate
   security settings.
 - Exports and debug endpoints do not bypass privacy boundaries.
+- Secrets support rotation and revocation, and a leak-response procedure
+  exists for suspected exposure.
+- Secrets are isolated per environment and scoped to the minimum required
+  permissions.
 
 ### Performance and scalability
 
@@ -177,6 +260,11 @@ config, unauthorized callers, and production incident debugging.
 - Database calls, cache calls, queue operations, and external calls use
   appropriate timeouts.
 - Cache usage defines invalidation, freshness, and failure behavior.
+- Core paths have load-test baselines and known capacity headroom.
+- Saturation behavior is defined in advance: queue, reject, or degrade, never
+  unbounded slowdown.
+- Autoscaling has upper limits so failures or traffic abuse cannot cause
+  runaway cost.
 
 ### Testing requirements
 

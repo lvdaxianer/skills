@@ -1,6 +1,6 @@
 ---
 name: backend-reliability-guidelines
-description: "Use for backend implementation and backend review: APIs, services, controllers, jobs, queues, webhooks, migrations, configuration, validation, authorization, idempotency, transactions, concurrency, error handling, observability, security, performance, testing, and backend behavior that must stay correct under duplicate requests, retries, partial failure, wrong environment config, or production debugging pressure."
+description: "Use for backend implementation and backend review: APIs, services, controllers, jobs, queues, webhooks, migrations, configuration, validation, authorization, idempotency, transactions, concurrency, error handling, observability, security, performance, testing, runtime lifecycle (graceful shutdown, health checks, overload protection, backoff, cache failure modes, clock and time handling, deployment compatibility), release safety and feature flags, backup and disaster recovery, multi-tenant isolation, rate limiting and abuse protection, secrets rotation, capacity planning, and backend behavior that must stay correct under duplicate requests, retries, partial failure, wrong environment config, or production debugging pressure."
 ---
 
 # Backend Reliability Guidelines
@@ -8,7 +8,8 @@ description: "Use for backend implementation and backend review: APIs, services,
 Use this skill to make backend behavior safe, recoverable, observable, and
 consistent under production failure modes. This skill complements framework and
 code-review skills: it focuses on reliability, data correctness, permission
-boundaries, environment safety, and operational recovery.
+boundaries, environment safety, operational recovery, and runtime lifecycle
+behavior such as graceful shutdown, overload protection, and degradation.
 
 ## Skill Conflict Resolution (Meta-Rule)
 
