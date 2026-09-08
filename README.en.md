@@ -35,7 +35,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 | Skill | Role | Trigger |
 |------|------|---------|
-| [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → confirm integration branch and task worktree → OpenSpec → task boundary/dispatch → TDD RED/GREEN → audit/review → per-task commit and merge → archive" | Any task involving code, tests, docs, config, refactoring, or commits |
+| [`development-workflow`](./development-workflow/SKILL.md) | **Entry skill**: enforces the fixed loop "brainstorm → confirm integration branch and task worktree → OpenSpec → task boundary/dispatch → TDD RED/GREEN → REST API documentation gate when applicable → audit/review → per-task commit and merge → archive" | Any task involving code, tests, docs, config, refactoring, or commits |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git branch & worktree conventions**: confirm one integration branch first, then use emoji-prefixed task branches (✅), Chinese descriptions, SOURCE_BRANCH recording, and original-checkout write isolation | Task branch creation, worktree setup, branch validation, task merge to the integration branch |
 | [`commit`](./commit/SKILL.md) | **Commit standard**: Chinese Conventional Commit + emoji prefix + mandatory body/footer | Creating commits, generating commit messages, `/commit` command |
 | [`code-review-spec`](./code-review-spec/spec.md) | **Code-level red lines**: `@author`, method length, comment ratio, naming, if-else annotations, exception handling, logging, SQL, git commit format — language-agnostic | Code changes, PR reviews, explicit `/code-review-spec` |
@@ -43,7 +43,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **Frontend interaction quality**: submit/delete/pay deduplication, revertible optimistic updates, consistent loading/empty/error/disabled/offline/permission states, destructive-action confirmation | Web/mobile pages, forms, modals, lists, editors, workflows |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **Production log discipline**: Actuator hot-toggle, level semantics, mandatory traceId, PII masking, MDC cross-thread propagation, scenario-scoped loading (HTTP/scheduled-job/MQ/AOP/async) | Backend logs, traceId, MDC, `log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD architecture**: Bounded Context, Ubiquitous Language, Entity/VO/Aggregate/Domain Event/Repository/Factory, four-layer architecture, anti-pattern detection | Domain modeling, aggregate boundary discussions, CQRS/event sourcing |
-| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation |
+| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: maintain one `apis/<module>.md` per business module for external Controllers; endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation; adding or modifying external Controller/API routes |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 
 ---
@@ -58,6 +58,7 @@ development-workflow  (entry, mandatory loop)
     │       ├── logging red lines   → delegates to logging-boundaries
     │       ├── reliability red lines → delegates to backend-reliability-guidelines
     │       └── frontend red lines  → delegates to frontend-interaction-guidelines
+    ├── external Controller/API route documentation gate → rest-api-documentation
     ├── DDD architecture tasks → ddd
     └── project init & baseline file sync → project-hygiene
 ```
@@ -74,12 +75,12 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 
 ## Development Workflow Explained
 
-`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 8 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 25-step task loop.
+`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 9 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 26-step task loop.
 
 **Key characteristics**:
-- Composite skill: 9 local skills including the entry skill, plus external dependency suites
+- Composite skill: 10 local skills including the entry skill, plus external dependency suites
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
-- Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree (with `project-hygiene` baseline check) → OpenSpec → task boundary and dispatch → TDD → verification/audit/review → commit (with secret/artifact leak check) → merge to `SOURCE_BRANCH` and clean up → final audit/archive
+- Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree (with `project-hygiene` baseline check) → OpenSpec → task boundary and dispatch → TDD → update `apis/<module>.md` for affected external Controller/API routes → verification/audit/review → commit (with secret/artifact leak check) → merge to `SOURCE_BRANCH` and clean up → final audit/archive
 - Integration model: one change confirms one integration branch. Each independently verifiable task starts from it in its own branch and worktree, then merges back after verification. No parent branch aggregates task branches.
 - Explicit opt-outs: "**不要 OpenSpec**" skips all OpenSpec stages; "**不要分支**" edits directly on the current branch with no task branch/worktree; "**不要 workflow**" disables the whole workflow. Opt-outs take effect only when the user states them explicitly in the current conversation, and they compose (see "Explicit User Opt-Outs" in `development-workflow/SKILL.md`)
 
@@ -149,7 +150,7 @@ After installing, run `/help` in Claude Code or just start working — skills au
 
 Skills match against their `description`. Examples:
 
-- "Implement the order-submission API" → triggers `development-workflow` + `backend-reliability-guidelines`
+- "Implement the order-submission API" → triggers `development-workflow` + `backend-reliability-guidelines`, and the workflow requires `rest-api-documentation` when an external Controller changes
 - "Review this Java code" → triggers `code-review-spec`
 - "Double-clicking this button causes duplicate submits" → triggers `frontend-interaction-guidelines`
 - "Write complete documentation for this order API" → triggers `rest-api-documentation`
@@ -227,6 +228,7 @@ lvdaxianer-skills/
 | Git branch naming, worktree paths, SOURCE_BRANCH, original-checkout isolation | `git-branch-worktree-convention` |
 | Commit message format (Chinese, emoji, mandatory body/footer) | `commit` |
 | Mandatory workflow (brainstorm, OpenSpec, task worktrees, TDD, per-task commits/merges) | `development-workflow` |
+| External Controller/API route module documents and endpoint contracts, headers/cookies/responses/examples | `rest-api-documentation` |
 | .gitignore/.gitattributes/.editorconfig/.env.example maintenance, secret leak prevention, editor/AI tool dir policy | `project-hygiene` |
 
 Resolution procedure:
