@@ -1,6 +1,6 @@
 # lvdaxianer-skills
 
-> 一套面向 **Claude Code** 的工程规范 skill 集合，覆盖开发流程、代码审查、后端可靠性、前端交互、生产日志与 DDD 架构。所有 skill 之间**互不冲突**、显式互相引用。
+> 一套面向 **Claude Code** 的工程规范 skill 集合，覆盖开发流程、代码审查、REST API 文档、后端可靠性、前端交互、生产日志与 DDD 架构。所有 skill 之间**互不冲突**、显式互相引用。
 
 **Language**: **中文** · [English](./README.en.md)
 
@@ -9,7 +9,7 @@
 ## 目录
 
 - [是什么](#是什么)
-- [九个 skill 一览](#九个-skill-一览)
+- [十个 skill 一览](#十个-skill-一览)
 - [关系与优先级](#关系与优先级)
 - [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
@@ -31,7 +31,7 @@
 
 ---
 
-## 九个 skill 一览
+## 十个 skill 一览
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
@@ -43,6 +43,7 @@
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **前端交互质量**：提交/删除/支付防重、乐观更新可回滚、loading/empty/error/disabled/offline/permission 一致性、破坏性操作确认 | Web/移动端页面、表单、弹窗、列表、编辑器、工作流 |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **生产日志治理**：Actuator 热开、级别语义、traceId 强制、脱敏、MDC 跨线程透传，按场景（HTTP/定时任务/MQ/AOP/异步）加载 | 后端日志、traceId、MDC、`log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD 架构**：Bounded Context、Ubiquitous Language、Entity/VO/Aggregate/Domain Event/Repository/Factory、四层架构、反模式识别 | 领域建模、聚合边界讨论、CQRS/事件溯源 |
+| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API 文档**：接口用途、Method/URL、param、requestBody、请求/响应 Header 与 Cookie、状态码、错误和完整联调实例 | 编写、补全、统一或审查 REST API 接口文档 |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 
 ---
@@ -109,6 +110,7 @@ cp -R frontend-interaction-guidelines  ~/.claude/skills/
 cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
 cp -R project-hygiene                  ~/.claude/skills/
+cp -R rest-api-documentation           ~/.claude/skills/
 
 # 或者只装项目级（只对当前仓库生效）
 mkdir -p .claude/skills
@@ -124,7 +126,7 @@ REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
-             project-hygiene; do
+             project-hygiene rest-api-documentation; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -137,7 +139,7 @@ done
 git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills/lvdaxianer-skills
 ```
 
-安装完成后，在 Claude Code 里输入 `/help` 或直接开始工作，skill 会按各自的 `description` 自动触发；也可以显式 `/backend-reliability-guidelines`、`/ddd` 等调用。
+安装完成后，在 Claude Code 里输入 `/help` 或直接开始工作，skill 会按各自的 `description` 自动触发；也可以显式 `/backend-reliability-guidelines`、`/rest-api-documentation`、`/ddd` 等调用。
 
 ---
 
@@ -150,6 +152,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 - 你说"帮我实现用户下单接口" → 命中 `development-workflow` + `backend-reliability-guidelines`
 - 你说"审下这段 Java 代码" → 命中 `code-review-spec`
 - 你说"这个按钮点两次会重复提交" → 命中 `frontend-interaction-guidelines`
+- 你说"把这个下单接口写成完整文档" → 命中 `rest-api-documentation`
 
 ### 显式调用
 
@@ -161,6 +164,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 /logging-boundaries              # 日志专项检查
 /ddd                             # DDD 架构建议
 /project-hygiene                 # 检测并同步基线文件 / 密钥泄漏检查
+/rest-api-documentation          # REST API 接口文档编写与完整性检查
 ```
 
 ### 组合调用示例
@@ -198,6 +202,9 @@ lvdaxianer-skills/
 ├── git-branch-worktree-convention/
 │   └── SKILL.md
 ├── logging-boundaries/
+│   ├── SKILL.md
+│   └── references/
+├── rest-api-documentation/
 │   ├── SKILL.md
 │   └── references/
 └── project-hygiene/
