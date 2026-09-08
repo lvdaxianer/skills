@@ -416,6 +416,43 @@ timestamp [thread-name] level class-name:line-number - message
 > - 乐观锁/悲观锁/CAS/版本列/有序 worker 等并发保护 → `Concurrency control`
 > - 幂等键设计与去重记录 → `Idempotency`
 
+## 9. RESTful 接口设计规范（强制）
+
+> **强制要求**：后端编写对外 HTTP 接口时，必须遵循 RESTful 规范。路径表达资源，HTTP 方法表达动作。
+
+### 9.1. 资源命名与路径
+
+- URL 必须使用**名词复数**表示资源，小写，多单词用连字符，如 `/users`、`/order-items`
+- URL 中**禁止出现动词**，动作用 HTTP 方法表达，禁止 `/getUser`、`/user/create`、`/deleteOrder` 这类 RPC 风格路径
+- 资源标识（如 `id`）**必须拼接在 path 中**，如 `GET /users/{id}`、`DELETE /orders/{orderId}`，禁止通过 query（`?id=1`）或 body 传资源标识
+- 层级关系通过嵌套路径表达，如 `GET /users/{userId}/orders`，嵌套不宜超过两层
+
+### 9.2. HTTP 方法语义
+
+| 方法 | 语义 | 约束 |
+|------|------|------|
+| GET | 查询单个资源或资源列表 | 无副作用，禁止携带 body |
+| POST | 创建资源 | 资源数据放 body |
+| PUT | 全量更新资源 | 资源标识在 path，完整资源数据放 body |
+| PATCH | 部分更新资源 | 资源标识在 path，变更字段放 body |
+| DELETE | 删除资源 | 资源标识在 path，禁止携带 body |
+
+### 9.3. 参数位置规范
+
+- **路径参数（path）**：资源标识，如 `id`、`userId`、`orderId`
+- **查询参数（query params）**：分页（如 `pageNum`/`pageSize`，与项目既有约定一致）、排序（`sort`）、筛选、关键字搜索等元信息，**必须以 query params 形式传递**，禁止放入 body
+- **请求体（body）**：仅用于 POST/PUT/PATCH 的资源数据本身，不得混入分页、排序等元信息
+
+### 9.4. 例外条款
+
+仅在**不得已**时允许偏离，且必须在接口文档中说明理由：
+
+- 查询条件过多、过长（超出 URL 长度限制）或含数组/嵌套结构，无法用 query params 合理表达时，允许使用 `POST /resources/search`，条件放 body
+- 批量操作（如批量删除）资源标识数量较多时，允许 `POST /resources/batch-delete`，id 列表放 body
+- GET/DELETE 之外的例外必须保持方法语义不混淆（禁止用 GET 做写操作）
+
+> **代码示例（Spring Boot / Express 正确与错误示例）**：详见 [references/restful-api-design.md](references/restful-api-design.md)
+
 ## 12. 代码复杂度约束
 
 | 类型 | 限制 |
@@ -547,6 +584,14 @@ timestamp [thread-name] level class-name:line-number - message
 - [✅/❌/不适用] **无未使用变量**：所有局部变量、成员变量必须被使用，不得存在冗余声明
 
 > **代码示例（正确/错误示例）**：详见 [references/unused-imports-variables.md](references/unused-imports-variables.md)
+
+### 13.11. RESTful 接口设计规范（强制）
+
+- [✅/❌/不适用] **资源命名**：URL 使用名词复数表示资源，无动词，无 `/getUser`、`/create` 等 RPC 风格路径
+- [✅/❌/不适用] **路径参数**：资源标识（id 等）拼接在 path 中（`/users/{id}`），未通过 query 或 body 传递
+- [✅/❌/不适用] **查询参数**：分页、排序、筛选等元信息通过 query params 传递，未混入 body
+- [✅/❌/不适用] **方法语义**：GET 无副作用不携带 body，POST 创建、PUT 全量更新、PATCH 部分更新、DELETE 删除
+- [✅/❌/不适用] **请求体限制**：body 仅承载 POST/PUT/PATCH 的资源数据；偏离 RESTful 的例外接口（如 `POST /resources/search`）已在文档中说明理由
 
 ---
 
