@@ -1,6 +1,6 @@
 # lvdaxianer-skills
 
-> A **Claude Code** skill collection for engineering standards, covering development workflow, code review, backend reliability, frontend interaction, production logging, and DDD architecture. All skills are **guaranteed non-conflicting** with explicit cross-references.
+> A **Claude Code** skill collection for engineering standards, covering development workflow, code review, REST API documentation, backend reliability, frontend interaction, production logging, and DDD architecture. All skills are **guaranteed non-conflicting** with explicit cross-references.
 
 **Language**: [中文](./README.md) · **English**
 
@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Nine Skills at a Glance](#nine-skills-at-a-glance)
+- [Ten Skills at a Glance](#ten-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,7 +31,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Nine Skills at a Glance
+## Ten Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
@@ -43,6 +43,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **Frontend interaction quality**: submit/delete/pay deduplication, revertible optimistic updates, consistent loading/empty/error/disabled/offline/permission states, destructive-action confirmation | Web/mobile pages, forms, modals, lists, editors, workflows |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **Production log discipline**: Actuator hot-toggle, level semantics, mandatory traceId, PII masking, MDC cross-thread propagation, scenario-scoped loading (HTTP/scheduled-job/MQ/AOP/async) | Backend logs, traceId, MDC, `log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD architecture**: Bounded Context, Ubiquitous Language, Entity/VO/Aggregate/Domain Event/Repository/Factory, four-layer architecture, anti-pattern detection | Domain modeling, aggregate boundary discussions, CQRS/event sourcing |
+| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 
 ---
@@ -109,6 +110,7 @@ cp -R frontend-interaction-guidelines  ~/.claude/skills/
 cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
 cp -R project-hygiene                  ~/.claude/skills/
+cp -R rest-api-documentation           ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
 mkdir -p .claude/skills
@@ -124,7 +126,7 @@ REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
-             project-hygiene; do
+             project-hygiene rest-api-documentation; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -150,6 +152,7 @@ Skills match against their `description`. Examples:
 - "Implement the order-submission API" → triggers `development-workflow` + `backend-reliability-guidelines`
 - "Review this Java code" → triggers `code-review-spec`
 - "Double-clicking this button causes duplicate submits" → triggers `frontend-interaction-guidelines`
+- "Write complete documentation for this order API" → triggers `rest-api-documentation`
 
 ### Explicit invocation
 
@@ -161,6 +164,7 @@ Skills match against their `description`. Examples:
 /logging-boundaries              # logging audit
 /ddd                             # DDD architecture guidance
 /project-hygiene                 # detect & sync baseline files / secret leak check
+/rest-api-documentation          # REST API documentation and completeness audit
 ```
 
 ### Combining skills
@@ -198,6 +202,9 @@ lvdaxianer-skills/
 ├── git-branch-worktree-convention/
 │   └── SKILL.md
 ├── logging-boundaries/
+│   ├── SKILL.md
+│   └── references/
+├── rest-api-documentation/
 │   ├── SKILL.md
 │   └── references/
 └── project-hygiene/
