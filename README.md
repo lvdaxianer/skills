@@ -35,7 +35,7 @@
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
-| [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制“brainstorm → 确认集成分支与任务 worktree → OpenSpec → 任务边界/调度 → TDD RED/GREEN → 审计/review → 逐任务提交并合并 → 归档”的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
+| [`development-workflow`](./development-workflow/SKILL.md) | **入口 skill**：强制“brainstorm → 确认集成分支与任务 worktree → OpenSpec → 任务边界/调度 → TDD RED/GREEN → REST API 文档门禁（适用时）→ 审计/review → 逐任务提交并合并 → 归档”的固定循环 | 涉及代码、测试、文档、配置、重构或提交的任务 |
 | [`git-branch-worktree-convention`](./git-branch-worktree-convention/SKILL.md) | **Git 分支与 worktree 约定**：首次确认集成分支、emoji 前缀 task 分支（✅）、中文描述、SOURCE_BRANCH 记录、原 checkout 读写隔离 | 创建 task 分支、建 worktree、检查分支名合规、task merge 回集成分支 |
 | [`commit`](./commit/SKILL.md) | **提交规范**：中文 Conventional Commit + emoji 前缀 + body/footer 非空 | 创建提交、生成提交信息、`/commit` 指令 |
 | [`code-review-spec`](./code-review-spec/spec.md) | **代码级红线**：`@author`、方法长度、注释占比、命名、if-else 注释、异常处理、日志、SQL、Git 提交等语言无关规范 | 代码变动、PR 审查、`/code-review-spec` 指令 |
@@ -43,7 +43,7 @@
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | **前端交互质量**：提交/删除/支付防重、乐观更新可回滚、loading/empty/error/disabled/offline/permission 一致性、破坏性操作确认 | Web/移动端页面、表单、弹窗、列表、编辑器、工作流 |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | **生产日志治理**：Actuator 热开、级别语义、traceId 强制、脱敏、MDC 跨线程透传，按场景（HTTP/定时任务/MQ/AOP/异步）加载 | 后端日志、traceId、MDC、`log.info/debug/warn/error` |
 | [`ddd`](./ddd/SKILL.md) | **DDD 架构**：Bounded Context、Ubiquitous Language、Entity/VO/Aggregate/Domain Event/Repository/Factory、四层架构、反模式识别 | 领域建模、聚合边界讨论、CQRS/事件溯源 |
-| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API 文档**：接口用途、Method/URL、param、requestBody、请求/响应 Header 与 Cookie、状态码、错误和完整联调实例 | 编写、补全、统一或审查 REST API 接口文档 |
+| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API 文档**：按业务模块维护 `apis/<module>.md`，覆盖对外 Controller；接口用途、Method/URL、param、requestBody、请求/响应 Header 与 Cookie、状态码、错误和完整联调实例 | 编写、补全、统一或审查 REST API 接口文档；新增或修改对外 Controller/API 路由 |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 
 ---
@@ -58,6 +58,7 @@ development-workflow  (入口, 强制流程)
     │       ├── 日志相关红线 → 授权 logging-boundaries
     │       ├── 后端可靠性红线 → 授权 backend-reliability-guidelines
     │       └── 前端交互红线 → 授权 frontend-interaction-guidelines
+    ├── 对外 Controller/API route 文档门 → rest-api-documentation
     ├── DDD 架构任务 → ddd
     └── 项目初始化与基线文件同步 → project-hygiene
 ```
@@ -74,12 +75,12 @@ development-workflow  (入口, 强制流程)
 
 ## Development Workflow 详解
 
-`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 8 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 25 步任务循环里按顺序调度其他 skill。
+`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 9 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 26 步任务循环里按顺序调度其他 skill。
 
 **核心特点**：
-- 组合 skill：本仓库 9 个（含入口 skill）+ 外部依赖套件
+- 组合 skill：本仓库 10 个（含入口 skill）+ 外部依赖套件
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
-- 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree（触发 `project-hygiene` 基线检查）→ OpenSpec → 任务边界与调度 → TDD → 验证/审计/review → commit（含密钥与产物泄漏检查）→ 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
+- 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree（触发 `project-hygiene` 基线检查）→ OpenSpec → 任务边界与调度 → TDD → 对外 Controller/API route 按模块更新 `apis/<module>.md` → 验证/审计/review → commit（含密钥与产物泄漏检查）→ 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
 - 集成模型：一个 change 只确认一个集成分支；每个独立任务从它创建任务分支和 worktree，验证通过后立即合并回该分支。不存在用于汇总任务的父分支。
 - 显式豁免：用户说"**不要 OpenSpec**"即跳过全部 OpenSpec 阶段；说"**不要分支**"即直接在当前分支修改、不建任务分支/worktree；说"**不要 workflow**"即完全不启用本流程。豁免仅在用户当次明确说出时生效，且可组合（详见 `development-workflow/SKILL.md` 的 Explicit User Opt-Outs）
 
@@ -149,7 +150,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 
 按 skill 的 `description` 自动匹配。示例：
 
-- 你说"帮我实现用户下单接口" → 命中 `development-workflow` + `backend-reliability-guidelines`
+- 你说"帮我实现用户下单接口" → 命中 `development-workflow` + `backend-reliability-guidelines`，并在对外 Controller 变更时由 workflow 强制 `rest-api-documentation`
 - 你说"审下这段 Java 代码" → 命中 `code-review-spec`
 - 你说"这个按钮点两次会重复提交" → 命中 `frontend-interaction-guidelines`
 - 你说"把这个下单接口写成完整文档" → 命中 `rest-api-documentation`
@@ -227,6 +228,7 @@ lvdaxianer-skills/
 | Git 分支命名、worktree 路径、SOURCE_BRANCH、原 checkout 隔离 | `git-branch-worktree-convention` |
 | 提交信息格式（中文、emoji、body/footer 非空） | `commit` |
 | 强制开发流程（brainstorm、OpenSpec、任务 worktree、TDD、逐任务提交/合并） | `development-workflow` |
+| 对外 Controller/API route 的模块文档、端点契约、Header/Cookie/响应/实例 | `rest-api-documentation` |
 | 四份基线文件（.gitignore/.gitattributes/.editorconfig/.env.example）维护机制、密钥防泄漏、编辑器/AI 工具目录取舍 | `project-hygiene` |
 
 发现冲突时的处理流程：

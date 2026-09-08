@@ -1,16 +1,17 @@
 # Development Workflow 使用指南
 
-> `development-workflow` 是本仓库的**流程编排 skill**，它不定义具体规范，只负责在固定的 25 步任务循环里调度其他 skill。理解它如何组合本地 + 外部 skill 是用好整套规范的关键。
+> `development-workflow` 是本仓库的**流程编排 skill**，它不定义具体规范，只负责在固定的 26 步任务循环里调度其他 skill。理解它如何组合本地 + 外部 skill 是用好整套规范的关键。
 
 ---
 
 ## 一、它是什么
 
-`development-workflow` 强制执行一个固定的 25 步循环：
+`development-workflow` 强制执行一个固定的 26 步循环：
 
 ```
 brainstorm → 确认集成分支并创建任务 worktree → OpenSpec → 任务边界/调度 →
-TDD RED/GREEN → 验证/审计/review → 逐任务提交并合并 → final audit → OpenSpec 归档
+TDD RED/GREEN → REST API 文档门禁（适用时）→ 验证/审计/review →
+逐任务提交并合并 → final audit → OpenSpec 归档
 ```
 
 一个 change 只确认一个集成分支。每个可独立验证的任务都从该分支创建 emoji
@@ -36,12 +37,13 @@ flowchart TD
     D -->|是| R[8-10. 应用结果<br/>主 agent review 与修复循环]
     D -->|否，记录原因| Red[11-12. RED]
     R --> Red
-    Red --> Green[13-15. GREEN 与 broader verification]
-    Green --> Audit[16-19. 一致性审计<br/>code-review-spec、修复与复验]
-    Audit --> C[20-22. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
+    Red --> Green[13-14. GREEN]
+    Green --> ApiDocs[15. REST API 文档门<br/>按模块更新 apis/&lt;module&gt;.md]
+    ApiDocs --> Audit[16-20. broader verification、<br/>一致性审计、code-review-spec、修复与复验]
+    Audit --> C[21-23. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
     C --> More{还有未完成任务?}
     More -->|是| T
-    More -->|否| F[23-25. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
+    More -->|否| F[24-26. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
     F --> End([任务完成])
     
     style B fill:#e1f5ff
@@ -51,6 +53,7 @@ flowchart TD
     style R fill:#fff4e1
     style Red fill:#fff4e1
     style Green fill:#fff4e1
+    style ApiDocs fill:#fff4e1
     style Audit fill:#ffe1e1
     style C fill:#e1ffe1
     style F fill:#e1ffe1
@@ -58,10 +61,10 @@ flowchart TD
 
 **图例**：
 - 🔵 **蓝色方框**（门禁）：workflow 定义的检查点，决定能否进入下一步
-- 🔄 **循环**：每一个任务都在步骤 5-22 内完成；步骤 22 已完成 task merge，下一任务必须从更新后的集成分支创建
+- 🔄 **循环**：每一个任务都在步骤 5-23 内完成；步骤 23 已完成 task merge，下一任务必须从更新后的集成分支创建
 - 👤 **主 agent**：保持对任务边界、验证证据、审计、review、完成标记、提交和集成的最终责任
 
-### 25 步执行顺序
+### 26 步执行顺序
 
 | 步骤 | 关卡 | 必做事项 |
 |------|------|----------|
@@ -72,12 +75,13 @@ flowchart TD
 | 6-7 | task boundary and dispatch | 定义模块职责、允许文件、依赖、验证命令与交接证据；能安全委派时派发 implementer，否则在 RED 前记录直接执行原因。 |
 | 8-10 | delegated review loop | 对委派结果先应用到 task worktree，再由主 agent review；有问题交回同一 implementer 修复并复审。 |
 | 11-14 | RED / GREEN | 按 TDD 写最小失败测试，确认失败原因；实现最小变更并确认 focused test 通过。 |
-| 15 | broader verification | 执行适用于改动范围的测试、lint、build 或文档检查。 |
-| 16-19 | audit / review | 审计计划一致性；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
-| 20 | task mark-complete | 所有关卡通过后，立即只标记一个任务完成。 |
-| 21 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
-| 22 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
-| 23-25 | completion | 完成 final audit，归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
+| 15 | REST API documentation | 新增或修改对外 Controller/API 路由时加载 `rest-api-documentation`，列出 Controller/route 到业务模块映射，并为每个模块创建或更新唯一的 `apis/<module>.md`；同一模块的多个端点写入同一文件，未触及对外路由时记录“不适用”。 |
+| 16 | broader verification | 执行适用于改动范围的测试、lint、build 或文档检查。 |
+| 17-20 | audit / review | 审计计划一致性与适用的 API 文档覆盖；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
+| 21 | task mark-complete | 所有关卡通过后，立即只标记一个任务完成。 |
+| 22 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
+| 23 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
+| 24-26 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
 **它本身不管**：
 - 分支怎么命名（委托给 `git-branch-worktree-convention`）
@@ -85,9 +89,10 @@ flowchart TD
 - 日志脱敏字段清单（委托给 `logging-boundaries`）
 - 删除按钮是否红色（委托给 `frontend-interaction-guidelines`）
 - 幂等键怎么设计（委托给 `backend-reliability-guidelines`）
+- 对外接口字段、Header、Cookie、响应与实例怎么写（委托给 `rest-api-documentation`）
 
 **它只管**：
-- 什么时候调哪个 skill（在"worktree-setup"门调 `git-branch-worktree-convention`，在"code-review-spec"门调 `code-review-spec`）
+- 什么时候调哪个 skill（在"worktree-setup"门调 `git-branch-worktree-convention`，在"REST API documentation"门调 `rest-api-documentation`，在"code-review-spec"门调 `code-review-spec`）
 - 门禁通过条件（RED 门要求测试失败，GREEN 门要求测试通过）
 - 任务顺序（brainstorm 必须在 OpenSpec plan 前，commit 必须在 code-review 后，task merge 必须在下一任务前）
 
@@ -95,7 +100,7 @@ flowchart TD
 
 ## 二、它组合了哪些 skill
 
-### 本仓库内置（除入口 skill 外的 8 个）
+### 本仓库内置（除入口 skill 外的 9 个）
 
 这些 skill 跟随本仓库安装，无需额外下载：
 
@@ -109,8 +114,9 @@ flowchart TD
 | [`frontend-interaction-guidelines`](./frontend-interaction-guidelines/SKILL.md) | 触及前端页面/表单/按钮时自动 | 防重、乐观更新、loading/empty/error/disabled 一致性、删除确认、破坏性视觉 |
 | [`logging-boundaries`](./logging-boundaries/SKILL.md) | 触及日志代码时自动 | traceId 强制、脱敏、MDC 跨线程、Actuator 热开、级别语义 |
 | [`ddd`](./ddd/SKILL.md) | 领域建模讨论时手动调用 | Bounded Context、聚合边界、Entity/VO/Domain Event/Repository、四层架构 |
+| [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | REST API documentation 门（新增/修改对外 Controller/API route 时） | 按业务模块维护 `apis/<module>.md`，覆盖每个对外 Controller/route，并定义端点的用途、请求、响应、错误和实例契约 |
 
-**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 8 个 skill 会一起装进 `~/.claude/skills/`。
+**安装方式**：按 [README 安装章节](./README.md#安装) 三种方式任选一种，这 9 个 skill 会一起装进 `~/.claude/skills/`。
 
 ---
 
@@ -409,7 +415,7 @@ cd ~/.claude/skills/using-git-worktrees && git pull
 # 更新后重新记录 commit hash，通知全员同步
 ```
 
-3. **测试兼容性**：更新外部 skill 后，跑一个小任务测试 `development-workflow` 是否仍能正常走完 25 步循环。
+3. **测试兼容性**：更新外部 skill 后，跑一个小任务测试 `development-workflow` 是否仍能正常走完 26 步循环。
 
 ---
 
@@ -426,6 +432,7 @@ development-workflow (本仓库, 流程编排器)
 │  ├─ frontend-interaction-guidelines
 │  ├─ logging-boundaries
 │  ├─ ddd
+│  ├─ rest-api-documentation
 │  └─ project-hygiene
 │
 └─ 外部 skill (需单独安装)
@@ -450,8 +457,8 @@ development-workflow (本仓库, 流程编排器)
 安装完本仓库 + 外部 skill 后，用以下命令验证：
 
 ```bash
-# 检查本仓库 8 个配套 skill（`development-workflow` 本身另行安装）
-ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd,project-hygiene}/SKILL.md
+# 检查本仓库 9 个配套 skill（`development-workflow` 本身另行安装）
+ls ~/.claude/skills/{git-branch-worktree-convention,commit,code-review-spec,backend-reliability-guidelines,frontend-interaction-guidelines,logging-boundaries,ddd,rest-api-documentation,project-hygiene}/SKILL.md
 
 # 检查外部依赖
 ls ~/.claude/skills/{superpowers,openspec-new-change,openspec-continue-change,openspec-ff-change,openspec-apply-change,openspec-verify-change,openspec-sync-specs,openspec-archive-change,using-git-worktrees}/SKILL.md
@@ -476,7 +483,7 @@ Claude Code 会：
 2. 在 brainstorming 门调用 `superpowers:brainstorming`
 3. 确认集成分支，并在 worktree-setup 门调用 `using-git-worktrees` + `git-branch-worktree-convention`
 4. 在 task worktree 中创建和验证 OpenSpec change
-5. 对每个任务完成 TDD、验证、审计/review、commit 和合并回 `SOURCE_BRANCH`
+5. 对每个任务完成 TDD；对外 Controller/API route 变更还要按模块更新 `apis/<module>.md`；随后完成验证、审计/review、commit 和合并回 `SOURCE_BRANCH`
 6. 完成 final audit、archive，并确认集成分支包含所有任务
 
 ### 显式调用
@@ -567,14 +574,14 @@ Claude Code 会：
 
 ### 初次使用
 
-1. **先装本仓库全部 9 个 skill**（按 [README 安装章节](./README.md#安装)）
+1. **先装本仓库全部 10 个 skill**（按 [README 安装章节](./README.md#安装)）
 2. **再装外部 3 套 skill**（superpowers / OpenSpec / using-git-worktrees）
 3. **验证依赖**（见上文"四、检查依赖是否就位"）
 4. **跑一个小任务测试**：
    ```
    /development-workflow 写一个 hello world 函数并测试
    ```
-如果 25 步门全部通过，并且 task branch 已合并回确认的集成分支，说明环境就位。
+如果 26 步门全部通过，并且 task branch 已合并回确认的集成分支，说明环境就位。
 
 ### 团队协作
 
@@ -594,7 +601,7 @@ Claude Code 会：
 
 ## 八、进阶：自定义门禁
 
-`development-workflow` 的 25 步循环是固定的，但你可以通过修改 `development-workflow/SKILL.md` 调整门禁条件。例如：
+`development-workflow` 的 26 步循环是固定的，但你可以通过修改 `development-workflow/SKILL.md` 调整门禁条件。例如：
 
 ### 关闭 TDD 强制（不推荐）
 
@@ -642,6 +649,8 @@ Claude Code 会：
 | 什么时候同步基线文件、做泄漏检查？ | `development-workflow`（worktree-setup / commit 门） | ❌ `project-hygiene` 不管 |
 | 日志是否脱敏？ | `logging-boundaries` | ❌ `code-review-spec` 不管 |
 | 什么时候检查日志？ | `development-workflow` (code-review-spec 门 + Domain Authority Delegation) | ❌ `logging-boundaries` 不管 |
+| 对外 Controller 文档写到哪里、包含什么？ | `rest-api-documentation` | ❌ `development-workflow` 不重复端点契约细则 |
+| 什么时候检查对外 Controller 文档？ | `development-workflow`（REST API documentation 门） | ❌ `rest-api-documentation` 不编排任务顺序 |
 
 **记住一条**：`development-workflow` 只管"什么时候调谁"，不管"那个谁的规则是什么"。
 

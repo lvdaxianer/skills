@@ -1,6 +1,6 @@
 ---
 name: development-workflow
-description: Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task. Honors explicit user opt-outs: "不要 OpenSpec" skips OpenSpec stages, "不要分支" works directly on the current branch, "不要 workflow" disables this skill entirely.
+description: "Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task. Honors explicit user opt-outs: '不要 OpenSpec' skips OpenSpec stages, '不要分支' works directly on the current branch, '不要 workflow' disables this skill entirely."
 ---
 
 # Development Workflow
@@ -71,6 +71,9 @@ Load and follow these skills at their required workflow stages:
   actions, debounce/throttle, keyboard behavior, motion, responsive
   interaction, accessibility interaction quality, operation reliability, or
   cross-page state consistency.
+- `rest-api-documentation` whenever a task creates or modifies an externally
+  exposed Controller or API route. Apply its module-document rules and complete
+  the REST API documentation gate before broader verification.
 - `commit` from `/Users/lvdaxianer/.codex/skills/commit/SKILL.md`.
 
 The project `openspec/` directory stores change and specification assets; it is
@@ -83,6 +86,8 @@ Canonical rule sources used through those pointer skills:
 - `/Users/lvdaxianer/.claude/skills/code-review-spec/references/*`
 - `/Users/lvdaxianer/.codex/skills/logging-boundaries/SKILL.md`
 - `/Users/lvdaxianer/.claude/skills/logging-boundaries/SKILL.md`
+- `rest-api-documentation/SKILL.md`
+- `rest-api-documentation/references/api-document-template.md`
 - `/Users/lvdaxianer/.claude/commands/commit.md`
 
 If any required source cannot be read, stop and report the missing source.
@@ -117,6 +122,7 @@ skill.
 | Production logging: log statements, levels, fields, redaction, trace/MDC, DEBUG controls, log-volume behavior | `logging-boundaries` |
 | Backend implementation and backend review: APIs, services, jobs, queues, webhooks, migrations, configuration, validation, authorization, idempotency, transactions, concurrency, error handling, observability | `backend-reliability-guidelines` |
 | Frontend interaction implementation and review: pages, components, forms, modals, editors, workflows, buttons, loading/empty/error/disabled states, submit/save/delete/publish/pay/upload/batch actions, debounce/throttle, keyboard, motion, responsive interaction, accessibility interaction quality, operation reliability, cross-page state consistency | `frontend-interaction-guidelines` |
+| External Controller or API route documentation: public route contract, module grouping, `apis/<module>.md` placement, Controller-to-module coverage | `rest-api-documentation` |
 | Project baseline files: `.gitignore`/`.gitattributes`/`.editorconfig`/`.env.example` synchronization, secret-leak prevention, editor and AI tool directory policy | `project-hygiene` |
 
 Delegation rules:
@@ -127,7 +133,8 @@ Delegation rules:
 - When two domain skills overlap on the same concern, the more specific domain
   wins on that concern (logging concern → `logging-boundaries`;
   frontend-interaction concern → `frontend-interaction-guidelines`;
-  backend-reliability concern → `backend-reliability-guidelines`).
+  backend-reliability concern → `backend-reliability-guidelines`;
+  external API documentation concern → `rest-api-documentation`).
   `code-review-spec` continues to govern all non-domain code quality concerns.
 - Include the applied domain rules and reference files as evidence in the
   focused test, plan-implementation consistency audit, and `code-review-spec`
@@ -260,6 +267,10 @@ enforces, and concurrency numbers this workflow caps for safety.
   - dependencies
   - focused and broader verification commands
   - handoff evidence
+- For a task that creates or modifies an externally exposed Controller/API route,
+  the boundary must additionally include the affected public Controllers/routes,
+  their business-module mapping, target `apis/<module>.md` files, and the REST
+  API documentation coverage check.
 - Use `superpowers:subagent-driven-development` as the default multi-agent
   orchestration principle for safely delegable tasks.
 - multi-agent orchestration is the default execution principle when task
@@ -317,29 +328,37 @@ For each development task, execute this exact order:
 12. Run the focused test and confirm the RED failure is caused by missing behavior.
 13. Implement the minimal GREEN change required by the failing test.
 14. Run the focused test again and confirm it passes.
-15. Run the relevant broader test, lint, build, or documentation check for the touched area.
-16. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, and current task scope.
-17. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
-18. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
+15. When the task creates or modifies an externally exposed Controller/API route,
+    load `rest-api-documentation`, identify every affected public
+    Controller/route and its business module, then create or update exactly one
+    target-project module document at `apis/<module>.md` for each affected
+    module. Each module document must contain complete endpoint sections for its
+    affected public routes; do not create one document per endpoint or
+    Controller. If no external Controller/API route is affected, record this
+    gate as not applicable.
+16. Run the relevant broader test, lint, build, or documentation check for the touched area.
+17. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, current task scope, and the REST API documentation coverage result when applicable.
+18. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
+19. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
-19. Re-run the focused and broader verification commands after fixes.
-20. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-21. Create one atomic Chinese Conventional Commit for this task from the dedicated
+20. Re-run the REST API documentation gate when applicable, plus the focused and broader verification commands after fixes.
+21. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
+22. Create one atomic Chinese Conventional Commit for this task from the dedicated
     worktree by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module. Before committing,
     run the `project-hygiene` secret-leak check (`git ls-files`) and confirm no
     artifact, tool-local, or secret file is staged.
-22. After the commit succeeds, merge the task branch into its recorded
+23. After the commit succeeds, merge the task branch into its recorded
    `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
    return to the confirmed integration branch before starting the next task.
-23. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, and no implementation drift remains.
-24. Archive the completed OpenSpec change. If archival modifies repository
+24. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
+25. Archive the completed OpenSpec change. If archival modifies repository
    files, create one final dedicated task worktree from the confirmed
    integration branch, commit the archive update, then merge and verify that
    task using the same task-integration loop.
-25. After the final audit and OpenSpec archive work pass, return to the
+26. After the final audit and OpenSpec archive work pass, return to the
    confirmed integration branch and verify it contains every completed task.
    If the source checkout has unrelated uncommitted changes, a merge conflict,
    or a missing task merge, stop and preserve that work. A failed integration
@@ -364,7 +383,8 @@ For each development task, execute this exact order:
   has been read from its canonical sources and its applicable requirements
   have been recorded as evidence. This applies to `code-review-spec`,
   `logging-boundaries`, `backend-reliability-guidelines`,
-  `frontend-interaction-guidelines`, and `project-hygiene`.
+  `frontend-interaction-guidelines`, `rest-api-documentation`, and
+  `project-hygiene`.
 - Do not replace a domain skill with a summary, impression, "close enough"
   judgment, or partial rule coverage. Every applicable rule from the
   authoritative domain skill must be checked; any uncovered rule must be
@@ -392,7 +412,14 @@ For each development task, execute this exact order:
   is documentation-only or no business implementation remains to carry it.
 - Do not keep implementation code that was written before a failing test unless the user
   explicitly exempted the task from TDD.
-- Do not mark a task complete before RED, GREEN, broader verification, plan-implementation consistency audit, `code-review-spec`, fixes, re-verification, and commit gates all pass.
+- Do not pass the REST API documentation gate for a task with an affected public
+  Controller/API route until every affected route is mapped to a business module,
+  each module has exactly one `apis/<module>.md`, and the module document covers
+  the required REST API contract for every affected route. Do not create
+  endpoint-per-file documentation.
+- Do not mark a task complete before RED, GREEN, the applicable REST API
+  documentation gate, broader verification, plan-implementation consistency
+  audit, `code-review-spec`, fixes, re-verification, and commit gates all pass.
 - Do not batch-complete tasks at the end. Progress must be durable after every finished task.
 - Do not combine unrelated plan tasks into one commit.
 - Do not commit unrelated user changes. Preserve existing dirty work that is outside the task.
@@ -406,7 +433,7 @@ For each development task, execute this exact order:
 - If the same blocker prevents progress after repeated attempts, report the blocker with
   exact command output and the affected file path.
 - For `code-review-spec`, a gate only passes after every applicable rule has been checked and any uncovered rule has been explicitly accounted for.
-- The final audit gate only passes when the OpenSpec checklist, implementation diff, tests, and review evidence agree that the planned change is complete.
+- The final audit gate only passes when the OpenSpec checklist, implementation diff, tests, REST API documentation coverage where applicable, and review evidence agree that the planned change is complete.
 
 ## Required Status Format
 
@@ -414,7 +441,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
 Opt-outs: <none | no OpenSpec | no branch | ...>
 Evidence: <command or file checked>
 ```
