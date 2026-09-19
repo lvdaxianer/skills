@@ -1,12 +1,12 @@
 # Development Workflow 使用指南
 
-> `development-workflow` 是本仓库的**流程编排 skill**，它不定义具体规范，只负责在固定的 26 步任务循环里调度其他 skill。理解它如何组合本地 + 外部 skill 是用好整套规范的关键。
+> `development-workflow` 是本仓库的**流程编排 skill**，它不定义具体规范，只负责在固定的 27 步任务循环里调度其他 skill。理解它如何组合本地 + 外部 skill 是用好整套规范的关键。
 
 ---
 
 ## 一、它是什么
 
-`development-workflow` 强制执行一个固定的 26 步循环：
+`development-workflow` 强制执行一个固定的 27 步循环：
 
 ```
 brainstorm → 确认集成分支并创建任务 worktree → OpenSpec → 任务边界/调度 →
@@ -21,6 +21,7 @@ TDD RED/GREEN → REST API 文档门禁（适用时）→ 验证/审计/review �
 
 > **显式豁免（Opt-Outs）**：用户说"**不要 OpenSpec**"即跳过全部 OpenSpec 阶段；
 > 说"**不要分支**"即直接在当前分支修改、不建任务分支/worktree；
+> 说"**不用检查**"、"**不用审计**"或"**跳过审计**"只可跳过每个任务的任务级审计门，其他门禁仍必须执行；
 > 说"**不要 workflow**"即完全不启用本流程。豁免仅在用户当次明确说出时生效，
 > 可组合使用，且不影响领域 skill（code-review-spec、logging 等）。
 > 详见 `development-workflow/SKILL.md` 的 Explicit User Opt-Outs 章节与下方 Q3。
@@ -40,10 +41,11 @@ flowchart TD
     Red --> Green[13-14. GREEN]
     Green --> ApiDocs[15. REST API 文档门<br/>按模块更新 apis/&lt;module&gt;.md]
     ApiDocs --> Audit[16-20. broader verification、<br/>一致性审计、code-review-spec、修复与复验]
-    Audit --> C[21-23. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
+    Audit --> TaskAudit[21. 任务级规范审计<br/>检查所有适用规范与实现漂移]
+    TaskAudit --> C[22-24. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
     C --> More{还有未完成任务?}
     More -->|是| T
-    More -->|否| F[24-26. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
+    More -->|否| F[25-27. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
     F --> End([任务完成])
     
     style B fill:#e1f5ff
@@ -55,13 +57,14 @@ flowchart TD
     style Green fill:#fff4e1
     style ApiDocs fill:#fff4e1
     style Audit fill:#ffe1e1
+    style TaskAudit fill:#ffe1e1
     style C fill:#e1ffe1
     style F fill:#e1ffe1
 ```
 
 **图例**：
 - 🔵 **蓝色方框**（门禁）：workflow 定义的检查点，决定能否进入下一步
-- 🔄 **循环**：每一个任务都在步骤 5-23 内完成；步骤 23 已完成 task merge，下一任务必须从更新后的集成分支创建
+- 🔄 **循环**：每一个任务都在步骤 5-24 内完成；步骤 24 已完成 task merge，下一任务必须从更新后的集成分支创建
 - 👤 **主 agent**：保持对任务边界、验证证据、审计、review、完成标记、提交和集成的最终责任
 
 ### 26 步执行顺序
@@ -78,10 +81,11 @@ flowchart TD
 | 15 | REST API documentation | 新增或修改对外 Controller/API 路由时加载 `rest-api-documentation`，列出 Controller/route 到业务模块映射，并为每个模块创建或更新唯一的 `apis/<module>.md`；同一模块的多个端点写入同一文件，未触及对外路由时记录“不适用”。 |
 | 16 | broader verification | 执行适用于改动范围的测试、lint、build 或文档检查。 |
 | 17-20 | audit / review | 审计计划一致性与适用的 API 文档覆盖；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
-| 21 | task mark-complete | 所有关卡通过后，立即只标记一个任务完成。 |
-| 22 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
-| 23 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
-| 24-26 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
+| 21 | per-task audit | 每个任务必须再次审计：检查任务边界、验收标准、完整 diff、测试与 broader verification、所有适用领域规范、review 证据和实现漂移；失败必须修复并重审。除非用户明确豁免，否则这是不可逾越的硬门禁。 |
+| 22 | task mark-complete | 只有任务级审计通过后，立即只标记一个任务完成。 |
+| 23 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
+| 24 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
+| 25-27 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
 **它本身不管**：
 - 分支怎么命名（委托给 `git-branch-worktree-convention`）
@@ -94,6 +98,7 @@ flowchart TD
 **它只管**：
 - 什么时候调哪个 skill（在"worktree-setup"门调 `git-branch-worktree-convention`，在"REST API documentation"门调 `rest-api-documentation`，在"code-review-spec"门调 `code-review-spec`）
 - 门禁通过条件（RED 门要求测试失败，GREEN 门要求测试通过）
+- 每个任务的规范审计必须覆盖所有适用规范；未通过不得标记完成、提交、合并或开始下一个任务
 - 任务顺序（brainstorm 必须在 OpenSpec plan 前，commit 必须在 code-review 后，task merge 必须在下一任务前）
 
 ---

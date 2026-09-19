@@ -25,6 +25,7 @@ task size, or your own judgment.
 | "不要 workflow" / "不用 workflow" / "no workflow" | Do not activate this skill at all. Exit immediately and handle the request as an ordinary task. None of the stages, gates, or status formats below apply. |
 | "不要 OpenSpec" / "不用 OpenSpec" / "skip OpenSpec" | Skip every OpenSpec stage: no `openspec/changes/` asset, no `openspec validate`, no OpenSpec archive, no `Refs: OpenSpec …` footer. Keep a durable task checklist outside OpenSpec (e.g., the task tracking tool) so progress still survives session breaks. All other stages and gates — branch/worktree setup, TDD, verification, review, per-task commit, final audit — still apply. |
 | "不要分支" / "不要 worktree" / "no branch" | Skip task branch and worktree creation. Edit, test, and commit directly on the current branch in the current checkout. Record the current branch name once, and skip merge-back, worktree cleanup, and source-branch integration steps. All other stages still apply. |
+| "不用检查" / "不用审计" / "跳过审计" / "no audit" | Skip only the per-task audit gate when the user explicitly says so. All other task gates, including plan-implementation consistency audit, domain review, verification, task marking, commit, and final audit, still apply. |
 
 Rules:
 
@@ -106,6 +107,11 @@ If any required source cannot be read, stop and report the missing source.
 - After all planned tasks finish, emit a final audit report that lists completed
   tasks, lists unfinished tasks, and includes a final review summary before the
   workflow is considered fully closed.
+- Every task must pass a separate per-task audit after implementation review and
+  re-verification and before its checklist item can be marked complete. This is
+  a hard gate: the next task, task completion marker, commit, and integration are
+  forbidden until the audit passes, unless the user explicitly opts out with one
+  of the audit opt-out phrases above.
 
 ## Domain Authority Delegation
 
@@ -342,23 +348,31 @@ For each development task, execute this exact order:
 19. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
 20. Re-run the REST API documentation gate when applicable, plus the focused and broader verification commands after fixes.
-21. Mark exactly one completed task immediately after its gate passes in the OpenSpec checklist.
-22. Create one atomic Chinese Conventional Commit for this task from the dedicated
+21. Run the mandatory per-task audit. Re-check the task boundary, OpenSpec
+    acceptance criteria, implementation diff, focused and broader verification
+    evidence, all applicable domain rules, REST API documentation coverage when
+    applicable, review findings, and implementation drift. Record the audit
+    result and evidence. If any item fails, fix it and repeat the audit; do not
+    advance to task completion. Only an explicit user audit opt-out may waive
+    this gate.
+22. Mark exactly one completed task immediately after the per-task audit passes
+    in the OpenSpec checklist.
+23. Create one atomic Chinese Conventional Commit for this task from the dedicated
     worktree by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module. Before committing,
     run the `project-hygiene` secret-leak check (`git ls-files`) and confirm no
     artifact, tool-local, or secret file is staged.
-23. After the commit succeeds, merge the task branch into its recorded
+24. After the commit succeeds, merge the task branch into its recorded
    `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
    return to the confirmed integration branch before starting the next task.
-24. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
-25. Archive the completed OpenSpec change. If archival modifies repository
+25. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
+26. Archive the completed OpenSpec change. If archival modifies repository
    files, create one final dedicated task worktree from the confirmed
    integration branch, commit the archive update, then merge and verify that
    task using the same task-integration loop.
-26. After the final audit and OpenSpec archive work pass, return to the
+27. After the final audit and OpenSpec archive work pass, return to the
    confirmed integration branch and verify it contains every completed task.
    If the source checkout has unrelated uncommitted changes, a merge conflict,
    or a missing task merge, stop and preserve that work. A failed integration
@@ -420,6 +434,12 @@ For each development task, execute this exact order:
 - Do not mark a task complete before RED, GREEN, the applicable REST API
   documentation gate, broader verification, plan-implementation consistency
   audit, `code-review-spec`, fixes, re-verification, and commit gates all pass.
+- Do not mark a task complete, commit it, integrate it, or start the next task
+  before the mandatory per-task audit passes. The audit must explicitly verify
+  the task boundary, acceptance criteria, diff scope, test and broader
+  verification evidence, applicable domain rules, REST API documentation where
+  applicable, review evidence, and absence of implementation drift. A user must
+  explicitly say "不用检查" (or a listed equivalent) to waive only this gate.
 - Do not batch-complete tasks at the end. Progress must be durable after every finished task.
 - Do not combine unrelated plan tasks into one commit.
 - Do not commit unrelated user changes. Preserve existing dirty work that is outside the task.
@@ -441,7 +461,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | per-task audit | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
 Opt-outs: <none | no OpenSpec | no branch | ...>
 Evidence: <command or file checked>
 ```

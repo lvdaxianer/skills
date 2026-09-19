@@ -60,6 +60,16 @@ Use Review mode when auditing existing frontend interaction experience.
 
 ## Non-Negotiable Interaction Rules
 
+- The project component library is mandatory when it provides a component or
+  interaction primitive that meets the requirement. Before writing a custom
+  component, inspect the project's configured component library and reuse the
+  matching component; do not reimplement an existing library component for
+  convenience, styling preference, or minor API differences.
+- A custom component is permitted only when the component library has no
+  suitable component or primitive. The implementation evidence must record the
+  library search performed, the missing capability, and why composition of
+  existing library components cannot satisfy the requirement. This is a hard
+  gate for implementation and review; missing evidence fails the gate.
 - Submit, save, publish, pay, upload, delete, and batch actions must protect
   against repeated triggering and slow networks.
 - Destructive or irreversible actions must not rely only on debounce; use
