@@ -1,0 +1,5 @@
+# >>> project-hygiene (managed, do not edit by hand) >>>
+/.agents/
+/.claude/
+/.codex/
+# <<< project-hygiene (managed) <<<
