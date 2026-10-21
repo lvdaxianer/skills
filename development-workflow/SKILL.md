@@ -1,6 +1,6 @@
 ---
 name: development-workflow
-description: "Use when starting or executing development tasks that must follow a mandatory brainstorming-first, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task. Honors explicit user opt-outs: '不要 OpenSpec' skips OpenSpec stages, '不要分支' works directly on the current branch, '不要 workflow' disables this skill entirely."
+description: "Use when starting or executing development tasks that must follow a mandatory brainstorming-first, user-plan-approved, OpenSpec-plan-first, TDD-first, implementation-audited, code-review-gated, commit-per-task workflow before moving to the next task. Honors explicit user opt-outs: '不要 OpenSpec' skips OpenSpec stages, '不要分支' works directly on the current branch, '不要 workflow' disables this skill entirely."
 ---
 
 # Development Workflow
@@ -98,6 +98,16 @@ If any required source cannot be read, stop and report the missing source.
 - Requirement discussion uses `superpowers:brainstorming`. While the user is still
   clarifying requirements, alternatives, trade-offs, or acceptance criteria, do not
   require OpenSpec files.
+- Plan approval is a mandatory user-controlled gate after brainstorming and before
+  worktree setup or any task-owned file write. Present the implementation scope,
+  task breakdown, acceptance criteria, verification approach, risks, and assumptions,
+  then wait for the user to explicitly approve that plan.
+- Discussion, silence, acknowledgement, or a request for changes is not approval.
+  If the user requests changes, revise the plan and return to the plan-approval
+  gate. Do not create a branch, worktree, OpenSpec asset, test, or implementation
+  file before explicit approval.
+- If the OpenSpec plan or task breakdown materially diverges from the approved plan,
+  stop and return to plan approval before continuing.
 - Requirement persistence uses OpenSpec. Once the user chooses to write the
   requirement into files, create or update exactly one OpenSpec change for the
   independent change.
@@ -112,6 +122,37 @@ If any required source cannot be read, stop and report the missing source.
   a hard gate: the next task, task completion marker, commit, and integration are
   forbidden until the audit passes, unless the user explicitly opts out with one
   of the audit opt-out phrases above.
+
+## Workflow Flowchart
+
+```mermaid
+flowchart TD
+    A[Brainstorming: clarify requirements and design] --> B[Present implementation plan]
+    B --> C{User explicitly approves plan?}
+    C -- "No / changes requested" --> B
+    C -- "Yes" --> D[Confirm integration branch]
+    D --> E[Create task branch and dedicated worktree]
+    E --> F[Create or update OpenSpec plan]
+    F --> G{Plan still matches approval?}
+    G -- "No: material drift" --> B
+    G -- "Yes" --> H[Validate OpenSpec]
+    H --> I[Select next unchecked task]
+    I --> J[Define task boundary and dispatch plan]
+    J --> K[Dispatch bounded agent or record direct fallback]
+    K --> L[RED: write and run focused check]
+    L --> M[GREEN: implement minimal change]
+    M --> N[Broader verification]
+    N --> O[Plan audit and code review]
+    O --> P[Fix findings and re-verify]
+    P --> Q{Per-task audit passes?}
+    Q -- "No" --> O
+    Q -- "Yes" --> R[Mark task complete and commit]
+    R --> S[Merge into SOURCE_BRANCH and clean up worktree]
+    S --> T{Tasks remaining?}
+    T -- "Yes" --> I
+    T -- "No" --> U[Final audit and OpenSpec archive]
+    U --> V[Verify integration branch contains the change]
+```
 
 ## Domain Authority Delegation
 
@@ -152,6 +193,12 @@ Delegation rules:
 ## OpenSpec Planning Requirements
 
 - Use `superpowers:brainstorming` before writing the plan so the plan captures the intended behavior, constraints, trade-offs, and acceptance criteria.
+- Do not create or update OpenSpec assets until the user has explicitly approved
+  the implementation plan. The approval brief must cover scope, task breakdown,
+  acceptance criteria, verification, risks, and assumptions.
+- Treat the approved plan as a contract. If OpenSpec introduces material scope,
+  task, acceptance, or verification changes, stop and return to the user plan
+  approval gate before continuing.
 - Use `openspec-new-change` with `openspec-continue-change`, or use
   `openspec-ff-change`, to create or update the written change asset under
   `openspec/changes/<change-name>/`.
@@ -312,7 +359,12 @@ enforces, and concurrency numbers this workflow caps for safety.
 For each development task, execute this exact order:
 
 1. Use `superpowers:brainstorming` to clarify the requirement and approve the design.
-2. Classify the change as a new feature or bug fix. At the first task, ask the
+2. Present the implementation plan to the user, including scope, task
+   breakdown, acceptance criteria, verification approach, risks, and assumptions.
+   Wait for explicit user approval. If the user requests changes, revise the plan
+   and return to this step; do not begin worktree setup, OpenSpec persistence, test
+   writing, or implementation before approval.
+3. Classify the change as a new feature or bug fix. At the first task, ask the
    user whether the current branch is the change's integration branch. Create
    the correctly named task branch and its dedicated project worktree from that
    confirmed branch, record it as `SOURCE_BRANCH`, then verify the branch,
@@ -321,20 +373,20 @@ For each development task, execute this exact order:
    build manifests, tool or artifact directories, binary file types, or
    environment variable references, run the `project-hygiene` baseline sync
    inside the task worktree before task-owned edits.
-3. Use `OpenSpec` from the dedicated worktree to create or update the written
+4. Use `OpenSpec` from the dedicated worktree to create or update the written
    change, including the OpenSpec plan and task checklist.
-4. Validate the OpenSpec change and keep those planning files available for the first related task commit.
-5. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
-6. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
-7. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
-8. For delegated implementation, merge or apply the subagent result into the task worktree before accepting the task result.
-9. Run main agent review on the merged or applied result.
-10. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
-11. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
-12. Run the focused test and confirm the RED failure is caused by missing behavior.
-13. Implement the minimal GREEN change required by the failing test.
-14. Run the focused test again and confirm it passes.
-15. When the task creates or modifies an externally exposed Controller/API route,
+5. Validate the OpenSpec change and keep those planning files available for the first related task commit. If the validated plan materially diverges from the approved plan, return to step 2.
+6. Select the next unchecked task from the OpenSpec plan. Do not start later tasks early.
+7. Define the task boundary and agent dispatch plan for the selected task before writing the failing test.
+8. Dispatch a bounded module-oriented implementer agent when delegation is safe; otherwise record the direct-execution fallback reason before writing the failing test.
+9. For delegated implementation, merge or apply the subagent result into the task worktree before accepting the task result.
+10. Run main agent review on the merged or applied result.
+11. If main agent review finds issues, send the findings back to the same subagent and repeat merge, review, and fix until the main agent review passes.
+12. Use `superpowers:test-driven-development` and write the smallest useful TDD test for the selected task.
+13. Run the focused test and confirm the RED failure is caused by missing behavior.
+14. Implement the minimal GREEN change required by the failing test.
+15. Run the focused test again and confirm it passes.
+16. When the task creates or modifies an externally exposed Controller/API route,
     load `rest-api-documentation`, identify every affected public
     Controller/route and its business module, then create or update exactly one
     target-project module document at `apis/<module>.md` for each affected
@@ -342,37 +394,37 @@ For each development task, execute this exact order:
     affected public routes; do not create one document per endpoint or
     Controller. If no external Controller/API route is affected, record this
     gate as not applicable.
-16. Run the relevant broader test, lint, build, or documentation check for the touched area.
-17. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, current task scope, and the REST API documentation coverage result when applicable.
-18. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
-19. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
+17. Run the relevant broader test, lint, build, or documentation check for the touched area.
+18. Run a plan-implementation consistency audit using Superpowers audit capability. Confirm the implementation matches the OpenSpec plan, acceptance criteria, current task scope, and the REST API documentation coverage result when applicable.
+19. Apply `code-review-spec` to the full diff for this task, strictly and item-by-item against the canonical sources.
+20. Fix every issue that should be fixed under `code-review-spec`. Do not ask for confirmation
    before making clear quality, correctness, maintainability, performance, or security fixes.
-20. Re-run the REST API documentation gate when applicable, plus the focused and broader verification commands after fixes.
-21. Run the mandatory per-task audit. Re-check the task boundary, OpenSpec
+21. Re-run the REST API documentation gate when applicable, plus the focused and broader verification commands after fixes.
+22. Run the mandatory per-task audit. Re-check the task boundary, OpenSpec
     acceptance criteria, implementation diff, focused and broader verification
     evidence, all applicable domain rules, REST API documentation coverage when
     applicable, review findings, and implementation drift. Record the audit
     result and evidence. If any item fails, fix it and repeat the audit; do not
     advance to task completion. Only an explicit user audit opt-out may waive
     this gate.
-22. Mark exactly one completed task immediately after the per-task audit passes
+23. Mark exactly one completed task immediately after the per-task audit passes
     in the OpenSpec checklist.
-23. Create one atomic Chinese Conventional Commit for this task from the dedicated
+24. Create one atomic Chinese Conventional Commit for this task from the dedicated
     worktree by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module. Before committing,
     run the `project-hygiene` secret-leak check (`git ls-files`) and confirm no
     artifact, tool-local, or secret file is staged.
-24. After the commit succeeds, merge the task branch into its recorded
+25. After the commit succeeds, merge the task branch into its recorded
    `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
    return to the confirmed integration branch before starting the next task.
-25. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
-26. Archive the completed OpenSpec change. If archival modifies repository
+26. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
+27. Archive the completed OpenSpec change. If archival modifies repository
    files, create one final dedicated task worktree from the confirmed
    integration branch, commit the archive update, then merge and verify that
    task using the same task-integration loop.
-27. After the final audit and OpenSpec archive work pass, return to the
+28. After the final audit and OpenSpec archive work pass, return to the
    confirmed integration branch and verify it contains every completed task.
    If the source checkout has unrelated uncommitted changes, a merge conflict,
    or a missing task merge, stop and preserve that work. A failed integration
@@ -381,7 +433,13 @@ For each development task, execute this exact order:
 ## Gate Rules
 
 - Do not ask for confirmation when the next action is mandated by this workflow.
+- The plan-approval gate is intentionally user-controlled: present the plan and
+  wait for explicit approval before taking any implementation-start action.
+- Do not treat discussion, silence, acknowledgement, or an unqualified response
+  as plan approval. Requested changes return the workflow to the approval gate.
 - Do not skip validation, even for small or documentation-only changes.
+- Do not create a branch, worktree, OpenSpec asset, test, or implementation file
+  before the user has explicitly approved the implementation plan.
 - Do not implement production code before the OpenSpec plan has been written and validated.
 - Do not write task-owned files or create task commits from the original/current
   checkout. Use a dedicated project worktree paired with the correctly named
@@ -405,6 +463,8 @@ For each development task, execute this exact order:
   explicitly accounted for.
 - Do not write the RED test before the task boundary and agent dispatch plan has
   been defined.
+- Do not continue after material plan drift; return to plan approval and obtain
+  explicit approval for the revised scope, tasks, acceptance criteria, or checks.
 - Do not use direct main-agent execution without recording why delegation is
   unavailable, unsafe, or not useful.
 - Do not run overlapping implementation agents in the same working tree.
@@ -461,7 +521,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | per-task audit | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Gate: <brainstorming | plan approval | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | per-task audit | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
 Opt-outs: <none | no OpenSpec | no branch | ...>
 Evidence: <command or file checked>
 ```
