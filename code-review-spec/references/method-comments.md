@@ -39,6 +39,8 @@ func MethodName(paramName string) {
 
 ## TypeScript / Vue
 
+> JSDoc 必须使用多行格式：`/**` 与 `*/` 各自独占一行，方法描述和每个以 `@` 开头的文档标签各自独占一行。禁止将多个标签压缩到同一行。
+
 ```typescript
 /**
  * 方法功能的简要描述
