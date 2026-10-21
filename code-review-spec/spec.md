@@ -59,6 +59,10 @@ description: Use when performing or requesting code review, code formatting, or 
 
 > **代码示例**：详见 [references/method-comments.md](references/method-comments.md)
 
+### 3.1.1. JSDoc 多行排版规范（强制）
+
+JSDoc 必须使用多行格式。`/**` 与 `*/` 必须各自独占一行；方法描述以及每个以 `@` 开头的文档标签必须各自独占一行。禁止生成或保留单行 JSDoc，即使其中包含全部必需标签。
+
 ### 3.2. 类注释规范
 
 每个类必须包含完整文档注释。
@@ -485,6 +489,7 @@ timestamp [thread-name] level class-name:line-number - message
 
 - [✅/❌/不适用] **作者标识**：**新添加**的方法/类的 `@author` 必须按 §2 的解析顺序确定（用户指定 → 默认作者 `lvdaxianer@yeah.net` → 项目既有约定 → git 配置 → 提问确认），禁止写死固定值（老方法/类无需修改）
 - [✅/❌/不适用] **方法注释**：所有方法都有完整注释（@param、@return、@author、@date）
+- [✅/❌/不适用] **JSDoc 排版**：JSDoc 使用多行格式，`/**`、`*/`、方法描述和每个以 `@` 开头的文档标签各自独占一行，禁止单行 JSDoc
 - [✅/❌/不适用] **类注释**：所有类都有 Javadoc 风格文档注释
 - [✅/❌/不适用] **分支注释**：所有 if-else 分支都有条件说明注释
 - [✅/❌/不适用] **注释比例**：注释行数约占总行数的 **60%**，最低不得低于 **40%**（40%–60% 均可接受）
