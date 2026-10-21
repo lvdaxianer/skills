@@ -17,7 +17,7 @@
 
 ### Requirement: Documentation tags SHALL be line-separated
 
-JSDoc 中的方法描述以及每个 `@param`、`@returns`、`@return`、`@author`、`@date` 标签 MUST 各自独占一行；标签之间 MUST 保留可读的换行结构。
+JSDoc 中的方法描述以及每个以 `@` 开头的文档标签 MUST 各自独占一行；标签之间 MUST 保留可读的换行结构。
 
 #### Scenario: Format multiple documentation tags
 
