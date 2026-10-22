@@ -70,6 +70,13 @@ Use Review mode when auditing existing frontend interaction experience.
   library search performed, the missing capability, and why composition of
   existing library components cannot satisfy the requirement. This is a hard
   gate for implementation and review; missing evidence fails the gate.
+- Component-to-component communication must use the smallest possible
+  dependency contract. Parent and child components must pass only the stable
+  identifier required to locate the data (for example, an `id`); the receiving
+  component must resolve the current data through the appropriate store, query,
+  or data-access layer. Do not pass whole entities, large object graphs, or
+  unrelated fields through component props merely for convenience. This is a
+  hard implementation and review gate; violating it fails the task audit.
 - Submit, save, publish, pay, upload, delete, and batch actions must protect
   against repeated triggering and slow networks.
 - Destructive or irreversible actions must not rely only on debounce; use

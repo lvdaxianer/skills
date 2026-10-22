@@ -247,3 +247,13 @@ communicates, and how safely the interaction behaves.
   reason justifies the difference.
 - Shared components or shared state primitives are preferred when they reduce
   drift and preserve the user's expectations.
+
+### Component dependency boundaries
+
+- Component communication uses the smallest possible dependency contract.
+- Parent and child components pass only the stable identifier needed to locate
+  the data, such as an `id`; the receiving component resolves current data
+  through the appropriate store, query, or data-access layer.
+- Whole entities, large object graphs, or unrelated fields are not passed
+  through component props for convenience. A violation fails the frontend
+  interaction gate and the task-level audit.
