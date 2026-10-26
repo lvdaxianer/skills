@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Ten Skills at a Glance](#ten-skills-at-a-glance)
+- [Eleven Skills at a Glance](#eleven-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,7 +31,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Ten Skills at a Glance
+## Eleven Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
@@ -45,6 +45,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`ddd`](./ddd/SKILL.md) | **DDD architecture**: Bounded Context, Ubiquitous Language, Entity/VO/Aggregate/Domain Event/Repository/Factory, four-layer architecture, anti-pattern detection | Domain modeling, aggregate boundary discussions, CQRS/event sourcing |
 | [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: maintain one `apis/<module>.md` per business module for external Controllers; endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation; adding or modifying external Controller/API routes |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
+| [`project-context-sync`](./project-context-sync/SKILL.md) | **Project startup context sync**: maintains a committed `.project-context/` source and idempotently generates Agent startup files for `.claude`, `.codex`, `.kimi`, while rejecting absolute paths and sensitive values | Initializing project context, recording project conventions, restoring Agent setup after cloning, syncing multiple AI tools |
 
 ---
 
@@ -111,6 +112,7 @@ cp -R frontend-interaction-guidelines  ~/.claude/skills/
 cp -R git-branch-worktree-convention   ~/.claude/skills/
 cp -R logging-boundaries               ~/.claude/skills/
 cp -R project-hygiene                  ~/.claude/skills/
+cp -R project-context-sync             ~/.claude/skills/
 cp -R rest-api-documentation           ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
@@ -127,7 +129,7 @@ REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
-             project-hygiene rest-api-documentation; do
+             project-context-sync project-hygiene rest-api-documentation; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -165,6 +167,7 @@ Skills match against their `description`. Examples:
 /logging-boundaries              # logging audit
 /ddd                             # DDD architecture guidance
 /project-hygiene                 # detect & sync baseline files / secret leak check
+/project-context-sync            # initialize, verify, and sync project startup context
 /rest-api-documentation          # REST API documentation and completeness audit
 ```
 
@@ -208,8 +211,12 @@ lvdaxianer-skills/
 ├── rest-api-documentation/
 │   ├── SKILL.md
 │   └── references/
-└── project-hygiene/
-    └── SKILL.md
+├── project-hygiene/
+│   └── SKILL.md
+└── project-context-sync/
+    ├── SKILL.md
+    ├── scripts/context_sync.py
+    └── tests/test_context_sync.py
 ```
 
 ---
