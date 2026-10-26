@@ -171,6 +171,12 @@ communicates, and how safely the interaction behaves.
 - The user can distinguish saved, saving, failed, and unsaved changes.
 - Connection loss in polling or websocket-driven views is visible, with automatic
   reconnect and a clear recovered state.
+- Every list query uses explicit pagination; unbounded full-list queries are not
+  allowed because network, memory, and rendering costs grow with data size.
+- When a paginated list displays intermediate state such as progress, each
+  trackable item exposes a stable data ID, state is requested separately by ID,
+  and only changed IDs are updated incrementally. Updating progress must not
+  re-fetch or replace the entire page.
 
 ### Notifications and transient feedback
 
