@@ -92,6 +92,12 @@ Use Review mode when auditing existing frontend interaction experience.
   applied consistently across every surface.
 - Frontend debounce/throttle does not replace backend idempotency when duplicate
   requests can change data.
+- List queries must use explicit pagination to bound network transfer, memory use,
+  and rendering work; unbounded full-list queries are not permitted.
+- When paginated list items expose intermediate state such as progress, the list
+  response must provide a stable data ID for every trackable item. The frontend
+  must request that state separately by ID and apply incremental updates only to
+  changed IDs; it must not refresh or replace the entire page to update progress.
 - Out-of-date async responses must not overwrite newer state: rapid search,
   filter, or tab switching must cancel or ignore stale results (for example
   through request sequencing or `AbortController`).
