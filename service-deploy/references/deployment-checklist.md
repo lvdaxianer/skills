@@ -10,7 +10,9 @@ Use this order for every deployment. Mark each gate with command output or a fil
 - Confirm the target release path is under `service_root/releases/` and is not already present.
 - Check artifact presence, checksum, archive type, disk space, ownership, and required runtime version.
 - Check the external configuration file exists, is readable, and has required key names. Do not print values.
-- Resolve lifecycle commands and health checks. Confirm whether they are scripts, direct commands, or an optional systemd adapter.
+- Resolve `lifecycle.mode` before any stop/start action. Choose `systemd`, `manual-foreground`, or `manual-background`; confirm the matching start, stop, status, health, and environment-loading commands.
+- For `manual-foreground`, confirm the operator will start the foreground command and stop it with `Ctrl+C`. Do not require a PID file.
+- For `manual-background`, confirm an exact stop command or unique process contract. Reject `killall java` and broad process matching.
 - Acquire a service-level deployment lock so two releases cannot allocate the same sequence number or switch `current` concurrently.
 
 ## 2. Prepare
@@ -27,7 +29,8 @@ Use this order for every deployment. Mark each gate with command output or a fil
 - Stop the service using its declared stop command.
 - Create a temporary symlink to the final release and atomically replace `current`.
 - Confirm `readlink -f current` equals the new release path.
-- Start the service using its declared start command. systemd is optional.
+- Start using the selected adapter. In systemd mode, use the unit and its `EnvironmentFile`; in Shell modes, explicitly load the external env file before starting the main process.
+- In manual-foreground mode, print the command and wait for operator confirmation before proceeding to health checks.
 
 ## 4. Verify
 
@@ -38,7 +41,7 @@ Use this order for every deployment. Mark each gate with command output or a fil
 
 ## 5. Roll back on failure
 
-- Stop the failed release.
+- Stop the failed release using the selected adapter. If manual-foreground is attached to an operator terminal, request `Ctrl+C` and wait; do not guess a PID.
 - Atomically restore `current` to `previous_release`.
 - Start the previous release and rerun status and health checks.
 - Keep the failed release and write a record with `failed_phase`, `previous_release`, and rollback result.
@@ -49,5 +52,6 @@ Use this order for every deployment. Mark each gate with command output or a fil
 - Write a success record only after health verification passes; otherwise write a failure/rolled-back record.
 - Include service, root, release ID, timestamp with timezone, source metadata, checksums, old/current targets, status, health result, and retention result.
 - Exclude env values, passwords, tokens, API keys, private keys, and full secret-bearing URLs.
+- Record `lifecycle.mode` and `environment_loading` in the release record without recording environment values.
 - Preview and apply the default five-release retention policy, protecting current, previous, active, failed, and unverified releases.
 - Release the service lock and return a concise deployment report.
