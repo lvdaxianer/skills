@@ -7,7 +7,7 @@
 
 ## 2. 评测与最终验证
 
-- [ ] 2.1 更新 `design-to-development/evals/evals.json`，增加 JDK 已存在、JDK 缺失自动安装和安装失败停止场景；通过 JSON schema 和覆盖检查
+- [x] 2.1 更新 `design-to-development/evals/evals.json`，增加 JDK 已存在、JDK 缺失自动安装和安装失败停止场景；通过 JSON schema 和覆盖检查
 - [ ] 2.2 执行 OpenSpec 严格校验、Skill 结构检查、引用检查、评测 JSON 校验、敏感文件检查和最终审查；通过后归档变更
 
 ## Workflow follow-up
