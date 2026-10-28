@@ -31,6 +31,8 @@
 
 读取 `references/visual-and-3d.md`。形成页面/路由清单、组件树、状态矩阵、业务模块、用例、API 草案、错误码、Repository 边界和测试场景。把设计图中未表达的状态补齐，并区分“已确认”和“推断”。
 
+同时生成前端目录映射：页面放在 `views/<module>/`，页面专属组件放在页面目录，共享组件放在 `components/`；API、Store 和类型分别放在对应技术目录并按业务命名；聚焦测试邻近源码，端到端测试放在 `tests/e2e/`。确认页面只能通过 API Client 访问后端，Mock 只能通过同一 Client 的 Adapter 切换。
+
 设计图、截图或视觉还原任务必须加载 `ui-ux-pro-max`。3D、WebGL、Three.js、模型、相机、着色器、后处理或 3D 性能任务必须同时加载 `ui-ux-pro-max` 和相关 `threejs-*` Skill。记录视觉决策、Three.js 主题、Vue 集成方式、降级方案、无障碍路径和性能验证项。
 
 ### 4. 任务拆分
@@ -52,6 +54,7 @@ VERIFY    执行更大范围测试、lint、build 或用户流程检查
 
 ### 6. 专项实现
 
+- 新项目按固定前端目录生成；已有项目先复用等价目录，只增量补齐缺失边界。
 - 视觉设计、设计图解析、视觉系统、排版、动效和视觉无障碍加载 `ui-ux-pro-max`。
 - 3D/WebGL 实现加载 `threejs-skills` 中与范围匹配的 `threejs-*` Skill；默认用核心 Three.js 集成 Vue 3，不切换到 React Three Fiber。
 - 前端加载 `frontend-interaction-guidelines`，必要时再加载 Vue 相关 Skill。

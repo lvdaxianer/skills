@@ -39,6 +39,40 @@ project/
 - Pinia
 - Vue Router
 
+前端固定采用“按技术类型组织、按业务命名文件”的目录结构：
+
+```text
+frontend/
+├── public/
+├── src/
+│   ├── main.ts
+│   ├── app/                        # App 根组件、全局 Provider、错误边界
+│   ├── layouts/                    # 页面壳层，不承载业务请求
+│   ├── router/                     # 路由、守卫和权限跳转
+│   ├── views/<module>/             # 按业务模块分组的页面
+│   │   ├── <Page>.vue
+│   │   ├── components/             # 页面专属组件
+│   │   └── __tests__/              # 页面行为测试
+│   ├── components/                 # 跨页面共享组件
+│   │   ├── base/
+│   │   ├── business/
+│   │   └── feedback/
+│   ├── stores/                     # Pinia，按业务命名
+│   ├── composables/                # 可组合的交互和异步逻辑
+│   ├── api/                        # API Client，按业务命名
+│   │   ├── http.ts
+│   │   ├── <module>.ts
+│   │   └── mocks/                  # 可替换 Mock Adapter
+│   ├── types/                      # DTO、页面模型和共享类型
+│   ├── utils/                      # 无业务副作用的通用工具
+│   ├── styles/                     # SCSS、Tailwind 入口和设计令牌
+│   ├── assets/
+│   └── test/                       # 测试初始化和共享 fixtures
+└── tests/e2e/                      # 端到端测试
+```
+
+新项目 MUST 按此结构生成；已有项目先复用等价目录，只在新增能力需要时增量补齐，不得为了套模板进行无关的大规模迁移。`views` 按业务模块分组，但 API、Store 和类型仍分别放在对应技术目录并按业务命名。
+
 后端固定使用：
 
 - JDK 21
@@ -108,6 +142,7 @@ Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认本地数�
 - 组件层级与复用边界
 - 页面状态和操作状态矩阵
 - Pinia、Composable、API Client 边界
+- 前端目录映射：页面、共享组件、页面专属组件、Store、Composable、API、类型和测试位置
 - 业务模块和用例清单
 - Domain、Repository 和持久化模型边界
 - API、错误码、分页和权限草案
@@ -169,6 +204,10 @@ VERIFY    运行更大范围的测试、构建或 lint
 ## 复用规则
 
 - 页面不得直接拼接后端请求细节；通过 API Client 或数据访问层访问服务。
+- 页面只能通过 `api/` 的 API Client 访问后端，不能直接引用 `api/mocks`；Mock 必须作为真实 API Client 的可替换 Adapter，并遵守相同的字段、错误和状态契约。
+- 页面按业务模块放在 `views/<module>/`；只服务一个页面的组件放在该页面的 `components/`，跨页面稳定复用的组件才进入共享 `components/`。
+- API、Pinia Store 和类型定义分别放在 `api/`、`stores/` 和 `types/`，按业务命名拆分文件；跨页面状态进入 Store，局部状态留在页面或 Composable。
+- 页面、组件、Store、Composable 和 API Client 的聚焦测试邻近源码，跨页面流程测试放在 `tests/e2e/`。
 - 组件之间只传递稳定且最小的标识；接收组件通过 Store、查询或数据访问层解析当前数据。
 - Controller 不得直接暴露 ORM Entity；Request、Response、Domain Model 和 Persistence Model 分离。
 - Repository 接口位于业务边界，MyBatis-Plus 只属于基础设施适配器。
