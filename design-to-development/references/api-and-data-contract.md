@@ -1,6 +1,6 @@
 # API 与数据契约参考
 
-本资料定义 Demo 如何保持前后端可替换、可联调和可复用；对外 API 文档的完整字段要求由 `rest-api-documentation` 负责。
+本资料定义项目如何保持前后端可替换、可联调和可复用；对外 API 文档的完整字段要求由 `rest-api-documentation` 负责。
 
 ## API 基线
 
@@ -42,7 +42,7 @@ Use Case → Repository Port → Persistence Adapter → Mapper/Database
 
 ## 迁移与环境
 
-- H2 作为默认 Demo 运行环境，测试配置与开发配置分离。
+- H2 作为默认项目运行环境，测试配置与开发配置分离。
 - MySQL 使用独立 Profile；禁止开发/测试配置指向生产服务。
 - 迁移脚本可审查、可重复执行，并考虑数据量、索引、锁和旧代码兼容性。
 - 需要环境变量时同步 `.env.example` 或后端配置说明，不提交真实密钥。

@@ -1,11 +1,11 @@
 # 固定架构参考
 
-本资料定义 Demo 的固定工程边界。具体可靠性、交互、日志和代码质量规则由对应的权威 Skill 负责，本文件只规定如何把它们放进同一套可复用结构。
+本资料定义产品实现的固定工程边界。具体可靠性、交互、日志和代码质量规则由对应的权威 Skill 负责，本文件只规定如何把它们放进同一套可复用结构。
 
 ## 工程布局
 
 ```text
-demo/
+project/
 ├── frontend/
 │   ├── src/
 │   │   ├── app/              # 路由、应用级插件、全局错误边界
@@ -51,9 +51,9 @@ infrastructure → application/domain ports
 
 ```java
 public interface DemoRepository {
-    Optional<Demo> findById(DemoId id);
+    Optional<Product> findById(ProductId id);
 
-    Demo save(Demo demo);
+    Product save(Product product);
 }
 ```
 
@@ -61,7 +61,7 @@ public interface DemoRepository {
 
 ## 数据库约束
 
-- 默认使用 H2 运行 Demo，测试数据通过迁移和 seed 明确生成。
+- 默认使用 H2 运行项目，测试数据通过迁移和 seed 明确生成。
 - 需要 MySQL 兼容性时提供独立 Profile；不要依赖 H2 特有语法或隐式类型转换。
 - 迁移脚本必须可审查、可重复执行，并考虑旧代码与新代码短暂共存。
 - 列表查询必须有明确分页、稳定排序和上限。
@@ -79,4 +79,4 @@ public interface DemoRepository {
 
 ## 明确不引入
 
-Demo 默认不引入微服务、消息队列、Redis、Kubernetes、真实支付或真实 OAuth。需要展示这些能力时，先建立端口和失败边界，再使用可替换的 Demo Adapter。
+项目默认不引入微服务、消息队列、Redis、Kubernetes、真实支付或真实 OAuth。需要展示这些能力时，先建立端口和失败边界，再使用可替换的 Adapter。
