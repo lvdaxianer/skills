@@ -67,7 +67,56 @@
 | `vue-router-best-practices` | Vue Router 路由和导航守卫 |
 | `vue-testing-best-practices` | Vue 组件和前端行为测试 |
 
-### 3.4 本仓库可直接提供的依赖
+### 3.4 权威下载源与路径映射
+
+安装时按以下来源顺序获取，不要让 AI 自己猜仓库地址：
+
+| Skill/套件 | 权威来源 | 源码路径 |
+| --- | --- | --- |
+| `design-to-development` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `design-to-development/SKILL.md` |
+| `frontend-interaction-guidelines` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `frontend-interaction-guidelines/SKILL.md` |
+| `backend-reliability-guidelines` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `backend-reliability-guidelines/SKILL.md` |
+| `code-review-spec` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `code-review-spec/SKILL.md` |
+| `logging-boundaries` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `logging-boundaries/SKILL.md` |
+| `ddd` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `ddd/SKILL.md` |
+| `rest-api-documentation` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `rest-api-documentation/SKILL.md` |
+| `project-hygiene` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `project-hygiene/SKILL.md` |
+| Vue 专项 Skill | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `<skill-name>/SKILL.md`，安装前必须确认该路径存在 |
+| `brainstorming`、`test-driven-development`、`verification-before-completion` | [Superpowers](https://github.com/cline/superpowers.git) | `<skill-name>/SKILL.md` |
+
+本仓库的第一方源是 `https://gitee.com/lvdaxianer/skills.git`；Superpowers 流程依赖的官方源是 `https://github.com/cline/superpowers.git`。如果团队使用内部镜像，可以替换为已备案的等价镜像，但必须记录实际 URL，并保持同名 Skill 路径不变。
+
+### 3.5 下载源获取命令
+
+AI 需要从干净环境安装时，先把两个源克隆到临时或受控的源码目录，再从源码目录复制/链接 Skill：
+
+```sh
+FIRST_PARTY_SOURCE="${FIRST_PARTY_SOURCE:-$HOME/.cache/lvdaxianer-skills}"
+SUPERPOWERS_SOURCE="${SUPERPOWERS_SOURCE:-$HOME/.cache/superpowers}"
+
+if [ ! -d "$FIRST_PARTY_SOURCE/.git" ]; then
+  git clone https://gitee.com/lvdaxianer/skills.git "$FIRST_PARTY_SOURCE"
+fi
+
+if [ ! -d "$SUPERPOWERS_SOURCE/.git" ]; then
+  git clone https://github.com/cline/superpowers.git "$SUPERPOWERS_SOURCE"
+fi
+```
+
+克隆后必须验证来源和文件：
+
+```sh
+git -C "$FIRST_PARTY_SOURCE" remote get-url origin
+git -C "$SUPERPOWERS_SOURCE" remote get-url origin
+test -f "$FIRST_PARTY_SOURCE/design-to-development/SKILL.md"
+test -f "$SUPERPOWERS_SOURCE/brainstorming/SKILL.md"
+test -f "$SUPERPOWERS_SOURCE/test-driven-development/SKILL.md"
+test -f "$SUPERPOWERS_SOURCE/verification-before-completion/SKILL.md"
+```
+
+如果 `lvdaxianer/skills` 源中找不到某个 Vue 专项 Skill，不能把不存在的路径当成已下载；应先更新可信镜像或使用当前平台的同名 Skill 包，并对最终 `SKILL.md` 做第 6 节验证。
+
+### 3.6 本仓库可直接提供的依赖
 
 如果 README 所在仓库是本仓库，下列目录可直接安装，不需要联网：
 
@@ -82,7 +131,7 @@ rest-api-documentation
 project-hygiene
 ```
 
-`brainstorming`、`test-driven-development`、`verification-before-completion` 以及 Vue 专项 Skill 可能由当前 AI 平台或外部 Skill 注册源提供。安装前必须先检查现有 Skill 目录；缺失时按精确名称调用平台安装能力，不要猜测仓库地址。
+如果本地已经是本仓库的 checkout，直接使用当前 checkout；否则从第 3.4 节的 Gitee 地址获取。Superpowers 依赖不要从本仓库猜测，使用第 3.4 节列出的 Superpowers 源。
 
 ## 4. 安装方式
 
@@ -149,12 +198,13 @@ Copy-Item -Recurse -Path (Join-Path $RepoRoot "design-to-development") -Destinat
 
 ## 5. 缺失依赖的安装协议
 
-当依赖不在当前仓库，也不在目标目录时，AI 必须按以下顺序处理：
+当依赖不在当前 checkout，也不在目标目录时，AI 必须按以下顺序处理：
 
-1. 使用当前平台提供的 Skill 搜索/安装能力，按表中精确名称查找。
-2. 如果依赖属于 `superpowers:*` 命名空间，优先安装或启用对应 Superpowers 插件；同时确认 `superpowers:brainstorming` 可被调用。
-3. 安装后重新检查目标目录和 `SKILL.md` frontmatter。
-4. 如果平台没有安装能力、没有可信来源或安装需要用户凭据，停止并报告精确缺失项；不要编造 URL，不要执行 `curl | sh`、`wget | sh` 或未知安装器。
+1. 按第 3.4 节的精确 URL 克隆或复用对应源码目录。
+2. 如果依赖属于 `superpowers:*` 命名空间，使用 Superpowers 源或平台对该套件的官方适配；同时确认 `superpowers:brainstorming` 可被调用。
+3. 如果权威源没有该路径，再使用当前平台提供的 Skill 搜索/安装能力按精确名称查找，并记录实际来源。
+4. 安装后重新检查目标目录和 `SKILL.md` frontmatter。
+5. 如果平台没有安装能力、没有可信来源或安装需要用户凭据，停止并报告精确缺失项；不要编造 URL，不要执行 `curl | sh`、`wget | sh` 或未知安装器。
 
 缺失依赖不能被“用一段总结代替”。本 Skill 的规范依赖必须以可读取的 Skill 文件存在，才能进入实际开发。
 
