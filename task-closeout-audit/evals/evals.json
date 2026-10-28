@@ -4,19 +4,25 @@
     {
       "id": 1,
       "prompt": "请执行 /task-closeout-audit，扫描当前仓库全部任务分支和 worktree，告诉我哪些已合并、哪些资源还存在；对有完整合并证据且安全的任务直接清理，不要询问确认。",
-      "expected_output": "运行 bundled audit script，逐项报告 merge、branch、worktree、dirty、source 和 cleanup 状态；已合并且干净的任务被清理，其他资源保留并说明原因。",
+      "expected_output": "运行审计脚本，逐项用中文报告合并证据、分支、worktree、修改状态、来源分支和清理结果；已合并且干净的任务被清理，其他资源保留并用中文说明原因。",
       "files": []
     },
     {
       "id": 2,
       "prompt": "运行 /task-closeout-audit。如果某个任务没有 .source_branch，或者分支已经不在本地，请不要猜它是否合并，明确列为 UNKNOWN 并解释缺少什么证据。",
-      "expected_output": "缺失 source metadata 或历史记录时报告 UNKNOWN，不用当前分支替代 source branch，也不把资源缺失推断为已合并清理。",
+      "expected_output": "缺失来源元数据或历史记录时用中文报告为“未知（证据不足）”，不用当前分支替代来源分支，也不把资源缺失推断为已合并清理。",
       "files": []
     },
     {
       "id": 3,
       "prompt": "使用 /task-closeout-audit 检查仓库中所有 features/ 和 fixes/ 下的任务，包括历史命名不规范的分支以及孤立 detached worktree。",
-      "expected_output": "历史命名任务仍被纳入并标记 warning，detached 或非任务 worktree 被报告为 ORPHAN_WORKTREE。",
+      "expected_output": "历史命名任务仍被纳入并标记中文命名告警，detached 或非任务 worktree 被报告为中文“孤立 worktree”。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "执行 /task-closeout-audit 后，请确保最终给我的统计表和总结全部使用中文；分支名、路径和必要命令可以保留原样，但不要直接展示英文表头、英文状态或英文解释。",
+      "expected_output": "最终报告的标题、表头、状态、清理说明、告警、汇总和限制说明全部为中文；Git 分支名、路径和命令保持原样。",
       "files": []
     }
   ]
