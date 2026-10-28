@@ -1,55 +1,61 @@
-# Lifecycle Modes and Environment Loading
+# Lifecycle Modes, Process Identity and Environment Loading
 
-The release workflow is shared. Select a lifecycle mode before any stop or start operation; do not infer the mode only from files found on the host.
+Select one mode before stop/start; do not infer it from files found on a host.
 
-## Mode contract
-
-| `lifecycle.mode` | Start | Stop | PID file | systemd |
+| `lifecycle.mode` | Start | Stop | PID file | Environment loading |
 | --- | --- | --- | --- | --- |
-| `systemd` | `systemctl start <unit>` | `systemctl stop <unit>` | Not required | Required |
-| `manual-foreground` | Explicit env load, then `exec` the main process in the terminal | Operator presses `Ctrl+C` | Not required | Not required |
-| `manual-background` | Explicit env load, then service-approved background command | Exact service stop command or unique process contract | Optional | Not required |
+| `systemd` | `systemctl start <unit>` | `systemctl stop <unit>` | Not required | unit `EnvironmentFile` |
+| `manual-foreground` | restricted env load then `exec` foreground command | operator `Ctrl+C` | Not required | explicit loader/parser |
+| `manual-background` | restricted env load then service-approved background command | exact stop command or full identity contract | Optional evidence | explicit loader/parser |
 
-All modes still require a status check and an application-level health check when the service provides one. If a mode cannot safely perform a required action, pause and report the exact manual command instead of guessing.
+## systemd
 
-## Systemd mode
-
-The unit owns environment loading and lifecycle operations:
+The unit owns lifecycle and environment loading:
 
 ```ini
 [Service]
+User=knowledge
+WorkingDirectory=/opt/knowledge-app/current
 EnvironmentFile=/opt/knowledge-app/conf/knowledge-runtime.env
-ExecStart=...
+ExecStart=/opt/knowledge-app/current/bin/run-main.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=90
+TimeoutStopSec=30
+LimitNOFILE=65536
 ```
 
-The deployment procedure checks that the env file exists and is readable, then uses the unit's start/stop/status commands. It must not print the file's values.
+Verify the exact unit's `EnvironmentFile`, `ExecStart`, `WorkingDirectory`, `User`, restart policy and loaded process command line. Use `systemctl stop/start/status`; do not `source` the file in the deployment shell. `Restart=on-failure` is recommended for crashes, not as a substitute for health gates.
 
-## Manual foreground mode
+## manual-foreground
 
-This mode is for an operator who wants to start and stop the service from a terminal without systemd or a PID file. The command must explicitly load the external environment before `exec`:
+Use when an operator intentionally owns the terminal. The command must explicitly load the external env through the selected safe loader, then `exec` the main process:
 
 ```sh
 set -a
-. /opt/knowledge-app/conf/knowledge-runtime.env
+. /service-root/conf/service-runtime.env
 set +a
-exec java -cp "/opt/knowledge-app/current/lib/*" \
-  cc.lvdaxianer.kbsearch.engine.app.KnowledgeApplication
+exec /usr/bin/java -cp "/service-root/current/lib/*" com.example.Main
 ```
 
-The operator keeps the terminal attached and presses `Ctrl+C` to stop the process. The Skill may prepare the release and print this command, but must wait for confirmation that the operator started it before claiming health verification. If the env file is not Shell-compatible, the service must provide a compatible loader; do not guess a parser.
+The example is valid only after restricted env validation. Operator presses `Ctrl+C` to stop. The Skill MUST wait for confirmation that the process is running before status/health checks and must record `environment_loading=explicit Shell loader` or `dedicated env parser`. It must not fabricate asynchronous health evidence.
 
-## Manual background mode
+## manual-background
 
-Background mode is allowed only when the service supplies a safe stop contract. A PID file is optional, but the stop action must identify only the intended release, for example a service-owned stop script or an exact command signature. Never use `killall java`, `pkill java`, or an unreviewed broad `pkill -f` pattern.
+Allow only with an exact service-owned stop command or a unique process identity contract. The stop priority is:
 
-If there is no safe stop contract, use `manual-foreground` or stop and ask the operator to provide one. Do not claim automatic rollback if the failed process cannot be safely stopped.
+1. service-owned exact stop command that verifies its target;
+2. recorded PID plus all identity checks below;
+3. an exact `kill <validated-pid>` only after checks pass.
 
-## Environment loading rule
+Never use `killall java`, `pkill java`, `pkill -f java`, a basename-only match, or a PID-only kill. Before stop, validate the process owner equals the declared service user, `/proc/<pid>/cmdline` exactly contains the expected command signature, the target JAR/executable resolves inside the intended release, the process start time from `/proc/<pid>/stat` matches the recorded start time, and the configured listening port belongs to that PID (`ss -ltnp`/service-specific equivalent). If any check is unavailable, stop and report unsafe stop; do not switch or claim rollback.
 
-`<service-root>/conf/knowledge-runtime.env` is external runtime configuration:
+After background start, capture PID, start time, user, cmdline, artifact path and ports in temporary state. If startup or health fails, stop only the newly captured identity; if cleanup fails, do not start a rollback process until an operator resolves the orphan. A failed `stop` is a hard gate: do not continue current switching or retention.
 
-- systemd mode: systemd reads it through `EnvironmentFile` and injects variables into the service process;
-- Shell mode: the start command or service-owned wrapper explicitly loads it before starting the main process;
-- direct execution of `current/bin/start.sh` does not load it automatically just because a systemd unit references it.
+## Interruption and cleanup
 
-Reports record only the loading mechanism and file path, never variable values.
+Use `trap` for `EXIT`, `INT`, `TERM` to release the deployment lock and remove only named temporary links/state files. Persist state before a network/SSH-sensitive step. On reconnect run `reconcile`: read state, resolve current, inspect process identity and continue verification or use the recorded rollback target. Never remove a lock directory by age or kill an unknown process.
+
+## Environment loading report
+
+Report only one of `systemd EnvironmentFile`, `explicit Shell loader`, `dedicated env parser`, or `not started`, plus the config path. Direct execution of `current/bin/start.sh` does not inherit a systemd `EnvironmentFile`; it must load the file itself or invoke a wrapper that does.

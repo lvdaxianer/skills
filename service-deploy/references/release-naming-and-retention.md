@@ -1,12 +1,18 @@
-# Release Naming and Retention
+# Release Naming, Sequence State and Retention
 
-## Release ID
-
-Use this exact shape:
+## Release ID grammar
 
 ```text
-<service-name>-<YYYYMMDDHHmmss>-<version-or-commit>-<number>
+<service-name>-<YYYYMMDDHHmmss>-<version-or-git-short-sha>-<three-digit-sequence>
 ```
+
+Validation:
+
+```regex
+^([a-z0-9][a-z0-9-]{0,62})-([0-9]{14})-([A-Za-z0-9][A-Za-z0-9._+~-]{0,63})-([0-9]{3})$
+```
+
+The service slug MUST be lowercase and cannot contain separators, whitespace or shell metacharacters. Timestamp uses deployment host local time in 24-hour format; timezone and offset go in the record. Source field priority is the first seven characters of a valid Git SHA, normalized package version, then literal `manual`. Never invent a SHA or version. The release ID becomes immutable once allocated.
 
 Examples:
 
@@ -16,35 +22,41 @@ kbsearch-20261028101530-v1.2.3-002
 kbsearch-20261028102000-manual-003
 ```
 
-Rules:
+## Sequence allocation
 
-- `service-name` is the stable lowercase service slug.
-- The timestamp uses the deployment host's local clock and 24-hour format. Put the timezone offset in the release record.
-- Use the first seven characters of the source Git commit when a commit is available.
-- If no commit is available, use the normalized package version. If no package version exists, use `manual`.
-- `number` is a service-local, three-digit, zero-padded, monotonic sequence.
-- Never reuse a number, including after a release directory is removed. Persist the last allocated number in a protected release state/record before publishing.
-- A release ID is immutable once allocated.
-
-## Snapshot suffixes
-
-The release directory is the application rollback backup. Only create separate snapshots for mutable configuration or data, and retain the release ID as the prefix:
+Use these paths:
 
 ```text
-kbsearch-20261028100814-c0de704-001-config
-kbsearch-20261028100814-c0de704-001-data
+<service-root>/run/deploy.lock
+<service-root>/release-records/sequence.state
+<service-root>/release-records/<release-id>.json
 ```
 
-Do not put secret values in snapshot names or release records.
+`sequence.state` is a single decimal integer, deployment-user owned, mode `0600`; create parent directories mode `0750` where the service policy permits. Acquire an exclusive service lock with `flock -x` (or an equivalent OS lock) before reading, incrementing and writing the state. Write to a same-directory temp file, `fsync` when available, and rename atomically. The lock remains held through release record/attempt creation so a concurrent process cannot allocate or publish the same sequence.
 
-## Default retention
+The allocator MUST:
 
-The default is to retain the five newest `verified` releases per service. A deployment may override the count, but the following protected set always wins:
+1. Read the highest number from `sequence.state` and managed release records/directories.
+2. Choose `max_seen + 1`; reject `000` and any number over `999` unless the format is explicitly extended in a future version.
+3. Persist the increment before release promotion and record the allocation as an attempt.
+4. Never decrement or reuse the number after failed, interrupted or deleted releases.
 
-1. the release targeted by `current`;
-2. the previous known-good release used for rollback;
-3. the release being deployed or validated;
-4. any release whose last record is failed, rolled back, or not yet verified;
-5. any release explicitly marked active by the service operator.
+If `sequence.state` is missing but release records exist, reconstruct only from verified records under the lock, write the next value, and report the repair. If state is corrupt or there are conflicting records, stop; do not guess.
 
-After a successful release, preview the cleanup set. Delete only older verified releases outside the protected set and only under the intended service's `releases/` directory. Record deleted IDs and the retention value in the deployment report.
+## Retention
+
+`retention.sh preview <service-root> [count]` computes but does not delete. `retention.sh apply <service-root> [count] --apply` deletes only the exact preview set; without `--apply` it remains a preview. Default count is `5` and MUST be an integer `>=0`.
+
+Protected set:
+
+1. physical target of `current`;
+2. recorded `previous_release`;
+3. active/deployed release and any release currently under validation;
+4. every release with status `failed`, `rolled-back`, `prepared`, `validated`, `stopped`, `switched`, `started` or no trustworthy record;
+5. explicitly operator-protected releases.
+
+The keep set is the newest `count` verified releases plus the protected set. Before deletion, resolve each candidate with `readlink -f`, assert it is a direct child directory of the physical `<service-root>/releases`, assert its basename matches release ID grammar, and reject unknown/corrupt/history directories. Delete the directory itself with `rm -rf -- "$candidate"` only after those checks; never use `rm -rf "$service_root"`, a glob, or a broad path. Record `deleted_releases` and the exact preview in the release record.
+
+If disk is below the service's critical threshold, do not delete unverified releases to make space. First stop the deployment, report the threshold and safe candidates, and require an operator-approved emergency cleanup using the same path checks.
+
+Historical release directories that predate the sequence suffix are preserved unless explicitly mapped to a managed record; an orphaned current target, unknown directory or damaged directory is preserved and reported.
