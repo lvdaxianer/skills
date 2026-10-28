@@ -8,15 +8,31 @@
 project/
 ├── frontend/
 │   ├── src/
-│   │   ├── app/              # 路由、应用级插件、全局错误边界
-│   │   ├── pages/            # 路由页面和页面编排
-│   │   ├── components/       # 可复用 UI 组件
-│   │   ├── features/         # 以业务能力组织的交互模块
-│   │   ├── stores/           # Pinia 跨页面状态
-│   │   ├── composables/      # 可复用交互和请求逻辑
-│   │   ├── api/              # API Client、DTO 和错误转换
-│   │   └── styles/           # SCSS token、全局样式和 Tailwind 入口
-│   └── tests/
+│   │   ├── main.ts           # 唯一应用入口
+│   │   ├── app/              # App 根组件、全局 Provider、错误边界
+│   │   ├── layouts/          # 页面壳层，不承载业务请求
+│   │   ├── router/           # 路由定义、守卫和权限跳转
+│   │   ├── views/            # 按业务模块分组的页面
+│   │   │   └── <module>/
+│   │   │       ├── <Page>.vue
+│   │   │       ├── components/ # 页面专属组件
+│   │   │       └── __tests__/  # 页面行为测试
+│   │   ├── components/       # 跨页面共享 UI 组件
+│   │   │   ├── base/         # 基础 UI 原语
+│   │   │   ├── business/     # 跨页面业务组件
+│   │   │   └── feedback/     # Loading、Empty、Error、Retry 等
+│   │   ├── stores/           # Pinia 跨页面状态，按业务命名
+│   │   ├── composables/      # 可复用交互和异步逻辑
+│   │   ├── api/              # API Client，按业务命名
+│   │   │   ├── http.ts       # 请求基础设施和错误归一化
+│   │   │   └── mocks/        # 可替换 Mock Adapter
+│   │   ├── types/            # API DTO、页面模型和共享类型
+│   │   ├── utils/            # 无业务副作用的通用工具
+│   │   ├── styles/           # SCSS token、全局样式和 Tailwind 入口
+│   │   ├── assets/           # Vite 处理的资源
+│   │   └── test/             # 测试初始化和共享 fixtures
+│   ├── public/               # 不参与构建处理的静态文件
+│   └── tests/e2e/            # 跨页面端到端测试
 └── backend/
     ├── src/main/java/.../
     │   ├── interfaces/       # Controller、Request/Response DTO
@@ -34,12 +50,25 @@ project/
 
 如果已有项目目录不同，优先保留已有稳定约定，但必须保留相同的依赖方向和职责边界。
 
+新项目 MUST 使用上述目录；已有项目只在新增能力涉及的边界增量补齐。页面按 `views/<module>/` 分组，页面专属组件放在页面目录内，跨页面稳定复用的组件放在共享 `components/`。API、Store 和类型分别放在对应技术目录，并按业务命名拆分文件。
+
 ## 依赖方向
 
 ```text
 interfaces → application → domain
 infrastructure → application/domain ports
 ```
+
+前端依赖方向为：
+
+```text
+router → views
+views → components / composables / stores
+stores / composables → api
+api → transport / mock adapter
+```
+
+组件不得直接发起后端请求，页面不得直接拼接请求细节或引用 Mock；Mock 只能作为 API Client 的可替换适配器。页面、组件、Store、Composable 和 API Client 测试邻近源码，端到端测试统一放在 `frontend/tests/e2e/`。
 
 - Controller 只负责协议转换和调用用例，不承载业务规则。
 - Application Service 负责一次业务用例的编排和事务边界。

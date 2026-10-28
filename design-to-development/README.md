@@ -11,6 +11,25 @@
 - 前端：Vue 3、Vite、TypeScript、SCSS、Tailwind CSS、Pinia、Vue Router
 - 后端：JDK 21、Spring Boot、Maven、H2、MyBatis-Plus、Flyway 或可审计迁移方案
 
+前端目录也属于固定架构的一部分。新项目按技术类型组织，页面按业务模块分组：
+
+```text
+frontend/
+├── public/
+├── src/
+│   ├── main.ts
+│   ├── app/ layouts/ router/
+│   ├── views/<module>/             # 页面、页面专属 components、__tests__
+│   ├── components/                 # 跨页面共享组件
+│   ├── stores/ composables/
+│   ├── api/                        # API Client 和 mocks Adapter
+│   ├── types/ utils/ styles/ assets/
+│   └── test/                       # 测试初始化和共享 fixtures
+└── tests/e2e/
+```
+
+API、Pinia Store 和类型分别位于 `api/`、`stores/` 和 `types/`，按业务命名拆分文件；页面和组件不得直接拼接后端请求或引用 Mock。页面专属组件留在 `views/<module>/components/`，只有跨页面稳定复用的组件才进入 `components/`。单元/组件测试邻近源码，跨页面流程测试放在 `tests/e2e/`。已有项目复用等价目录，只在新增能力需要时增量补齐。
+
 ## 2. 给 AI 的执行契约
 
 读取本文件后，按以下顺序执行：

@@ -41,6 +41,11 @@
 ### 前端
 
 - [ ] 已加载 `frontend-interaction-guidelines`
+- [ ] 新项目使用固定前端目录：`app`、`layouts`、`router`、`views`、`components`、`stores`、`composables`、`api`、`types`、`utils`、`styles`、`assets` 和 `test`
+- [ ] 页面按 `views/<module>/` 分组，页面专属组件留在页面目录，共享组件才进入 `components/`
+- [ ] API、Pinia Store 和类型定义分别位于 `api/`、`stores/` 和 `types/`，并按业务命名拆分
+- [ ] 页面和组件不直接请求后端；Mock 通过 API Client Adapter 接入，并遵守真实 API 契约
+- [ ] 单元/组件测试邻近源码，端到端测试位于 `tests/e2e/`
 - [ ] loading、empty、error、disabled、success、permission-denied 和长任务状态有定义
 - [ ] 保存、删除、发布、上传和批量操作防止重复触发
 - [ ] 删除操作有明确确认和破坏性视觉

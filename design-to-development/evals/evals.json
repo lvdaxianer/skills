@@ -79,6 +79,20 @@
         "保持 Vue 3 + Vite + TypeScript 固定架构，不因 React Three Fiber 示例切换到 React",
         "定义 WebGL 降级、模型失败、prefers-reduced-motion、键盘/触摸替代、资源释放和性能验证"
       ]
+    },
+    {
+      "id": 7,
+      "prompt": "请根据文字需求制作一个可运行的客户管理前端功能切片。项目使用 Vue 3，要求后续开发可以直接复用；请明确前端目录结构、页面组件边界、API/Pinia/类型文件位置、Mock 切换方式和 TDD 测试位置。已有项目不要为了套模板整体重写。",
+      "expected_output": "给出或实现按技术类型组织的前端结构：views 按业务模块分组，页面专属组件留在页面目录，共享组件进入 components，API/Store/类型分离，Mock 通过 API Client Adapter 接入，测试邻近源码且 e2e 独立；新项目严格生成，已有项目增量复用。",
+      "files": [],
+      "expectations": [
+        "明确 frontend/src 下 app、layouts、router、views、components、stores、composables、api、types、utils、styles、assets、test 的职责",
+        "页面按 views/<module> 分组，页面专属组件放在页面目录，共享组件才提升到 components",
+        "API、Pinia Store 和类型定义分别按业务命名放在 api、stores、types，页面不直接拼接请求细节",
+        "Mock 作为 API Client 的可替换 Adapter，遵守真实 API 的字段、错误和状态契约",
+        "组件、页面、Store、Composable 和 API Client 测试邻近源码，跨页面流程放在 tests/e2e",
+        "已有项目复用等价边界并增量补齐，不进行无关的大规模迁移"
+      ]
     }
   ]
 }
