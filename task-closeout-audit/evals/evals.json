@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "请执行 /task-closeout-audit，扫描当前仓库全部任务分支和 worktree，告诉我哪些已合并、哪些资源还存在。只读检查，不要删除任何东西。",
-      "expected_output": "运行 bundled audit script，逐项报告 merge、branch、worktree、dirty 和 source 状态，并明确声明没有执行清理。",
+      "prompt": "请执行 /task-closeout-audit，扫描当前仓库全部任务分支和 worktree，告诉我哪些已合并、哪些资源还存在；对有完整合并证据且安全的任务直接清理，不要询问确认。",
+      "expected_output": "运行 bundled audit script，逐项报告 merge、branch、worktree、dirty、source 和 cleanup 状态；已合并且干净的任务被清理，其他资源保留并说明原因。",
       "files": []
     },
     {

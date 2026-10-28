@@ -46,7 +46,7 @@
 | [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API 文档**：按业务模块维护 `apis/<module>.md`，覆盖对外 Controller；接口用途、Method/URL、param、requestBody、请求/响应 Header 与 Cookie、状态码、错误和完整联调实例 | 编写、补全、统一或审查 REST API 接口文档；新增或修改对外 Controller/API 路由 |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **项目启动上下文同步**：维护可提交的 `.project-context/` 事实源，并幂等生成 `.claude`、`.codex`、`.kimi` 等 Agent 启动文件；拒绝绝对路径和敏感信息 | 初始化项目上下文、记录项目约定、clone 后恢复 Agent 配置、同步多个 AI 工具上下文 |
-| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **任务收尾审计**：只读检查任务是否合并、临时分支和 worktree 是否仍存在，并标记缺失证据、历史命名和孤立 worktree | 显式 `/task-closeout-audit` 调用 |
+| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **任务收尾审计**：核验合并证据，并自动清理已确认合并且安全的临时分支与 worktree；保留缺失证据、未合并、脏、锁定和孤立资源 | 显式 `/task-closeout-audit` 调用 |
 
 ---
 
@@ -173,7 +173,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 /project-hygiene                 # 检测并同步基线文件 / 密钥泄漏检查
 /project-context-sync            # 初始化、校验和同步项目启动上下文
 /rest-api-documentation          # REST API 接口文档编写与完整性检查
-/task-closeout-audit             # 只读审计任务合并、分支和 worktree 收尾状态
+/task-closeout-audit             # 审计并自动清理已确认合并且安全的分支和 worktree
 ```
 
 ### 组合调用示例

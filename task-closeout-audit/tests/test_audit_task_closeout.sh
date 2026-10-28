@@ -1,105 +1,149 @@
 #!/usr/bin/env bash
-# 测试脚本使用临时仓库，避免触碰当前项目的 Git 状态。
+# 测试脚本使用多个临时仓库，验证自动清理行为及其安全边界。
 set -euo pipefail
 
-# 解析测试目录，定位待验证的 bundled audit script。
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 AUDIT_SCRIPT="$SCRIPT_DIR/../scripts/audit_task_closeout.sh"
-# 所有 fixture 资源都位于 mktemp 创建的隔离目录。
 fixture="$(mktemp -d "${TMPDIR:-/tmp}/task-closeout-audit.XXXXXX")"
-# 测试结束后只删除本次创建的临时目录。
 trap 'rm -rf "$fixture"' EXIT
 
-# 创建带 master 集成分支的最小 Git 仓库。
-repo="$fixture/repo"
-mkdir -p "$repo"
-git init -q -b master "$repo"
-git -C "$repo" config user.name 'Task Closeout Test'
-git -C "$repo" config user.email 'task-closeout@example.invalid'
-git -C "$repo" commit --allow-empty -q -m '初始化测试仓库'
-mkdir -p "$repo/.claude/worktrees"
-printf '.claude/worktrees/\n' > "$repo/.gitignore"
-git -C "$repo" add .gitignore
-git -C "$repo" commit -q -m '忽略测试 worktree'
+configure_repo() {
+  local repo="$1"
+  mkdir -p "$repo/.claude/worktrees/features" "$repo/.claude/worktrees/fixes"
+  git init -q -b master "$repo"
+  git -C "$repo" config user.name 'Task Closeout Test'
+  git -C "$repo" config user.email 'task-closeout@example.invalid'
+  git -C "$repo" commit --allow-empty -q -m '初始化测试仓库'
+  printf '.claude/worktrees/\n' > "$repo/.gitignore"
+  git -C "$repo" add .gitignore
+  git -C "$repo" commit -q -m '忽略测试 worktree'
+}
 
-# 建立已合并但资源仍存在的 canonical task。
-merged_branch='features/✅TEST-001-T1--已合并任务'
-merged_path="$repo/.claude/worktrees/$merged_branch"
-git -C "$repo" worktree add -q -b "$merged_branch" "$merged_path" master
-printf 'SOURCE_BRANCH=master\n' > "$merged_path/.source_branch"
-mkdir -p "$(git -C "$merged_path" rev-parse --git-dir)/info"
-printf '.source_branch\n' >> "$(git -C "$merged_path" rev-parse --git-dir)/info/exclude"
-git -C "$merged_path" commit --allow-empty -q -m '完成已合并任务'
-git -C "$repo" merge --no-ff -q "$merged_branch" -m '合并已合并任务'
+record_source() {
+  local path="$1"
+  printf 'SOURCE_BRANCH=master\n' > "$path/.source_branch"
+  local worktree_git_dir
+  worktree_git_dir="$(git -C "$path" rev-parse --git-dir)"
+  mkdir -p "$worktree_git_dir/info"
+  printf '.source_branch\n' >> "$worktree_git_dir/info/exclude"
+}
 
-# 建立未合并且资源仍存在的 canonical task。
-unmerged_branch='fixes/✅TEST-002-T1--未合并任务'
-unmerged_path="$repo/.claude/worktrees/$unmerged_branch"
-git -C "$repo" worktree add -q -b "$unmerged_branch" "$unmerged_path" master
-printf 'SOURCE_BRANCH=master\n' > "$unmerged_path/.source_branch"
-mkdir -p "$(git -C "$unmerged_path" rev-parse --git-dir)/info"
-printf '.source_branch\n' >> "$(git -C "$unmerged_path" rev-parse --git-dir)/info/exclude"
-git -C "$unmerged_path" commit --allow-empty -q -m '完成未合并任务'
+create_merged_task() {
+  local repo="$1" branch="$2" path="$3"
+  git -C "$repo" worktree add -q -b "$branch" "$path" master
+  record_source "$path"
+  git -C "$path" commit --allow-empty -q -m "完成 $branch"
+  git -C "$repo" merge --no-ff -q "$branch" -m "合并 $branch"
+}
 
-# 建立 source branch 不存在的任务，验证不可证明时保持 UNKNOWN。
-missing_source_branch='features/✅TEST-003-T1--源分支缺失'
-missing_source_path="$repo/.claude/worktrees/$missing_source_branch"
-git -C "$repo" worktree add -q -b "$missing_source_branch" "$missing_source_path" master
-printf 'SOURCE_BRANCH=missing-source\n' > "$missing_source_path/.source_branch"
-mkdir -p "$(git -C "$missing_source_path" rev-parse --git-dir)/info"
-printf '.source_branch\n' >> "$(git -C "$missing_source_path" rev-parse --git-dir)/info/exclude"
+create_unmerged_task() {
+  local repo="$1" branch="$2" path="$3"
+  git -C "$repo" worktree add -q -b "$branch" "$path" master
+  record_source "$path"
+  git -C "$path" commit --allow-empty -q -m "完成 $branch"
+}
 
-# 建立历史命名且没有 source metadata 的本地分支。
-legacy_branch='features/legacy-task-without-metadata'
-git -C "$repo" branch "$legacy_branch"
-
-# 建立没有 branch ref 的 detached worktree，验证孤立资源识别。
-orphan_path="$repo/.claude/worktrees/orphan-detached"
-git -C "$repo" worktree add --detach -q "$orphan_path" master
-
-# 保存 Git 状态，验证审计脚本严格只读。
-before_branches="$(git -C "$repo" for-each-ref --format='%(refname:short)' refs/heads)"
-before_worktrees="$(git -C "$repo" worktree list --porcelain)"
-# 从 linked worktree 调用，覆盖 common-dir 根目录解析场景。
-report="$(cd "$merged_path" && "$AUDIT_SCRIPT")"
-
-# 每个关键状态都必须出现在同一份审计报告中。
-case "$report" in
-  *"MERGED"*) ;;
-  *) echo "expected merged status in report" >&2; exit 1 ;;
+# 合并且干净的任务必须直接清理 worktree 和本地分支。
+clean_repo="$fixture/clean-repo"
+configure_repo "$clean_repo"
+clean_branch='features/✅TEST-001-T1--已合并任务'
+clean_path="$clean_repo/.claude/worktrees/$clean_branch"
+create_merged_task "$clean_repo" "$clean_branch" "$clean_path"
+clean_report="$(cd "$clean_repo" && "$AUDIT_SCRIPT")"
+case "$clean_report" in
+  *"CLEANED"*) ;;
+  *) echo "expected merged clean task to be cleaned" >&2; exit 1 ;;
 esac
-case "$report" in
+test ! -e "$clean_path"
+! git -C "$clean_repo" show-ref --verify --quiet "refs/heads/$clean_branch"
+case "$clean_report" in
+  *"SUMMARY|merged=1|not_merged=0|unknown=0|merged_pending_cleanup=0|cleaned=1"*) ;;
+  *) echo "expected cleaned task summary" >&2; exit 1 ;;
+esac
+
+# 合并但脏的任务必须保留，不能丢弃未提交改动。
+dirty_branch='features/✅TEST-002-T1--合并但有改动'
+dirty_path="$clean_repo/.claude/worktrees/$dirty_branch"
+create_merged_task "$clean_repo" "$dirty_branch" "$dirty_path"
+printf '未提交内容\n' > "$dirty_path/uncommitted.txt"
+printf 'ignored content\n' > "$dirty_path/ignored.txt"
+printf 'ignored.txt\n' >> "$clean_repo/.git/info/exclude"
+dirty_report="$(cd "$clean_repo" && "$AUDIT_SCRIPT")"
+case "$dirty_report" in
+  *"SKIPPED_DIRTY"*) ;;
+  *) echo "expected dirty merged task to be preserved" >&2; exit 1 ;;
+esac
+test -d "$dirty_path"
+test -e "$dirty_path/uncommitted.txt"
+test -e "$dirty_path/ignored.txt"
+git -C "$clean_repo" show-ref --verify --quiet "refs/heads/$dirty_branch"
+
+# worktree 被锁定时删除失败，不得级联删除分支。
+locked_branch='features/✅TEST-003-T1--合并但被锁定'
+locked_path="$clean_repo/.claude/worktrees/$locked_branch"
+create_merged_task "$clean_repo" "$locked_branch" "$locked_path"
+git -C "$clean_repo" worktree lock "$locked_path"
+locked_report="$(cd "$clean_repo" && "$AUDIT_SCRIPT")"
+case "$locked_report" in
+  *"WORKTREE_REMOVE_FAILED"*) ;;
+  *) echo "expected locked worktree removal failure" >&2; exit 1 ;;
+esac
+test -d "$locked_path"
+git -C "$clean_repo" show-ref --verify --quiet "refs/heads/$locked_branch"
+git -C "$clean_repo" worktree unlock "$locked_path"
+
+# 未合并任务和未知证据任务都不得清理。
+unmerged_branch='fixes/✅TEST-004-T1--未合并任务'
+unmerged_path="$clean_repo/.claude/worktrees/$unmerged_branch"
+create_unmerged_task "$clean_repo" "$unmerged_branch" "$unmerged_path"
+unknown_branch='features/✅TEST-005-T1--缺少证据任务'
+unknown_path="$clean_repo/.claude/worktrees/$unknown_branch"
+git -C "$clean_repo" worktree add -q -b "$unknown_branch" "$unknown_path" master
+unknown_report="$(cd "$clean_repo" && "$AUDIT_SCRIPT")"
+case "$unknown_report" in
   *"NOT_MERGED"*) ;;
-  *) echo "expected not-merged status in report" >&2; exit 1 ;;
+  *) echo "expected unmerged status" >&2; exit 1 ;;
 esac
-case "$report" in
+case "$unknown_report" in
   *"UNKNOWN"*) ;;
-  *) echo "expected unknown status in report" >&2; exit 1 ;;
+  *) echo "expected unknown status" >&2; exit 1 ;;
 esac
-case "$report" in
+test -d "$unmerged_path"
+test -d "$unknown_path"
+git -C "$clean_repo" show-ref --verify --quiet "refs/heads/$unmerged_branch"
+git -C "$clean_repo" show-ref --verify --quiet "refs/heads/$unknown_branch"
+
+# detached orphan worktree 不具备合并证据，必须保留并继续报告。
+orphan_path="$clean_repo/.claude/worktrees/orphan-detached"
+git -C "$clean_repo" worktree add --detach -q "$orphan_path" master
+orphan_report="$(cd "$clean_repo" && "$AUDIT_SCRIPT")"
+case "$orphan_report" in
   *"ORPHAN_WORKTREE"*) ;;
-  *) echo "expected orphan worktree status in report" >&2; exit 1 ;;
+  *) echo "expected orphan worktree status" >&2; exit 1 ;;
 esac
-case "$report" in
-  *"legacy-task-without-metadata"*) ;;
-  *) echo "expected historical branch in report" >&2; exit 1 ;;
+test -d "$orphan_path"
+
+# 从 linked task worktree 调用时，当前 worktree 不应被脚本删除。
+current_repo="$fixture/current-repo"
+configure_repo "$current_repo"
+current_branch='features/✅TEST-006-T1--当前任务'
+current_path="$current_repo/.claude/worktrees/$current_branch"
+create_merged_task "$current_repo" "$current_branch" "$current_path"
+current_report="$(cd "$current_path" && "$AUDIT_SCRIPT")"
+case "$current_report" in
+  *"SKIPPED_CURRENT_WORKTREE"*) ;;
+  *) echo "expected current worktree to be preserved" >&2; exit 1 ;;
 esac
+test -d "$current_path"
+git -C "$current_repo" show-ref --verify --quiet "refs/heads/$current_branch"
 
-# 运行前后 Git refs、worktree 注册表和状态必须完全一致。
-test "$before_branches" = "$(git -C "$repo" for-each-ref --format='%(refname:short)' refs/heads)"
-test "$before_worktrees" = "$(git -C "$repo" worktree list --porcelain)"
-test -z "$(git -C "$repo" status --porcelain)"
-
-# 单独验证没有任何任务记录时不会声称历史任务已完成。
+# 没有任务记录时仍不能宣称历史任务已经完成。
 empty_repo="$fixture/empty-repo"
-git init -q -b master "$empty_repo"
-git -C "$empty_repo" config user.name 'Task Closeout Test'
-git -C "$empty_repo" config user.email 'task-closeout@example.invalid'
-git -C "$empty_repo" commit --allow-empty -q -m '初始化空测试仓库'
+configure_repo "$empty_repo"
 empty_report="$(cd "$empty_repo" && "$AUDIT_SCRIPT")"
 case "$empty_report" in
   *"NO_TASK_RECORDS"*) ;;
   *) echo "expected no-task-records status in empty repository" >&2; exit 1 ;;
 esac
 
-printf '%s\n' 'PASS: audit reports mixed task states without mutating the repository'
+printf '%s\n' 'PASS: merged clean tasks are cleaned and unsafe states are preserved'
