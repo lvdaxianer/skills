@@ -66,6 +66,19 @@
         "保留已有其他 JDK，不使用 curl/wget 管道脚本或未知安装器",
         "安装后重新验证，安装失败、权限不足或版本不匹配时停止后续工作"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "请根据一张 3D 产品展示设计图，制作一个可运行的 Vue 3 产品功能切片：页面中有可旋转的 3D 模型、材质切换、灯光效果和移动端适配。请使用 ui-ux-pro-max 做视觉参考，并使用 threejs-skills 做 Three.js 实现参考。",
+      "expected_output": "在需求讨论和设计映射阶段加载 ui-ux-pro-max；在 3D 实现阶段加载 CloudAI-X/threejs-skills 中相关的 threejs-* Skill；保持 Vue 3 固定架构，定义 WebGL 不可用、低性能、模型加载失败、减少动效、键盘/触摸替代和资源释放路径，并验证 3D 性能与可访问性。",
+      "files": [],
+      "expectations": [
+        "视觉参考使用 ui-ux-pro-max，Three.js 实现参考使用 threejs-skills，且两者职责不混淆",
+        "明确从 https://github.com/CloudAI-X/threejs-skills 获取相关 threejs-* Skill",
+        "根据范围选择 fundamentals、lighting、loaders、interaction 或 performance 等相关主题，而不是无差别加载",
+        "保持 Vue 3 + Vite + TypeScript 固定架构，不因 React Three Fiber 示例切换到 React",
+        "定义 WebGL 降级、模型失败、prefers-reduced-motion、键盘/触摸替代、资源释放和性能验证"
+      ]
     }
   ]
 }

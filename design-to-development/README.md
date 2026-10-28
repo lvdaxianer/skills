@@ -59,6 +59,8 @@
 
 | Skill | 触发条件 |
 | --- | --- |
+| `ui-ux-pro-max` | 设计图解析、视觉系统、布局、排版、色彩、动效、视觉无障碍或 3D 视觉方向 |
+| `threejs-*` | 3D、WebGL、Three.js、模型、相机、着色器、后处理或 3D 性能 |
 | `rest-api-documentation` | 新增或修改对外 Controller/API |
 | `project-hygiene` | 初始化项目、构建清单、环境变量或基线文件 |
 | `ddd` | 复杂领域建模、聚合边界或领域事件 |
@@ -81,10 +83,12 @@
 | `ddd` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `ddd/SKILL.md` |
 | `rest-api-documentation` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `rest-api-documentation/SKILL.md` |
 | `project-hygiene` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `project-hygiene/SKILL.md` |
+| `ui-ux-pro-max` | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `ui-ux-pro-max/SKILL.md` |
 | Vue 专项 Skill | [lvdaxianer/skills](https://gitee.com/lvdaxianer/skills.git) | `<skill-name>/SKILL.md`，安装前必须确认该路径存在 |
 | `brainstorming`、`test-driven-development`、`verification-before-completion` | [Superpowers](https://github.com/cline/superpowers.git) | `<skill-name>/SKILL.md` |
+| `threejs-*` 套件 | [CloudAI-X/threejs-skills](https://github.com/CloudAI-X/threejs-skills.git) | `skills/<skill-name>/SKILL.md` |
 
-本仓库的第一方源是 `https://gitee.com/lvdaxianer/skills.git`；Superpowers 流程依赖的官方源是 `https://github.com/cline/superpowers.git`。如果团队使用内部镜像，可以替换为已备案的等价镜像，但必须记录实际 URL，并保持同名 Skill 路径不变。
+本仓库的第一方源是 `https://gitee.com/lvdaxianer/skills.git`；Superpowers 流程依赖的官方源是 `https://github.com/cline/superpowers.git`；Three.js 实现参考源是 `https://github.com/CloudAI-X/threejs-skills.git`。如果团队使用内部镜像，可以替换为已备案的等价镜像，但必须记录实际 URL，并保持同名 Skill 路径不变。
 
 ### 3.5 下载源获取命令
 
@@ -93,6 +97,7 @@ AI 需要从干净环境安装时，先把两个源克隆到临时或受控的�
 ```sh
 FIRST_PARTY_SOURCE="${FIRST_PARTY_SOURCE:-$HOME/.cache/lvdaxianer-skills}"
 SUPERPOWERS_SOURCE="${SUPERPOWERS_SOURCE:-$HOME/.cache/superpowers}"
+THREEJS_SOURCE="${THREEJS_SOURCE:-$HOME/.cache/threejs-skills}"
 
 if [ ! -d "$FIRST_PARTY_SOURCE/.git" ]; then
   git clone https://gitee.com/lvdaxianer/skills.git "$FIRST_PARTY_SOURCE"
@@ -101,6 +106,10 @@ fi
 if [ ! -d "$SUPERPOWERS_SOURCE/.git" ]; then
   git clone https://github.com/cline/superpowers.git "$SUPERPOWERS_SOURCE"
 fi
+
+if [ ! -d "$THREEJS_SOURCE/.git" ]; then
+  git clone https://github.com/CloudAI-X/threejs-skills.git "$THREEJS_SOURCE"
+fi
 ```
 
 克隆后必须验证来源和文件：
@@ -108,13 +117,17 @@ fi
 ```sh
 git -C "$FIRST_PARTY_SOURCE" remote get-url origin
 git -C "$SUPERPOWERS_SOURCE" remote get-url origin
+git -C "$THREEJS_SOURCE" remote get-url origin
 test -f "$FIRST_PARTY_SOURCE/design-to-development/SKILL.md"
+test -f "$FIRST_PARTY_SOURCE/ui-ux-pro-max/SKILL.md"
 test -f "$SUPERPOWERS_SOURCE/brainstorming/SKILL.md"
 test -f "$SUPERPOWERS_SOURCE/test-driven-development/SKILL.md"
 test -f "$SUPERPOWERS_SOURCE/verification-before-completion/SKILL.md"
+test -f "$THREEJS_SOURCE/skills/threejs-fundamentals/SKILL.md"
+test -f "$THREEJS_SOURCE/skills/threejs-performance/SKILL.md"
 ```
 
-如果 `lvdaxianer/skills` 源中找不到某个 Vue 专项 Skill，不能把不存在的路径当成已下载；应先更新可信镜像或使用当前平台的同名 Skill 包，并对最终 `SKILL.md` 做第 6 节验证。
+如果 `lvdaxianer/skills` 源中找不到某个 Vue 专项 Skill 或 `ui-ux-pro-max`，不能把不存在的路径当成已下载；应先更新可信镜像或使用当前平台的同名 Skill 包，并对最终 `SKILL.md` 做第 6 节验证。Three.js Skill 必须从 `CloudAI-X/threejs-skills` 的 `skills/` 目录获取，不能用 `ui-ux-pro-max` 的视觉建议替代实现 Skill。
 
 ### 3.6 本仓库可直接提供的依赖
 
@@ -200,7 +213,7 @@ Copy-Item -Recurse -Path (Join-Path $RepoRoot "design-to-development") -Destinat
 
 当依赖不在当前 checkout，也不在目标目录时，AI 必须按以下顺序处理：
 
-1. 按第 3.4 节的精确 URL 克隆或复用对应源码目录。
+1. 按第 3.4 节的精确 URL 克隆或复用对应源码目录；3D 任务必须同时准备 `ui-ux-pro-max` 和 `threejs-*`。
 2. 如果依赖属于 `superpowers:*` 命名空间，使用 Superpowers 源或平台对该套件的官方适配；同时确认 `superpowers:brainstorming` 可被调用。
 3. 如果权威源没有该路径，再使用当前平台提供的 Skill 搜索/安装能力按精确名称查找，并记录实际来源。
 4. 安装后重新检查目标目录和 `SKILL.md` frontmatter。

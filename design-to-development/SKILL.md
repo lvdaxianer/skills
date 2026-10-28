@@ -1,6 +1,6 @@
 ---
 name: design-to-development
-description: "Use whenever the user wants a runnable product implementation based on a text requirement or a design image, including when they ask to reproduce a screen, turn a visual design into a frontend, build a product slice, or make an implementation closer to formal development. Generate a reusable full-stack implementation with the fixed Vue 3 + Vite + TypeScript + SCSS + Tailwind + Pinia frontend and Java 21 + Spring Boot + H2 + MyBatis-Plus backend, and enforce brainstorming, TDD, frontend interaction, backend reliability, logging, and code-review gates."
+description: "Use whenever the user wants a runnable product implementation based on a text requirement or a design image, including when they ask to reproduce a screen, turn a visual design into a frontend, build a product slice, or make an implementation closer to formal development. Generate a reusable full-stack implementation with the fixed Vue 3 + Vite + TypeScript + SCSS + Tailwind + Pinia frontend and Java 21 + Spring Boot + H2 + MyBatis-Plus backend, enforce brainstorming, TDD, frontend interaction, backend reliability, logging, and code-review gates, and load ui-ux-pro-max for visual reference plus the relevant threejs-skills for 3D implementation when applicable."
 ---
 
 # Design to Development
@@ -102,7 +102,7 @@ Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认本地数�
 
 ### 3. 建立设计到开发的映射
 
-读取 `references/interaction-and-state.md` 和 `references/api-and-data-contract.md`。在实现前形成：
+读取 `references/interaction-and-state.md`、`references/api-and-data-contract.md` 和 `references/visual-and-3d.md`。在实现前形成：
 
 - 页面和路由清单
 - 组件层级与复用边界
@@ -111,6 +111,10 @@ Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认本地数�
 - 业务模块和用例清单
 - Domain、Repository 和持久化模型边界
 - API、错误码、分页和权限草案
+
+如果输入包含设计图、截图或视觉还原，必须加载 `ui-ux-pro-max`，用于视觉系统、布局、排版、动效、响应式和无障碍参考。
+
+如果需求包含 3D、WebGL、Three.js、模型、相机、着色器、后处理或 3D 性能，必须同时加载 `ui-ux-pro-max` 和 `threejs-skills` 中相关的 `threejs-*` Skill。`threejs-react-three-fiber` 只能在用户明确授权 React 时使用；默认仍使用 Vue 3 集成核心 Three.js。
 
 前端交互实现必须加载 `frontend-interaction-guidelines`；后端行为必须加载 `backend-reliability-guidelines`。它们的 canonical 规则优先于本 Skill，本 Skill 不复制其完整细则。
 
@@ -138,6 +142,8 @@ VERIFY    运行更大范围的测试、构建或 lint
 实现时按触发面加载 Skill：
 
 - 任意代码 → `code-review-spec`
+- 设计图、视觉系统、布局、字体、色彩、动效和视觉无障碍 → `ui-ux-pro-max`
+- 3D、WebGL、Three.js、模型、着色器或 3D 性能 → 相关 `threejs-*` Skill
 - 页面、组件、表单、列表和交互 → `frontend-interaction-guidelines`
 - Vue 路由、Store、组合式逻辑和测试 → 对应 Vue Skill
 - API、Service、Repository、配置和数据变更 → `backend-reliability-guidelines`
@@ -200,6 +206,7 @@ API 文档位置（适用时）
 | `references/workflow.md` | 进入任务拆分、TDD、审查和交付流程时 |
 | `references/interaction-and-state.md` | 解析设计图、页面行为和交互状态时 |
 | `references/api-and-data-contract.md` | 设计 API、DTO、Repository 和数据迁移时 |
+| `references/visual-and-3d.md` | 设计图、视觉方向或 3D/WebGL 实现时 |
 | `references/quality-gates.md` | 实现后审查、验证和交付前 |
 
 `development-workflow` 仅作为上述流程机制的参考，不作为本 Skill 的整体运行时依赖；本 Skill 不自动要求 OpenSpec、分支 Worktree、子 Agent 编排或逐任务合并。
