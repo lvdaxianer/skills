@@ -3,7 +3,7 @@
 ## 1. Skill 内容与参考资料
 
 - [x] 1.1 创建 `development-ready-demo/SKILL.md`，定义输入模式、固定技术架构、brainstorming 门禁、TDD 流程、领域 Skill 编排、交付格式和冲突处理；通过 Markdown 结构检查确认 frontmatter、触发描述和所有必需阶段均存在
-- [ ] 1.2 创建 `development-ready-demo/references/` 下的架构、工作流、交互状态、API/数据契约和质量门禁资料；通过链接检查确认主 Skill 的每个参考路径存在且资料不重复领域 Skill 的权威细则
+- [x] 1.2 创建 `development-ready-demo/references/` 下的架构、工作流、交互状态、API/数据契约和质量门禁资料；通过链接检查确认主 Skill 的每个参考路径存在且资料不重复领域 Skill 的权威细则
 
 ## 2. 评测与验证
 
