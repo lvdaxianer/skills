@@ -1,30 +1,30 @@
 ---
-name: development-ready-demo
-description: "Use whenever the user wants a runnable demo based on a text requirement or a design image, including when they ask to reproduce a screen, turn a visual design into a frontend, build a prototype, or make a demo closer to production development. Generate a reusable full-stack demo with the fixed Vue 3 + Vite + TypeScript + SCSS + Tailwind + Pinia frontend and Java 21 + Spring Boot + H2 + MyBatis-Plus backend, and enforce brainstorming, TDD, frontend interaction, backend reliability, logging, and code-review gates."
+name: design-to-development
+description: "Use whenever the user wants a runnable product implementation based on a text requirement or a design image, including when they ask to reproduce a screen, turn a visual design into a frontend, build a product slice, or make an implementation closer to formal development. Generate a reusable full-stack implementation with the fixed Vue 3 + Vite + TypeScript + SCSS + Tailwind + Pinia frontend and Java 21 + Spring Boot + H2 + MyBatis-Plus backend, and enforce brainstorming, TDD, frontend interaction, backend reliability, logging, and code-review gates."
 ---
 
-# Development-Ready Demo
+# Design to Development
 
-把文字需求或设计图转化为“视觉接近、交互完整、结构可维护、能够继续复用”的前后端 Demo。这个 Skill 的重点不是一次性把页面画出来，而是让产出的代码尽可能接近后续正式开发可以采用的代码。
+把文字需求或设计图转化为“视觉接近、交互完整、结构可维护、能够继续复用”的前后端产品实现。这个 Skill 的重点不是一次性把页面画出来，而是让产出的代码尽可能接近后续正式开发可以采用的代码。
 
 ## 适用范围
 
 当用户提出以下任一类请求时使用本 Skill：
 
-- 根据文字需求制作一个可运行 Demo
+- 根据文字需求制作一个可运行的产品功能切片
 - 根据截图、设计稿或页面图片还原界面
 - 把视觉稿转成 Vue 页面并接入后端
 - 制作需要真实表单、列表、详情、保存、删除、发布或筛选交互的原型
-- 让设计 Demo 更接近真实开发，或希望后续代码能够复用
+- 让设计实现更接近真实开发，或希望后续代码能够复用
 
 输入可以是文字需求或设计图，二者互相独立；如果同时提供，则交叉校验，但不能要求用户必须同时提供两者。
 
 ## 固定技术架构
 
-不要在每个 Demo 中重新提出技术选型。直接使用以下内置架构：
+不要在每个项目中重新提出技术选型。直接使用以下内置架构：
 
 ```text
-demo/
+project/
 ├── frontend/
 └── backend/
 ```
@@ -57,7 +57,7 @@ domain            # 业务规则、实体、值对象、Repository 接口
 infrastructure    # MyBatis-Plus、H2/MySQL、外部服务适配器
 ```
 
-Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认 Demo 数据库；需要 MySQL 兼容性时提供独立 Profile，避免使用 H2 特有 SQL，并记录 H2 与 MySQL 之间的验证范围。
+Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认本地数据库；需要 MySQL 兼容性时提供独立 Profile，避免使用 H2 特有 SQL，并记录 H2 与 MySQL 之间的验证范围。
 
 ## 强制流程
 
@@ -148,7 +148,7 @@ VERIFY    运行更大范围的测试、构建或 lint
 - 设计图关键页面核对
 - 启动命令和种子数据验证
 
-任何必需检查失败时，必须报告实际失败证据，不得声称 Demo 已完成。
+任何必需检查失败时，必须报告实际失败证据，不得声称项目已完成。
 
 ## 复用规则
 
@@ -159,7 +159,7 @@ VERIFY    运行更大范围的测试、构建或 lint
 - Pinia 管理跨页面和跨组件共享状态，局部状态留在组件或 Composable 中。
 - Mock 数据必须遵守真实 API 契约，不能让页面绑定临时字段结构。
 - 统一复用 loading、empty、error、success、disabled、confirmation、permission-denied 和 long-running 状态模式。
-- Demo 不默认引入微服务、消息队列、Redis、Kubernetes、真实支付或真实 OAuth；需要时只增加清晰的适配边界。
+- 项目不默认引入微服务、消息队列、Redis、Kubernetes、真实支付或真实 OAuth；需要时只增加清晰的适配边界。
 
 ## 输出格式
 
