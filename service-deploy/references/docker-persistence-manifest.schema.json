@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.lvdaxianer.local/service-deployment/docker-persistence-manifest.schema.json",
+  "title": "Docker Persistence and Override Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "service", "service_root", "release_id", "runtime_target", "mounts", "overrides"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
+    "service_root": {"type": "string", "pattern": "^/[^\\n]*$"},
+    "release_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
+    "runtime_target": {"const": "docker-container"},
+    "compose_project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"},
+    "mounts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["host_path", "container_path", "purpose", "read_only", "backup", "restore_procedure"],
+        "properties": {
+          "host_path": {"type": "string", "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"},
+          "container_path": {"type": "string", "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"},
+          "purpose": {"enum": ["config", "secret", "certificate", "data", "database", "index", "override", "logs", "runtime"]},
+          "read_only": {"type": "boolean"},
+          "backup": {"enum": ["required", "recommended", "not_required"]},
+          "restore_procedure": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "group": {"type": "string", "minLength": 1},
+          "mode": {"type": "string", "pattern": "^[0-7]{4}$"}
+        },
+        "allOf": [
+          {
+            "not": {
+              "properties": {
+                "container_path": {"enum": ["/", "/app/lib", "/app/entrypoint.sh", "/var/run/docker.sock"]}
+              },
+              "required": ["container_path"]
+            }
+          },
+          {
+            "if": {
+              "properties": {"purpose": {"enum": ["config", "secret", "certificate", "override"]}},
+              "required": ["purpose"]
+            },
+            "then": {"properties": {"read_only": {"const": true}}}
+          }
+        ]
+      }
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest_path", "manifest_sha256", "lib", "config"],
+      "properties": {
+        "manifest_path": {"type": "string", "pattern": "^/[^\\n]*$"},
+        "manifest_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+        "lib": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "mode", "sha256", "reason"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^[^/][^\\n]*\\.jar$"},
+              "mode": {"enum": ["add", "replace"]},
+              "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+              "reason": {"type": "string", "minLength": 1},
+              "compatibility": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "config": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "mode", "sha256", "reason"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^[^/][^\\n]*$"},
+              "mode": {"enum": ["replace", "merge"]},
+              "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+              "reason": {"type": "string", "minLength": 1},
+              "compatibility": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"runtime_target": {"const": "docker-container"}},
+        "required": ["runtime_target"]
+      },
+      "then": {
+        "required": ["compose_project"]
+      }
+    }
+  ]
+}

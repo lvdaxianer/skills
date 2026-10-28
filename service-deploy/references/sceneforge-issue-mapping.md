@@ -16,5 +16,7 @@ This mapping records the observed deployment failure classes without including h
 | Rollback could guess another version | Explicit state machine and recorded previous release only | Rollback health failure becomes incident `failed` |
 | Five-version retention lacked an executor | `retention.sh preview` then explicit `apply --apply` with path boundary checks | Exact `deleted_releases`, protected set preserved |
 | Multi-component deployment responsibilities were unclear | Stack manifest, shared deployment ID/compatibility, ordered publish and reverse failure handling | Nginx/TLS/port/homepage/History/API proxy checks |
+| Docker persistence and incremental override behavior was undefined | Separate runtime target, explicit `conf/data/overrides/volumes/release-records` classes and read-only override mounts | Container recreation preserves required data; override manifest and restore procedure validate |
+| Host JAR override could hide packaged libraries or bypass release audit | Mount overrides at a separate path, load deterministically before packaged `lib`, require checksum/manifest/apply/restart | `/app/lib` replacement is rejected; effective override checksums are recorded |
 
 The original deployment layout remains compatible: historical release directories are preserved and are not renamed merely to satisfy the new suffix. New releases must use the v2 contract.

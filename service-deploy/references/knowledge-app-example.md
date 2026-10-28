@@ -42,3 +42,5 @@ For a v2 release, validate the exact new ID with the sequence state under `relea
 ## Applying the standard
 
 For a new deployment, preserve the observed `conf/`, logs, runtime data, and external services. Prepare the new release under `releases/`, verify SHA-256 and archive boundaries, validate env key names/permissions without values, test both script paths, switch `current` atomically, run the full health/smoke matrix, write a schema-valid release record, then preview/apply the default five-version retention policy.
+
+If this service is later packaged as Docker, keep the same service root and make the runtime target explicit. The image may contain default configuration and `/app/lib`; persistent host inputs belong in `conf/`, `data/`, `overrides/` and any separately declared `volumes/`. Mount `overrides/lib` at a separate `/app/overrides/lib` path and load it before packaged libraries; never mount it over `/app/lib`. Record the image digest, container identity, mount manifest and override checksums, and recover them together on rollback.

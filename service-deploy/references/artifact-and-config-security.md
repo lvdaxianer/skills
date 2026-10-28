@@ -25,6 +25,23 @@ Also inspect tar metadata for symlinks and hard links. Reject links whose resolv
 
 The release package MUST NOT contain live env values, private keys, or instructions that overwrite external paths. A package may contain static non-secret defaults under its own `conf/`, but promotion MUST never copy them into `<service-root>/conf`.
 
+## Docker image and mount security
+
+For `runtime_target=docker-container`, validate the image by immutable digest and inspect OCI labels before replacing the current container. Build policy MUST pin base-image digests, reject secrets in build context/layers, and record SBOM/provenance status when policy requires it. Production MUST pull the verified digest and MUST NOT build from an unreviewed context.
+
+Render the Compose/CLI manifest before stop or create:
+
+```sh
+docker compose -f /service-root/current/container/compose.yaml config
+docker image inspect registry.example/service@sha256:<digest>
+```
+
+Resolve every host path with `readlink -f`/`realpath` and require it to remain below the physical service root. Reject writable mounts for `conf`, secrets, certificates and `overrides`; reject device/FIFO paths, `/var/run/docker.sock`, the host root, release directories as mutable data and any path containing traversal. `docker compose down --volumes` is a destructive data operation and is not part of normal deployment.
+
+The image's packaged `/app/lib` and default configuration remain available. Mount overrides at a separate path such as `/app/overrides/lib:ro`; mounting a host override directory over `/app/lib` is a hard failure because it hides packaged defaults. The effective classpath/config merge must be declared and recorded.
+
+Docker image, mount and override failures MUST occur before stopping the current runtime. Do not print registry credentials, environment values, override contents or secret paths beyond the minimum redacted path metadata needed for diagnosis.
+
 ## Environment loading boundary
 
 There are three distinct mechanisms:

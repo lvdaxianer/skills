@@ -1,0 +1,37 @@
+services:
+  app:
+    image: registry.example.invalid/service@sha256:REPLACE_WITH_64_HEX_DIGEST
+    user: "10001:10001"
+    read_only: true
+    restart: "no"
+    labels:
+      com.example.service: service-name
+      com.example.release: release-id
+      com.example.image-digest: sha256:REPLACE_WITH_64_HEX_DIGEST
+    env_file:
+      - /service-root/conf/service-runtime.env
+    volumes:
+      # External configuration and overrides are read-only.
+      - /service-root/conf:/app/config/overrides:ro
+      - /service-root/overrides/lib:/app/overrides/lib:ro
+      # Business data and logs are explicit; do not use the container layer.
+      - /service-root/data:/app/data
+      - /service-root/logs:/app/logs
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=256m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "/app/bin/healthcheck.sh"]
+      interval: 5s
+      timeout: 3s
+      retries: 18
+
+# Replace every /service-root path with the physically resolved service root.
+# Do not mount overrides/lib on /app/lib: that would hide packaged defaults.
+# Add database/index volumes only when the persistence manifest declares them,
+# including backup and restore procedures.

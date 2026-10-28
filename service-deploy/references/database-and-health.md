@@ -25,6 +25,8 @@ Declare exact commands, timeout, retry count and interval before deployment. A r
 5. **Dependencies**: verify database, Redis, object storage and other declared dependencies using non-destructive probes.
 6. **Proxy**: validate `nginx -t` or equivalent, then test the configured proxy path and TLS/host routing.
 7. **Business smoke**: call at least one real read-only API operation; for a web app test homepage, History fallback and API proxy.
-8. **Loaded artifact**: inspect cmdline/classpath/working directory or a service diagnostic to prove the JAR/executable resolves beneath the new current release.
+8. **Loaded artifact**: inspect cmdline/classpath/working directory or a service diagnostic to prove the JAR/executable resolves beneath the new current release. For Docker, also inspect the container image digest, release label, effective override manifest and declared persistent mounts.
+
+For Docker, a container being `running`, `docker inspect` succeeding or an image healthcheck passing is not a complete health result. The service MUST still run the declared readiness, liveness, dependency and business smoke checks. If a local database, Redis, object store or index is containerized, probe the exact Compose service and verify its data mount is the declared persistent path.
 
 If a check is not applicable, record a reason and an explicit `not_applicable`; do not replace it with “process exists”. Any failed required check marks the release failed and enters rollback rules.

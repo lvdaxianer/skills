@@ -13,6 +13,10 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Confirm required files, executable scripts, owner/group and release layout.
 - [ ] Check external env owner/group, mode, parser grammar, required key names/non-empty status and typed formats without printing values.
 - [ ] Resolve lifecycle mode, exact start/stop/status/health commands and environment-loading mechanism.
+- [ ] Resolve `runtime_target` as `host-process` or `docker-container`; for Docker record image digest, Compose/CLI manifest, project/name labels and registry/provenance evidence.
+- [ ] For Docker, classify every `conf`, `data`, `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject container writable-layer-only business data.
+- [ ] For Docker, validate rendered mounts physically, reject `/app/lib` replacement, Docker socket/host-root mounts and implicit anonymous business volumes.
+- [ ] For Docker, validate override manifest, JAR/config checksums, deterministic precedence and compatibility evidence without printing values.
 - [ ] For manual-background, validate user/cmdline/artifact/start-time/port identity and exact stop contract.
 - [ ] Detect migrations, compatibility class, runner, backup and approval evidence.
 
@@ -23,6 +27,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Extract only into a new staging directory below releases; never overwrite conf/logs/run/release-records.
 - [ ] Run the current contract test against both current and physical release script paths.
 - [ ] Promote complete staging directory to immutable release path.
+- [ ] For Docker, promote the immutable release descriptor containing image digest and persistence/override manifests; do not build from production context.
 
 ## 3. Stop, switch and start
 
@@ -31,6 +36,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] State `stopped`; atomically replace current via same-directory temporary symlink; verify physical target.
 - [ ] State `switched`; start via systemd EnvironmentFile, restricted Shell loader or dedicated parser.
 - [ ] State `started`; verify process/service user, cmdline, loaded artifact and port ownership.
+- [ ] For Docker, verify exact container/project identity, service/release labels, image digest, configured user, mounts and port ownership.
 - [ ] For foreground mode, operator confirms process running before health checks; Ctrl+C remains the stop contract.
 
 ## 4. Health verification
@@ -41,12 +47,14 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Check Nginx config/proxy/TLS/listener boundary where applicable.
 - [ ] Run real read-only business smoke API; web stacks also check homepage and History fallback.
 - [ ] Prove loaded JAR/executable comes from current release; process existence or Actuator UP alone is insufficient.
+- [ ] For Docker, prove the effective image digest and override classpath/configuration match the current descriptor; container `running` alone is insufficient.
 
 ## 5. Rollback and interruption
 
 - [ ] On failure, retain failed release and state `failed` with `failed_phase`.
 - [ ] Stop only the new process identity; if stop fails, stop and request operator action.
 - [ ] Atomically restore recorded previous current, start it and rerun status/health.
+- [ ] For Docker, restore previous image digest, persistence manifest and override manifest; never remove volumes during rollback.
 - [ ] If rollback passes, state `rolled-back`; if it fails, state `failed`, report incident and do not choose a third release.
 - [ ] After SSH interruption, run reconcile from durable state; never remove unknown locks or processes.
 
@@ -56,4 +64,5 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Run `retention.sh preview <service-root> 5`, record exact deletion candidates.
 - [ ] After a verified success, run `retention.sh apply <service-root> 5 --apply`; protect current/previous/active/failed/unverified.
 - [ ] Record `deleted_releases`, release `record_path`, final current and retention result.
+- [ ] For Docker, retain image digests referenced by protected releases and delete images only by exact unreferenced digest; never use `docker system prune -a`.
 - [ ] Release the lock and return the required report.

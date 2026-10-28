@@ -14,15 +14,20 @@ service_root = deploy_root/service_name
 ├── releases/<release-id>/       # immutable application release
 │   ├── bin/                     # version runtime scripts
 │   ├── conf/                    # static, non-secret defaults only
-│   └── lib/                     # application and dependencies
+│   ├── lib/                     # application and dependencies
+│   └── container/                # Docker descriptor, image digest and manifests (container target only)
 ├── current -> releases/<id>     # only active pointer
 ├── conf/                        # external runtime config/secrets
+├── data/                        # business files and non-rebuildable generated data
+├── overrides/                   # declared incremental config/JAR overrides
+│   └── lib/
+├── volumes/                     # explicitly declared containerized DB/index data
 ├── logs/                        # runtime logs
 ├── run/                         # lock, state, optional pid metadata
 └── release-records/             # records and sequence.state
 ```
 
-`current`, `releases`, and the external `conf` boundary are mandatory. `bin`, `logs`, `run` and `release-records` are created when needed, but record/lock paths MUST be inside service root.
+`current`, `releases`, and the external `conf` boundary are mandatory. For Docker, `data`, `overrides` and `volumes` are created only when declared by the persistence manifest. `bin`, `logs`, `run` and `release-records` are created when needed, but record/lock paths MUST be inside service root. No business data may live only in a container writable layer.
 
 ## Physical resolution contract
 
@@ -51,6 +56,8 @@ The contract test MUST call both:
 
 It MUST assert identical physical `service_root`, `releases`, and release target values; reject a current link outside releases, a regular directory named current, a dangling link and a symlink whose target escapes through another link.
 
+For `runtime_target=docker-container`, the same physical contract applies to the release descriptor: `current` MUST resolve inside `releases`, and its image digest, Compose/CLI manifest, persistence manifest and override manifest MUST be read from that resolved release. A Docker container is invalid when its release label or digest does not match the resolved descriptor.
+
 ## Atomic current switch
 
 After staging is complete, create the temporary link in the same directory and rename it:
@@ -68,3 +75,5 @@ If `mv -Tf` is not supported, stop and use a host-supported same-filesystem atom
 ## Configuration boundary
 
 Tar extraction MUST target only a staging directory below `releases` and MUST reject entries named `conf`, `logs`, `run`, `release-records`, or their absolute/relative variants. The live file `<service-root>/conf/<name>` remains untouched during release promotion.
+
+Docker host paths MUST resolve under the same physical service root. `conf`, `data`, `overrides`, `volumes`, `logs` and `release-records` are mounted only through a checked manifest. Never mount `overrides/lib` over the image's packaged `/app/lib`, and never mount `/var/run/docker.sock`, the host root or a release directory as writable application data.

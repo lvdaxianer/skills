@@ -60,3 +60,5 @@ The keep set is the newest `count` verified releases plus the protected set. Bef
 If disk is below the service's critical threshold, do not delete unverified releases to make space. First stop the deployment, report the threshold and safe candidates, and require an operator-approved emergency cleanup using the same path checks.
 
 Historical release directories that predate the sequence suffix are preserved unless explicitly mapped to a managed record; an orphaned current target, unknown directory or damaged directory is preserved and reported.
+
+For `runtime_target=docker-container`, retention has a second reference check: keep every image digest referenced by current, previous, active, failed, unverified or retained release descriptors, and delete only an exact unreferenced digest after the release preview is accepted. Image cleanup is not a substitute for release retention and MUST NOT delete `data`, `volumes`, `conf` or `overrides`. Never use `docker system prune -a` or a volume-destructive Compose command as retention.
