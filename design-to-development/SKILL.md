@@ -63,6 +63,16 @@ Domain 和 Application 不得依赖 MyBatis-Plus 类型。H2 是默认本地数�
 
 不要跳过阶段，也不要在需求尚未确认时先写实现代码。
 
+### 0. 启动环境预检
+
+在读取需求、调用 `superpowers:brainstorming`、创建工程或写入任何实现代码前，必须读取 `references/environment-preflight.md` 并完成 JDK 21 预检。
+
+- `java`、`javac` 必须存在，主版本必须是 21。
+- `JAVA_HOME` 必须指向同一套完整 JDK 21。
+- 缺失时按参考文件探测受信任包管理器并直接安装，不卸载已有 JDK，不执行未知远程安装脚本。
+- 安装后必须重新验证 `java`、`javac`、`JAVA_HOME`、命令路径和主版本 21。
+- 预检失败时立即停止，不开始需求讨论、不创建工程、不写代码、不进入 TDD。
+
 ### 1. 读取上下文并识别输入
 
 先检查当前项目结构、已有技术栈、组件库、可复用模块、测试命令和运行方式。
@@ -186,6 +196,7 @@ API 文档位置（适用时）
 | 资料 | 读取时机 |
 | --- | --- |
 | `references/architecture.md` | 建立固定工程和分层边界时 |
+| `references/environment-preflight.md` | Skill 启动、工程初始化和后端构建前 |
 | `references/workflow.md` | 进入任务拆分、TDD、审查和交付流程时 |
 | `references/interaction-and-state.md` | 解析设计图、页面行为和交互状态时 |
 | `references/api-and-data-contract.md` | 设计 API、DTO、Repository 和数据迁移时 |
