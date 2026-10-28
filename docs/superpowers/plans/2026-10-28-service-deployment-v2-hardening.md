@@ -78,4 +78,4 @@
 
 - [x] **Step 1: 运行 Skill validator、脚本自测、schema 校验、OpenSpec strict validation**
 - [x] **Step 2: 做主 Skill/references 一致性矩阵和 SceneForge 问题映射表**
-- [ ] **Step 3: 修复发现项，提交、合并到 master、验证远端并 push**
+- [x] **Step 3: 修复发现项，提交、合并到 master、归档 OpenSpec，验证远端并 push**
