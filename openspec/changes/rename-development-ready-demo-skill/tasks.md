@@ -7,7 +7,7 @@
 
 ## 2. 验证与归档
 
-- [ ] 2.1 执行 Skill 结构检查、JSON 校验、引用检查、OpenSpec 严格校验和 Git 清洁检查，确认新名称可以作为唯一当前 Skill 名称
+- [x] 2.1 执行 Skill 结构检查、JSON 校验、引用检查、OpenSpec 严格校验和 Git 清洁检查，确认新名称可以作为唯一当前 Skill 名称
 
 ## Workflow follow-up
 
