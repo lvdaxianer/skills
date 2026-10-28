@@ -11,7 +11,7 @@
     "service_root": {"type": "string", "pattern": "^/[^\n]*$"},
     "host": {"type": "string", "minLength": 1},
     "operator": {"type": "string", "minLength": 1},
-    "timestamp": {"type": "string", "format": "date-time"},
+    "timestamp": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"},
     "timezone": {"type": "string", "pattern": "^(UTC|[A-Za-z_]+/[A-Za-z_]+|[+-][0-9]{2}:[0-9]{2})$"},
     "lifecycle_mode": {"enum": ["systemd", "manual-foreground", "manual-background"]},
     "environment_loading": {"enum": ["systemd EnvironmentFile", "explicit Shell loader", "dedicated env parser", "not started"]},
