@@ -1,6 +1,6 @@
 ---
 name: service-deployment-standard
-description: "Use for Linux service deploy, upgrade, rollback, restart, release, or deployment-standard work. Enforces v2 immutable releases/current, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx stack deployment."
+description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, container persistence, incremental JAR/config overrides, or deployment-standard work. Enforces v2 immutable releases/current, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
 compatibility: "Linux shell utilities; systemd optional; service-specific lifecycle and health commands required."
 ---
 
@@ -11,7 +11,11 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
 ## Non-negotiable invariants
 
 - `service_root = deploy_root/service_name`; `deploy_root` is an absolute user input, default `/opt`. A custom root such as `/uinnova/deploy` MUST never write the default tree.
+- `runtime_target` MUST be explicitly `host-process` or `docker-container`. Docker does not remove or rename the lifecycle modes `systemd`, `manual-foreground` and `manual-background`.
 - Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and records stay outside releases.
+- For Docker, the release is an image digest plus a release descriptor; the container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records or non-rebuildable indexes.
+- Docker host mounts MUST be declared with purpose, container path, read-only flag, backup policy and restore procedure. `conf/`, non-rebuildable `data/`, declared `volumes/`, `overrides/` and `release-records/` are durable inputs; `run/`, temp, PID state and rebuildable caches are not.
+- A Docker `overrides/` layer MAY add/replace declared configuration and JARs, but MUST be read-only, manifest/checksum validated, recorded and loaded before packaged defaults without mounting over the packaged `/app/lib` or entrypoint.
 - New release IDs MUST match exactly:
 
   ```text
@@ -39,8 +43,11 @@ Collect and validate before any stop or write action:
 | `artifact` | Path/package, type, SHA-256, version source, expected files and owner/group |
 | `release_number` | Allocated by the sequence state under a service lock; never manually guessed |
 | `config_path` | `<service-root>/conf/<name>`; external to releases |
+| `runtime_target` | Exactly `host-process` or `docker-container` |
 | `lifecycle.mode` | Exactly `systemd`, `manual-foreground` or `manual-background` |
 | lifecycle commands | Exact start, stop, status, readiness, liveness and smoke commands |
+| Docker manifest | Required for `docker-container`: image digest, Compose/CLI manifest, declared mounts, container labels and override manifest |
+| persistence mounts | Required for Docker data/config/index paths: host path, container path, purpose, read-only, backup and restore procedure |
 | `migration` | Whether migrations exist, compatibility class, runner and approval/backup evidence |
 | `retention` | Integer `>=0`; default `5` |
 
@@ -51,14 +58,14 @@ If a required input is unavailable, stop with a dry-run report. Do not infer a h
 Read only the references relevant to the request, then execute these gates in order:
 
 1. Resolve and record `service_root`, physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
-2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files and bundled live configuration.
-3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. Never copy a package env file over `<service-root>/conf`.
+2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. For Docker, validate the image digest, OCI labels, provenance/SBOM policy and rendered Compose/CLI manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files and bundled live configuration.
+3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
 4. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.
-5. Promote a complete staging directory to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths, validating all resolved boundaries.
+5. Promote a complete staging directory or Docker release descriptor to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths for host-process releases; for Docker, validate the current descriptor, image digest, labels, mounts and override manifest.
 6. Detect migration content and apply the migration gate. Prefer expand/contract; do not allow an unapproved incompatible or irreversible migration.
-7. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start using the declared environment-loading path.
+7. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start the host process or exact Docker/Compose identity using the declared environment-loading path.
 8. Transition to `health-verified` only after the complete health matrix passes. For manual-foreground, the operator must confirm the foreground process is running before checks; `Ctrl+C` is the stop action.
-9. Write a schema-valid record and transition to `recorded`. On any failure, keep the new release, record `failed_phase`, atomically restore `previous_release`, restart it, and re-run status and health.
+9. Write a schema-valid record and transition to `recorded`. On any failure, keep the new release/descriptor, record `failed_phase`, atomically restore `previous_release`, its image/override inputs and persistence manifest when Docker is used, restart it, and re-run status and health.
 10. If rollback health passes, state is `rolled-back`; if it fails, state is `failed` with incident evidence and no third-release selection. Release the lock even after interruption via trap/reconcile.
 11. Run `retention preview`, review the exact deletion set, then run `retention apply --apply` only after success is recorded. Retention errors never delete protected or uncertain paths.
 
@@ -67,6 +74,9 @@ Read only the references relevant to the request, then execute these gates in or
 - [release-layout.md](references/release-layout.md): root, physical path, current contract and layout.
 - [release-naming-and-retention.md](references/release-naming-and-retention.md): ID grammar, sequence state, lock, preview/apply and protection set.
 - [artifact-and-config-security.md](references/artifact-and-config-security.md): archive, permissions, SHA-256 and env parser/source boundaries.
+- [docker-deployment.md](references/docker-deployment.md): Docker image, registry, persistence, override, lifecycle, recovery and image retention contract.
+- [docker-persistence-manifest.schema.json](references/docker-persistence-manifest.schema.json): machine-readable Docker mount and override manifest schema.
+- [docker-compose.template.yaml](references/docker-compose.template.yaml): safe Compose starting template; replace service-root and image digest after validation.
 - [lifecycle-modes.md](references/lifecycle-modes.md): systemd, manual foreground/background, process identity and interruption handling.
 - [database-and-health.md](references/database-and-health.md): migration gates and health/smoke matrix.
 - [rollback-state-machine.md](references/rollback-state-machine.md): states, transitions, reconcile and incident stop.
@@ -87,10 +97,11 @@ Use the same keys as the schema, including:
 
 ```text
 schema_version, service, service_root, host, operator, timestamp, timezone,
+runtime_target, container,
 lifecycle_mode, environment_loading, version_source, source_commit,
 release_id, release_number, artifact, artifact_checksum, previous_release,
 current, status, failed_phase, health_check, smoke_check, rollback_target,
 rollback_result, retention, deleted_releases, record_path
 ```
 
-For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.
+For a Docker report, also include image digest, Compose project, container ID when available, persistence mount summary, override manifest checksum and effective override files. For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.

@@ -11,6 +11,8 @@ any non-terminal state after interruption -> reconcile -> next safe state or fai
 
 Each state record includes `release_id`, `previous_release`, `current`, timestamp, operator, lifecycle mode and evidence paths. State transitions are append-only; a failed transition records `failed_phase` and does not erase the release.
 
+For `runtime_target=docker-container`, state evidence MUST additionally identify image digest, Compose project/container ID, persistence manifest checksum, host mount set and override manifest checksum. These are part of the rollback target; changing only `current` is not sufficient.
+
 ## Transition gates
 
 - `prepared`: staging exists under releases and artifact checksum is known.
@@ -25,8 +27,10 @@ Each state record includes `release_id`, `previous_release`, `current`, timestam
 
 ## Failure behavior
 
-Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, start previous, and rerun status/health. If stop fails, do not continue; request operator intervention. If rollback health fails, stop and report incident, preserve both releases and do not select a third version.
+Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, and for Docker restore the recorded previous image digest, persistence manifest and override manifest before starting previous. Rerun status/health and verify the loaded artifact. If stop fails, do not continue; request operator intervention. If rollback health or required mount restoration fails, stop and report incident, preserve both releases and do not select a third version.
 
 ## SSH interruption recovery
 
 `reconcile` reads the durable state and checks lock ownership, temporary link existence, current physical target and process identity. It may remove only the named temporary link owned by the same attempt. It may continue health verification when current and process agree; otherwise it performs the recorded rollback. An unknown state, missing previous target or ambiguous process is `failed`, not permission to guess.
+
+For Docker reconcile, also verify the registry image digest is available, the exact container labels/project match the current descriptor, all required mounts resolve under service-root and the override manifest checksums match. Missing data or image evidence is a failed recovery, not a reason to create a third container or delete volumes.

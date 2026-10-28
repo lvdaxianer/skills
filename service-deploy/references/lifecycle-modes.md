@@ -2,11 +2,15 @@
 
 Select one mode before stop/start; do not infer it from files found on a host.
 
+Select `runtime_target=host-process` or `runtime_target=docker-container` separately. The lifecycle mode names remain the same for both targets.
+
 | `lifecycle.mode` | Start | Stop | PID file | Environment loading |
 | --- | --- | --- | --- | --- |
 | `systemd` | `systemctl start <unit>` | `systemctl stop <unit>` | Not required | unit `EnvironmentFile` |
 | `manual-foreground` | restricted env load then `exec` foreground command | operator `Ctrl+C` | Not required | explicit loader/parser |
 | `manual-background` | restricted env load then service-approved background command | exact stop command or full identity contract | Optional evidence | explicit loader/parser |
+
+For Docker, the exact identity contract additionally includes Compose project or container name/ID, release label, image digest, configured user, start time, declared mounts and port ownership. A container ID alone is not sufficient.
 
 ## systemd
 
@@ -51,6 +55,22 @@ Allow only with an exact service-owned stop command or a unique process identity
 Never use `killall java`, `pkill java`, `pkill -f java`, a basename-only match, or a PID-only kill. Before stop, validate the process owner equals the declared service user, `/proc/<pid>/cmdline` exactly contains the expected command signature, the target JAR/executable resolves inside the intended release, the process start time from `/proc/<pid>/stat` matches the recorded start time, and the configured listening port belongs to that PID (`ss -ltnp`/service-specific equivalent). If any check is unavailable, stop and report unsafe stop; do not switch or claim rollback.
 
 After background start, capture PID, start time, user, cmdline, artifact path and ports in temporary state. If startup or health fails, stop only the newly captured identity; if cleanup fails, do not start a rollback process until an operator resolves the orphan. A failed `stop` is a hard gate: do not continue current switching or retention.
+
+## docker-container adapters
+
+### Docker systemd
+
+Use systemd to supervise a foreground `docker compose up` or an equivalent exact Docker adapter. The unit MUST use the physically resolved current manifest and MUST declare `User`, `WorkingDirectory`, environment loading, `Restart`, `RestartSec`, `TimeoutStartSec`, `TimeoutStopSec` and `LimitNOFILE`. `ExecStop` MUST stop the declared Compose project/container and MUST NOT delete volumes.
+
+### Docker manual-foreground
+
+Run `docker compose -f /service-root/current/container/compose.yaml up` or an exact `docker run` without `-d`. The operator owns the terminal and presses `Ctrl+C`. The Skill waits for confirmation that the expected container identity is running before health checks.
+
+### Docker manual-background
+
+Run `docker compose -f /service-root/current/container/compose.yaml up -d` or an exact `docker run --name <declared-name>`. Stop priority is exact service-owned Compose/container stop, then the recorded container ID after verifying labels, digest, user, start time, mounts and ports. Never use broad `docker rm -f`, `docker kill` filters or `docker system prune -a`. If identity or stop is ambiguous, fail closed and do not switch or roll back.
+
+Docker overrides are read-only mounts at separate extension points such as `/app/overrides/lib`; they MUST NOT be mounted over packaged `/app/lib`. Changing an override requires an apply/restart and full health/smoke verification.
 
 ## Interruption and cleanup
 
