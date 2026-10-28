@@ -31,6 +31,7 @@ Resolve these values before changing a host:
 | `version_source` | Git short SHA, package version, or `manual` |
 | `release_number` | Service-local monotonic sequence, three digits, never reused |
 | `config_path` | External configuration under `<service-root>/conf/` |
+| `lifecycle.mode` | `systemd`, `manual-foreground`, or `manual-background` |
 | lifecycle commands | Stop, start, status, and health check supplied by the service |
 | `retention` | Number of verified releases; default `5` |
 
@@ -43,6 +44,7 @@ Read the relevant references before acting:
 - [release-layout.md](references/release-layout.md) for path resolution and `current` handling.
 - [release-naming-and-retention.md](references/release-naming-and-retention.md) for release IDs, sequence state, and cleanup.
 - [deployment-checklist.md](references/deployment-checklist.md) for the ordered preflight, deploy, verify, rollback, and report gates.
+- [lifecycle-modes.md](references/lifecycle-modes.md) for systemd/manual lifecycle adapters and environment loading.
 - [knowledge-app-example.md](references/knowledge-app-example.md) only when the target resembles the known `knowledge-app` layout.
 
 Then execute the following sequence:
@@ -58,10 +60,11 @@ Then execute the following sequence:
    Replace the Git field with the package version, or with `manual` if neither Git metadata nor a package version exists.
 4. Prepare the artifact in a new staging directory, validate its contents and permissions, and promote it to `releases/<release-id>`. Do not modify `current` yet.
 5. Verify the external configuration exists, is readable by the service, and contains the declared required keys. Do not copy a version-bundled env file over the external config.
-6. Record the previous `current` target, stop the service with its declared command, atomically point `current` at the new release, and start it with its declared command. Use systemd only when the service explicitly supplies it as an adapter.
-7. Run status and application health checks. On success, write a release record with the release ID, old target, checksum, status, and rollback target.
-8. On any failed validation or health check, restore `current` to the recorded old target, restart and recheck the old release, retain the failed directory, and write a failure record with the failed phase.
-9. After a successful verification, preview and apply retention cleanup. Keep current, previous, failed/unverified, active, and the five newest verified releases.
+6. Record the previous `current` target, stop the service with the selected lifecycle adapter, atomically point `current` at the new release, and start it with the selected adapter. Do not infer the mode from a host; require `lifecycle.mode`.
+7. For `manual-foreground`, output the explicit environment-loading and start command, let the operator start it and use `Ctrl+C` to stop it, then wait for operator confirmation before health checks. For `manual-background`, require an exact stop contract before starting. For `systemd`, use the unit's `EnvironmentFile` and lifecycle commands.
+8. Run status and application health checks. On success, write a release record with the release ID, old target, checksum, lifecycle mode, environment-loading mode, status, and rollback target.
+9. On any failed validation or health check, restore `current` to the recorded old target, stop/restart using the selected adapter, recheck the old release, retain the failed directory, and write a failure record with the failed phase.
+10. After a successful verification, preview and apply retention cleanup. Keep current, previous, failed/unverified, active, and the five newest verified releases.
 
 ## Safety gates
 
@@ -69,6 +72,9 @@ Then execute the following sequence:
 - Do not remove the current or rollback target, even if it is older than the configured retention count.
 - Do not replace a `current` directory with a regular directory; repair the layout or stop and report the conflict.
 - Do not declare success from a process start alone; require the configured status and health checks.
+- Do not require a PID file. In `manual-foreground`, use a foreground `exec` command and `Ctrl+C`; in `manual-background`, require an exact stop command or unique process contract.
+- Never use broad process termination such as `killall java`; it can stop unrelated services.
+- Do not assume systemd's `EnvironmentFile` is sourced by a direct Shell launch. Shell mode must explicitly load the external env file before starting the main process.
 - Do not include env-file values, API keys, passwords, tokens, private keys, or full connection URLs in output.
 - Do not claim a remote deployment succeeded unless the remote command output verifies the final pointer and service health.
 
@@ -79,6 +85,8 @@ Return a concise report containing:
 ```text
 service: <service_name>
 service_root: <absolute service root>
+lifecycle_mode: systemd | manual-foreground | manual-background
+environment_loading: systemd EnvironmentFile | explicit Shell loader | not started
 release: <release id>
 previous_release: <resolved previous target or none>
 current: <resolved final current target>

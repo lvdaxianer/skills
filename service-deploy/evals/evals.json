@@ -34,6 +34,39 @@
         "Retains five verified releases by default while protecting current, previous, and failed releases",
         "Keeps the failed release and records the failed phase"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "knowledge-app 通过 /opt/knowledge-app/bin/start.sh 启动，脚本实际执行 systemctl start knowledge-app.service。请说明 knowledge-runtime.env 是怎么进入 Java 进程的。",
+      "expected_output": "说明 systemd unit 的 EnvironmentFile 负责加载外置 env 文件并注入服务进程，不把它说成 Java 或版本内脚本自动读取。",
+      "files": [],
+      "expectations": [
+        "Identifies the systemd EnvironmentFile directive as the loader",
+        "Explains that the variables are injected into the Java service process",
+        "Does not claim that direct current/bin/start.sh automatically loads the file"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "我不想使用 systemd，也不想维护 PID 文件，希望手动在终端启动 knowledge-app，停止时按 Ctrl+C。请给出标准部署 Skill 应该如何处理。",
+      "expected_output": "使用 manual-foreground 模式，显式加载外置 env 文件后 exec 启动，等待用户确认后再健康检查，不要求 PID 文件或 systemd。",
+      "files": [],
+      "expectations": [
+        "Selects manual-foreground without requiring systemd or a PID file",
+        "Explicitly loads the external environment before exec",
+        "Uses Ctrl+C for stop and waits for operator confirmation before health validation"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "如果服务要 nohup 后台运行但没有 PID 文件，部署 Skill 应该如何停止它？",
+      "expected_output": "只有在存在精确停止命令或唯一进程匹配契约时才允许后台模式，禁止 killall java 或宽泛 pkill；否则切换到前台模式或请求人工提供停止方式。",
+      "files": [],
+      "expectations": [
+        "Requires an exact stop contract or unique process identity for manual-background",
+        "Rejects killall java and broad process matching",
+        "Falls back to foreground mode or asks for a safe stop command when no contract exists"
+      ]
     }
   ]
 }
