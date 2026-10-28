@@ -1,0 +1,39 @@
+{
+  "skill_name": "service-deployment-standard",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把 kbsearch 部署到 10.100.32.70 的 /uinnova/deploy 下。服务没有 systemd，只提供 bin/start.sh、bin/stop.sh、bin/status.sh。请给出发布目录、current 切换、配置位置和验证步骤。",
+      "expected_output": "使用自定义部署根目录，不写入 /opt；版本目录独立保存；配置放在 service-root/conf；使用服务 Shell 脚本；切换 current 前后执行校验和健康检查。",
+      "files": [],
+      "expectations": [
+        "Uses /uinnova/deploy/<service-name> as the service root and explicitly avoids /opt for this request",
+        "Keeps configuration under the external conf directory and uses Shell lifecycle commands without requiring systemd",
+        "Describes an atomic current switch followed by status and health validation"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "我有一个没有 Git 提交信息、版本号也不明确的服务压缩包，准备发布到 /opt/order-api。应该怎么命名版本并保证下一次发布不会复用序号？",
+      "expected_output": "使用 manual 作为元数据字段，采用服务级三位递增序号，并通过持久化状态或发布记录保证序号不复用。",
+      "files": [],
+      "expectations": [
+        "Uses manual as the release metadata field when both Git and package version are unavailable",
+        "Uses a service-local three-digit monotonic sequence",
+        "Explains persistence in release state or records so cleanup cannot cause sequence reuse"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "当前服务已经有 8 个发布目录，新版本健康检查失败。按标准应该备份什么、回滚到哪里、默认保留几个版本、失败版本是否删除？",
+      "expected_output": "版本目录本身作为回滚备份；current 恢复到发布前版本；默认保留 5 个已验证版本，同时保护 current、previous 和失败版本；失败版本保留并记录失败阶段。",
+      "files": [],
+      "expectations": [
+        "Treats immutable release directories as rollback backups instead of duplicating the application",
+        "Restores current to the pre-deployment release and rechecks the old service",
+        "Retains five verified releases by default while protecting current, previous, and failed releases",
+        "Keeps the failed release and records the failed phase"
+      ]
+    }
+  ]
+}
