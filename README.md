@@ -1,6 +1,6 @@
 # lvdaxianer-skills
 
-> 一套面向 **Claude Code** 的工程规范 skill 集合，覆盖开发流程、代码审查、REST API 文档、后端可靠性、前端交互、生产日志与 DDD 架构。所有 skill 之间**互不冲突**、显式互相引用。
+> 一套面向 **Claude Code** 的工程规范 skill 集合，覆盖开发流程、代码审查、REST API 文档、后端可靠性、前端交互、生产日志、DDD 架构与任务收尾审计。所有 skill 之间**互不冲突**、显式互相引用。
 
 **Language**: **中文** · [English](./README.en.md)
 
@@ -9,7 +9,7 @@
 ## 目录
 
 - [是什么](#是什么)
-- [十一个 skill 一览](#十一个-skill-一览)
+- [十二个 skill 一览](#十二个-skill-一览)
 - [关系与优先级](#关系与优先级)
 - [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
@@ -31,7 +31,7 @@
 
 ---
 
-## 十一个 skill 一览
+## 十二个 skill 一览
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
@@ -46,6 +46,7 @@
 | [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API 文档**：按业务模块维护 `apis/<module>.md`，覆盖对外 Controller；接口用途、Method/URL、param、requestBody、请求/响应 Header 与 Cookie、状态码、错误和完整联调实例 | 编写、补全、统一或审查 REST API 接口文档；新增或修改对外 Controller/API 路由 |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **项目启动上下文同步**：维护可提交的 `.project-context/` 事实源，并幂等生成 `.claude`、`.codex`、`.kimi` 等 Agent 启动文件；拒绝绝对路径和敏感信息 | 初始化项目上下文、记录项目约定、clone 后恢复 Agent 配置、同步多个 AI 工具上下文 |
+| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **任务收尾审计**：只读检查任务是否合并、临时分支和 worktree 是否仍存在，并标记缺失证据、历史命名和孤立 worktree | 显式 `/task-closeout-audit` 调用 |
 
 ---
 
@@ -76,10 +77,10 @@ development-workflow  (入口, 强制流程)
 
 ## Development Workflow 详解
 
-`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 9 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 26 步任务循环里按顺序调度其他 skill。
+`development-workflow` 是本仓库唯一的**流程编排 skill**，它串联本仓库 10 个配套 skill 与外部 superpowers、OpenSpec、`using-git-worktrees` 等套件。与其他 skill 不同，它不定义具体规范，只负责在 26 步任务循环里按顺序调度其他 skill。
 
 **核心特点**：
-- 组合 skill：本仓库 10 个（含入口 skill）+ 外部依赖套件
+- 组合 skill：本仓库 11 个（含入口 skill）+ 外部依赖套件
 - 只管流程：定义"什么时候调哪个 skill"，不管"那个 skill 的规则是什么"
 - 强制循环：brainstorm → 确认集成分支、创建任务 branch/worktree（触发 `project-hygiene` 基线检查）→ OpenSpec → 任务边界与调度 → TDD → 对外 Controller/API route 按模块更新 `apis/<module>.md` → 验证/审计/review → commit（含密钥与产物泄漏检查）→ 合并回 `SOURCE_BRANCH` 并清理 → final audit/archive
 - 集成模型：一个 change 只确认一个集成分支；每个独立任务从它创建任务分支和 worktree，验证通过后立即合并回该分支。不存在用于汇总任务的父分支。
@@ -114,10 +115,12 @@ cp -R logging-boundaries               ~/.claude/skills/
 cp -R project-hygiene                  ~/.claude/skills/
 cp -R project-context-sync             ~/.claude/skills/
 cp -R rest-api-documentation           ~/.claude/skills/
+cp -R task-closeout-audit              ~/.claude/skills/
 
 # 或者只装项目级（只对当前仓库生效）
 mkdir -p .claude/skills
 cp -R backend-reliability-guidelines   .claude/skills/
+cp -R task-closeout-audit              .claude/skills/
 # ...其他 skill 同理
 ```
 
@@ -129,7 +132,8 @@ REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
-             project-context-sync project-hygiene rest-api-documentation; do
+             project-context-sync project-hygiene rest-api-documentation \
+             task-closeout-audit; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -169,6 +173,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 /project-hygiene                 # 检测并同步基线文件 / 密钥泄漏检查
 /project-context-sync            # 初始化、校验和同步项目启动上下文
 /rest-api-documentation          # REST API 接口文档编写与完整性检查
+/task-closeout-audit             # 只读审计任务合并、分支和 worktree 收尾状态
 ```
 
 ### 组合调用示例
@@ -213,10 +218,15 @@ lvdaxianer-skills/
 │   └── references/
 ├── project-hygiene/
 │   └── SKILL.md
-└── project-context-sync/
+├── project-context-sync/
+│   ├── SKILL.md
+│   ├── scripts/context_sync.py
+│   └── tests/test_context_sync.py
+└── task-closeout-audit/
     ├── SKILL.md
-    ├── scripts/context_sync.py
-    └── tests/test_context_sync.py
+    ├── scripts/audit_task_closeout.sh
+    ├── tests/test_audit_task_closeout.sh
+    └── evals/evals.json
 ```
 
 ---
