@@ -48,6 +48,16 @@
 - [ ] 乐观更新有回滚或恢复路径
 - [ ] 键盘、响应式和无障碍路径可用
 
+### 视觉与 3D
+
+- [ ] 设计图、视觉还原或视觉决策已加载 `ui-ux-pro-max`
+- [ ] 3D/WebGL 任务已同时加载 `ui-ux-pro-max` 和相关 `threejs-*` Skill
+- [ ] 已记录视觉事实、设计假设和 Three.js 实现主题
+- [ ] 默认前端仍为 Vue 3；未因 React Three Fiber 示例改变固定架构
+- [ ] WebGL 不可用、模型加载失败和低性能设备有降级路径
+- [ ] `prefers-reduced-motion`、键盘/触摸替代操作和可访问性路径已验证
+- [ ] 3D 首屏加载、帧率、绘制调用、GPU/纹理内存和资源释放有验证证据
+
 ### 后端与日志
 
 - [ ] 已加载 `backend-reliability-guidelines`
