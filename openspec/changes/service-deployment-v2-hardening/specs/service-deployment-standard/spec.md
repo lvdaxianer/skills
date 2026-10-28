@@ -1,0 +1,151 @@
+# Spec Delta
+
+## MODIFIED Requirements
+
+### Requirement: Deployment root and layout are configurable
+
+部署流程 SHALL 接受绝对 `deploy_root` 和稳定的 `service_name`；未指定时 MUST 使用 `/opt`，并且所有写入路径 MUST 解析到 `service_root=deploy_root/service_name` 之下。
+
+#### Scenario: Use a custom deployment root
+- **WHEN** 用户指定 `/uinnova/deploy`
+- **THEN** 所有 release、current、conf、logs、run 和 record 路径均位于 `/uinnova/deploy/<service-name>/`，流程不得写入 `/opt/<service-name>/`
+
+#### Scenario: Use the default deployment root
+- **WHEN** 用户只提供服务名和发布包
+- **THEN** 发布目标为 `/opt/<service-name>/releases/`，当前版本链接为 `/opt/<service-name>/current`
+
+#### Scenario: Reject path escape
+- **WHEN** 解析后的目标路径不在 service root 下
+- **THEN** 流程 MUST 在任何停止或写入动作前失败
+
+### Requirement: Each release uses an immutable, sortable name
+
+每次发布 SHALL 使用 `<service-name>-<YYYYMMDDHHmmss>-<version-or-git-short-sha>-<three-digit-sequence>`；四个字段 MUST 通过格式校验，服务级序列 MUST 单调递增且永不复用。
+
+#### Scenario: Allocate a release number concurrently
+- **WHEN** 两个发布同时申请序列
+- **THEN** 服务锁 MUST 使它们获得不同的三位序列，失败发布也消耗已分配序列
+
+#### Scenario: Missing source metadata
+- **WHEN** 无 Git SHA 且无有效包版本
+- **THEN** version 字段 MUST 为 `manual`
+
+#### Scenario: Release with a Git commit
+- **WHEN** 发布包关联提交 `c0de7043...` 且序号为 1
+- **THEN** 版本目录名为类似 `kbsearch-20261028100814-c0de704-001`
+
+#### Scenario: Release without a Git commit
+- **WHEN** 发布包没有提交记录但版本号为 `v1.2.3`
+- **THEN** 版本字段使用 `v1.2.3`
+
+#### Scenario: Manual release without metadata
+- **WHEN** 发布包没有提交记录和版本号
+- **THEN** 版本字段 MUST 使用 `manual`
+
+### Requirement: Runtime configuration remains outside releases
+
+运行配置 MUST 留在 `<service-root>/conf/`；部署包内同名文件不得覆盖它，且配置加载前 MUST 完成语法、owner/group、权限、必填 key 和值格式校验而不输出值。
+
+#### Scenario: Unsafe shell configuration
+- **WHEN** env 文件包含命令替换、函数、重定向、管道或执行语句
+- **THEN** Shell loader MUST 拒绝加载并在 current 切换前失败
+
+#### Scenario: Missing required key
+- **WHEN** 必填 key 缺失或值为空
+- **THEN** 部署 MUST 失败且不得切换 current
+
+#### Scenario: Preserve existing runtime configuration
+- **WHEN** 新版本发布且已有 `/opt/kbsearch/conf/knowledge-runtime.env`
+- **THEN** 新版本复用该外置配置，版本目录中的示例配置不得覆盖它
+
+#### Scenario: Missing required configuration
+- **WHEN** 必需配置缺失或配置文件不可读
+- **THEN** 发布 MUST 在切换 `current` 前失败，原当前版本保持不变
+
+### Requirement: Lifecycle commands are service-provided
+
+部署流程 SHALL 支持 `systemd`、`manual-foreground`、`manual-background`；每种模式 MUST 声明 start/stop/status/health 和环境加载方式，且脚本 MUST 使用物理路径解析验证 current。
+
+#### Scenario: Test both current and release entry points
+- **WHEN** 服务提供 start 脚本
+- **THEN** contract test MUST 分别调用 `/service-root/current/bin/start.sh` 与 `/service-root/releases/<release-id>/bin/start.sh` 并验证三类解析路径
+
+#### Scenario: Start with service scripts
+- **WHEN** 服务提供 `bin/stop.sh`、`bin/start.sh` 和 `bin/status.sh`
+- **THEN** 部署流程使用这些脚本完成停止、启动和状态检查
+
+#### Scenario: Start without systemd
+- **WHEN** 服务仅提供 Shell 启动命令而没有 systemd unit
+- **THEN** 部署仍可完成，且 systemd 不得成为硬性前置条件
+
+#### Scenario: Use manual foreground mode
+- **WHEN** 用户选择 `manual-foreground`
+- **THEN** Skill 输出前台启动命令，由用户在终端中启动并通过 `Ctrl+C` 停止，流程不得要求 PID 文件或 systemd
+
+#### Scenario: Use manual background mode
+- **WHEN** 用户选择 `manual-background`
+- **THEN** Skill 使用用户提供的后台启动命令，并要求提供精确、可审计的停止命令或进程匹配方式，禁止使用宽泛的 `killall java`
+
+#### Scenario: Use systemd mode
+- **WHEN** 用户选择 `systemd` 且服务存在有效 unit
+- **THEN** Skill 使用 unit 声明的启动、停止、状态和健康检查方式，并记录 unit 名称
+
+#### Scenario: Manual background identity is insufficient
+- **WHEN** 只有 PID 文件而没有用户、完整 cmdline、artifact 路径、启动时间和端口归属校验
+- **THEN** stop 或 rollback MUST 停止并报告，不得继续切换
+
+### Requirement: Release switching is atomic and rollbackable
+
+流程 MUST 在 `prepared` 和 `validated` 后停止服务、原子切换 current、启动并验证；任何失败 MUST 保留 failed release，并按记录的 previous_release 回滚。
+
+#### Scenario: Rollback health fails
+- **WHEN** 新版本失败且 previous release 的 status 或 health 也失败
+- **THEN** 流程 MUST 停止、记录 incident 和 rollback health failure，不得猜测或切换第三个版本
+
+#### Scenario: Successful switch
+- **WHEN** 目标版本校验和健康检查均通过
+- **THEN** `current` 指向目标版本，并记录旧版本作为回滚目标
+
+#### Scenario: Failed health check
+- **WHEN** 新版本启动后健康检查失败
+- **THEN** `current` 恢复到旧版本，服务恢复到旧版本状态，新版本目录保留用于排查
+
+### Requirement: Retention cleanup protects rollback safety
+
+流程 SHALL 提供 `retention preview` 和显式 `retention apply`；默认保留五个 verified release，保护 current、previous、active、failed、unverified，并且删除集合 MUST 在解析后逐项确认位于 releases 目录。
+
+#### Scenario: Preview before apply
+- **WHEN** operator 执行 retention preview
+- **THEN** 只输出或记录精确 deleted release IDs，不删除任何目录
+
+#### Scenario: Unsafe deletion candidate
+- **WHEN** 候选路径为 releases 之外、损坏目录、未知目录或孤儿 current 目标
+- **THEN** apply MUST 拒绝该项并保留现场
+
+#### Scenario: More than five verified releases
+- **WHEN** 服务已有超过 5 个已验证版本且新发布成功
+- **THEN** 仅清理超出保留策略且不受保护的最旧版本
+
+#### Scenario: Failed release is retained
+- **WHEN** 新版本发布或健康检查失败
+- **THEN** 该版本不得被同一轮清理删除，并保留失败记录
+
+### Requirement: Deployment produces an auditable release record
+
+每次发布 SHALL 生成符合统一 schema 的 record，包含状态、失败阶段、回滚、健康、smoke 和 retention 字段；不得记录环境变量值、密码、Token、私钥或完整敏感 URL。
+
+#### Scenario: Record a failed rollback
+- **WHEN** 发布失败且回滚健康检查失败
+- **THEN** record MUST 包含 `failed_phase`、`previous_release`、`rollback_target`、`rollback_result` 和失败证据路径
+
+#### Scenario: Record path is reported
+- **WHEN** 发布记录写入成功
+- **THEN** report MUST 返回 record path，且 schema 校验通过
+
+#### Scenario: Successful release record
+- **WHEN** 发布完成且健康检查通过
+- **THEN** 记录状态为 `verified`，并包含目标版本和旧版本信息
+
+#### Scenario: Failed release record
+- **WHEN** 发布在校验、启动或健康检查阶段失败
+- **THEN** 记录状态为失败，并包含失败阶段和可执行的回滚目标

@@ -1,72 +1,17 @@
 {
   "skill_name": "service-deployment-standard",
   "evals": [
-    {
-      "id": 1,
-      "prompt": "把 kbsearch 部署到 10.100.32.70 的 /uinnova/deploy 下。服务没有 systemd，只提供 bin/start.sh、bin/stop.sh、bin/status.sh。请给出发布目录、current 切换、配置位置和验证步骤。",
-      "expected_output": "使用自定义部署根目录，不写入 /opt；版本目录独立保存；配置放在 service-root/conf；使用服务 Shell 脚本；切换 current 前后执行校验和健康检查。",
-      "files": [],
-      "expectations": [
-        "Uses /uinnova/deploy/<service-name> as the service root and explicitly avoids /opt for this request",
-        "Keeps configuration under the external conf directory and uses Shell lifecycle commands without requiring systemd",
-        "Describes an atomic current switch followed by status and health validation"
-      ]
-    },
-    {
-      "id": 2,
-      "prompt": "我有一个没有 Git 提交信息、版本号也不明确的服务压缩包，准备发布到 /opt/order-api。应该怎么命名版本并保证下一次发布不会复用序号？",
-      "expected_output": "使用 manual 作为元数据字段，采用服务级三位递增序号，并通过持久化状态或发布记录保证序号不复用。",
-      "files": [],
-      "expectations": [
-        "Uses manual as the release metadata field when both Git and package version are unavailable",
-        "Uses a service-local three-digit monotonic sequence",
-        "Explains persistence in release state or records so cleanup cannot cause sequence reuse"
-      ]
-    },
-    {
-      "id": 3,
-      "prompt": "当前服务已经有 8 个发布目录，新版本健康检查失败。按标准应该备份什么、回滚到哪里、默认保留几个版本、失败版本是否删除？",
-      "expected_output": "版本目录本身作为回滚备份；current 恢复到发布前版本；默认保留 5 个已验证版本，同时保护 current、previous 和失败版本；失败版本保留并记录失败阶段。",
-      "files": [],
-      "expectations": [
-        "Treats immutable release directories as rollback backups instead of duplicating the application",
-        "Restores current to the pre-deployment release and rechecks the old service",
-        "Retains five verified releases by default while protecting current, previous, and failed releases",
-        "Keeps the failed release and records the failed phase"
-      ]
-    },
-    {
-      "id": 4,
-      "prompt": "knowledge-app 通过 /opt/knowledge-app/bin/start.sh 启动，脚本实际执行 systemctl start knowledge-app.service。请说明 knowledge-runtime.env 是怎么进入 Java 进程的。",
-      "expected_output": "说明 systemd unit 的 EnvironmentFile 负责加载外置 env 文件并注入服务进程，不把它说成 Java 或版本内脚本自动读取。",
-      "files": [],
-      "expectations": [
-        "Identifies the systemd EnvironmentFile directive as the loader",
-        "Explains that the variables are injected into the Java service process",
-        "Does not claim that direct current/bin/start.sh automatically loads the file"
-      ]
-    },
-    {
-      "id": 5,
-      "prompt": "我不想使用 systemd，也不想维护 PID 文件，希望手动在终端启动 knowledge-app，停止时按 Ctrl+C。请给出标准部署 Skill 应该如何处理。",
-      "expected_output": "使用 manual-foreground 模式，显式加载外置 env 文件后 exec 启动，等待用户确认后再健康检查，不要求 PID 文件或 systemd。",
-      "files": [],
-      "expectations": [
-        "Selects manual-foreground without requiring systemd or a PID file",
-        "Explicitly loads the external environment before exec",
-        "Uses Ctrl+C for stop and waits for operator confirmation before health validation"
-      ]
-    },
-    {
-      "id": 6,
-      "prompt": "如果服务要 nohup 后台运行但没有 PID 文件，部署 Skill 应该如何停止它？",
-      "expected_output": "只有在存在精确停止命令或唯一进程匹配契约时才允许后台模式，禁止 killall java 或宽泛 pkill；否则切换到前台模式或请求人工提供停止方式。",
-      "files": [],
-      "expectations": [
-        "Requires an exact stop contract or unique process identity for manual-background",
-        "Rejects killall java and broad process matching",
-        "Falls back to foreground mode or asks for a safe stop command when no contract exists"
-      ]
-    }
+    {"id": 1, "prompt": "把 kbsearch 部署到 10.100.32.70 的 /uinnova/deploy 下。服务没有 systemd，只提供 bin/start.sh、bin/stop.sh、bin/status.sh。请给出发布目录、current 切换、配置位置和验证步骤。", "expected_output": "使用自定义根目录、物理路径 contract test、外置配置、原子切换和健康门禁。", "expectations": ["Uses /uinnova/deploy/<service-name> and never /opt for this request", "Tests current and physical release script paths", "Requires status/readiness/liveness and smoke evidence"]},
+    {"id": 2, "prompt": "我有一个没有 Git 提交信息、版本号也不明确的服务压缩包，准备发布到 /opt/order-api。应该怎么命名版本并保证下一次发布不会复用序号？", "expected_output": "使用 manual、三位序列、sequence.state、flock 和失败不复用规则。", "expectations": ["Uses manual", "Uses a service-local three-digit sequence", "Explains 0600 sequence state and lock"]},
+    {"id": 3, "prompt": "当前服务已经有 8 个发布目录，新版本健康检查失败。按标准应该回滚到哪里、默认保留几个版本、失败版本是否删除？", "expected_output": "回滚 previous_release，失败版本保留，默认五个 verified 并保护受保护集合。", "expectations": ["Restores recorded previous_release", "Keeps failed release and failed_phase", "Does not guess a third release"]},
+    {"id": 4, "prompt": "knowledge-app 通过 /opt/knowledge-app/bin/start.sh 启动，脚本实际执行 systemctl start knowledge-app.service。请说明 knowledge-runtime.env 是怎么进入 Java 进程的。", "expected_output": "systemd EnvironmentFile 注入变量，直接 Shell 不自动加载。", "expectations": ["Identifies EnvironmentFile", "Does not claim direct current/bin/start.sh loads it"]},
+    {"id": 5, "prompt": "我不想使用 systemd，也不想维护 PID 文件，希望手动在终端启动 knowledge-app，停止时按 Ctrl+C。", "expected_output": "manual-foreground，受限 env loader，exec，等待确认。", "expectations": ["Selects manual-foreground", "Requires explicit safe env loading", "Waits for operator confirmation"]},
+    {"id": 6, "prompt": "如果服务要 nohup 后台运行但没有 PID 文件，部署 Skill 应该如何停止它？", "expected_output": "必须有精确 stop 或完整身份契约，禁止宽泛 kill。", "expectations": ["Requires user/cmdline/artifact/start-time/port checks", "Rejects killall java and broad pkill"]},
+    {"id": 7, "prompt": "归档里有 ../etc/passwd、绝对路径、越界 symlink 和一个 package 顶层目录，怎么处理？", "expected_output": "先 SHA-256，再逐条拒绝路径穿越、越界链接、tarbomb，不能进入最终 release。", "expectations": ["Rejects all unsafe archive entries", "Uses staging and does not overwrite conf/logs/run/records"]},
+    {"id": 8, "prompt": "Shell 模式需要加载 knowledge-runtime.env，文件里可能有 $(command) 或 export。", "expected_output": "禁止不受控 source；只允许受限 KEY=value 或专用 parser，校验 owner/mode/key/type。", "expectations": ["Rejects command substitution/functions/redirection", "Does not output values", "Explains systemd/Shell/parser boundary"]},
+    {"id": 9, "prompt": "发布包包含 Flyway 不兼容迁移，应用启动失败后想回滚代码。", "expected_output": "要求 expand/contract 或备份审批；代码回滚不等于 schema 回滚；rollback health failure 报 incident。", "expectations": ["Requires migration gate", "Does not claim schema rollback", "Stops on failed rollback health"]},
+    {"id": 10, "prompt": "请给出 retention preview/apply 和 release record schema 的标准用法。", "expected_output": "preview 不删除，apply 必须 --apply，路径逐项解析；record 包含 schema_version、health、smoke、rollback、deleted_releases。", "expectations": ["Protects current/previous/active/failed/unverified", "Rejects broad rm -rf", "Reports record_path"]},
+    {"id": 11, "prompt": "backend、frontend、nginx 和数据库迁移一起发布，要求说明绑定、顺序和局部失败回滚。", "expected_output": "manifest 绑定 deployment ID/兼容范围，migration->backend->frontend->nginx，逆序回滚，检查首页/history/API proxy/8081。", "expectations": ["Defines component manifest and order", "Checks Nginx/TLS/ports", "Keeps irreversible migration recovery manual"]},
+    {"id": 12, "prompt": "服务器重启后 manual-background 服务怎么恢复？是否推荐 systemd？", "expected_output": "manual-background 不自动恢复，需 reconcile/runbook；无人值守推荐 systemd Restart/Timeout/LimitNOFILE/用户权限/日志轮转/磁盘阈值。", "expectations": ["Explains reboot recovery", "Recommends systemd for unattended services", "Warns against root and PID-only startup"]}
   ]
 }

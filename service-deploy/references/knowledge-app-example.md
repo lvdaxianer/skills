@@ -26,6 +26,8 @@ This is a layout reference derived from a read-only inspection of test host `10.
 
 The target standard adds the service-local sequence suffix for future releases, for example `kbsearch-20261028100814-c0de704-001`. Existing names are historical evidence and must not be renamed during a normal deployment.
 
+For a v2 release, validate the exact new ID with the sequence state under `release-records/`; the historical current target above is not evidence that a new release may omit the suffix.
+
 ## Service behavior
 
 - `bin/start.sh`, `bin/stop.sh`, and `bin/status.sh` validate `current` and the external env file before delegating to the service lifecycle command.
@@ -35,7 +37,8 @@ The target standard adds the service-local sequence suffix for future releases, 
 - The unit loads the external file through `EnvironmentFile=/opt/knowledge-app/conf/knowledge-runtime.env`; this is the systemd loading path.
 - The version-local `/opt/knowledge-app/current/bin/start.sh` sources only its local `app-env.sh` and does not automatically load the outer env file. Direct Shell mode therefore needs an explicit env loader before starting Java.
 - Manual foreground mode can run the Java command with `exec` in a terminal and stop with `Ctrl+C`; it does not need a PID file or systemd. Manual background mode requires an exact service-owned stop contract.
+- The first deployment failure showed why version-local scripts must resolve `$0` through its physical path: both `current/bin/start.sh` and `releases/<release-id>/bin/start.sh` must report the same service root. Direct Shell mode must validate the restricted env grammar before loading `knowledge-runtime.env`.
 
 ## Applying the standard
 
-For a new deployment, preserve the observed `conf/`, logs, runtime data, and external services. Prepare the new release under `releases/`, validate the external env key names and permissions, switch `current` atomically, run the service scripts and health checks, write a release record, then apply the default five-version retention policy.
+For a new deployment, preserve the observed `conf/`, logs, runtime data, and external services. Prepare the new release under `releases/`, verify SHA-256 and archive boundaries, validate env key names/permissions without values, test both script paths, switch `current` atomically, run the full health/smoke matrix, write a schema-valid release record, then preview/apply the default five-version retention policy.

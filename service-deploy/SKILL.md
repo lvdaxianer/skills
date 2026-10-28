@@ -1,101 +1,96 @@
 ---
 name: service-deployment-standard
-description: "Use this skill whenever the user asks to deploy, upgrade, rollback, restart, publish, or standardize a service on a Linux host, especially when they mention release directories, a current symlink, external env/config files, /opt, /uinnova/deploy, Shell start/stop scripts, systemd, retention, or backups. Enforce a versioned immutable release workflow with a configurable deployment root, externalized configuration, atomic current switching, health validation, auditable rollback, and default retention of five releases."
-compatibility: "Linux shell utilities, SSH when a remote host is in scope, and service-specific lifecycle/health commands. systemd is optional."
+description: "Use for Linux service deploy, upgrade, rollback, restart, release, or deployment-standard work. Enforces v2 immutable releases/current, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx stack deployment."
+compatibility: "Linux shell utilities; systemd optional; service-specific lifecycle and health commands required."
 ---
 
-# Service Deployment Standard
+# Service Deployment Standard v2
 
-Use this skill as the default operating procedure for service deployment. It is a deployment standard, not a service-specific script: resolve the service's paths and lifecycle commands from the request or the service package, then apply the same safety gates.
+Use this Skill whenever a service is deployed, upgraded, rolled back, restarted, published, or standardized on Linux. It is a contract for deployment decisions, not a service-specific implementation. Never connect to a server, execute a real deployment, or expose secrets unless the user explicitly authorizes that operation in the current request.
 
-## Operating principles
+## Non-negotiable invariants
 
-- Treat each release directory as immutable after validation. Never overwrite the active release in place.
-- Keep runtime configuration and secrets outside release directories. Do not print secret values, copy them into reports, or commit them.
-- Use a configurable deployment root. Default to `/opt`; use the user-provided absolute path when one is supplied.
-- Use the service's own start, stop, status, and health commands. Do not make systemd a prerequisite.
-- Switch `current` only after the new release is complete and verified. A failed health check must restore the previous pointer.
-- Keep the old release as the rollback backup. Do not duplicate the whole application unless a separate data or configuration snapshot is required.
-- Default to retaining the five newest verified releases per service, with protected releases excluded from cleanup.
-- Before cleanup, show or record the exact deletion set. Never delete a path that has not been resolved and checked as a release directory under the intended service root.
+- `service_root = deploy_root/service_name`; `deploy_root` is an absolute user input, default `/opt`. A custom root such as `/uinnova/deploy` MUST never write the default tree.
+- Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and records stay outside releases.
+- New release IDs MUST match exactly:
 
-## Required inputs
+  ```text
+  <service-name>-<YYYYMMDDHHmmss>-<version-or-git-short-sha>-<three-digit-sequence>
+  ```
 
-Resolve these values before changing a host:
+- `service-name` is lowercase `[a-z0-9][a-z0-9-]{0,62}`; timestamp is 14 digits; version/SHA is `[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}`; sequence is exactly three digits. The entire ID MUST match `^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$`.
+- Version source priority is Git short SHA, normalized package version, then literal `manual`. Missing Git metadata MUST NOT be guessed.
+- The sequence is service-local, monotonic and never reused, including after failed releases or deletion. Allocate it under a service lock before publishing.
+- `current` is a symlink to a physical directory inside `<service-root>/releases/`. Resolve with `readlink -f` or `pwd -P`; reject links outside releases, regular directories, dangling links and symlink chains escaping the boundary.
+- Lifecycle mode MUST be explicitly one of `systemd`, `manual-foreground`, or `manual-background`. A PID file is optional, never sufficient evidence by itself.
+- A release is successful only after status, readiness, liveness, startup-log, dependency, proxy/business smoke and loaded-artifact checks declared by the service pass. A process existing or Actuator `UP` alone is insufficient.
+- Any failed release remains on disk and is marked failed/unverified. Rollback only targets recorded `previous_release`; if rollback health fails, stop and report an incident—never guess a third release.
+- Default retention is five newest verified releases, while current, previous, active, failed and unverified releases are protected. Preview before apply; delete only exact, resolved paths under releases.
+- Reports and records MUST NOT contain environment values, passwords, tokens, private keys, or complete sensitive connection URLs.
 
-| Input | Rule |
+## Required inputs and preconditions
+
+Collect and validate before any stop or write action:
+
+| Input | Required contract |
 | --- | --- |
-| `deploy_root` | User-provided absolute path; default `/opt` |
-| `service_name` | Stable lowercase service slug used in paths and release IDs |
-| `artifact` | Local or remote package/directory and its checksum |
-| `version_source` | Git short SHA, package version, or `manual` |
-| `release_number` | Service-local monotonic sequence, three digits, never reused |
-| `config_path` | External configuration under `<service-root>/conf/` |
-| `lifecycle.mode` | `systemd`, `manual-foreground`, or `manual-background` |
-| lifecycle commands | Stop, start, status, and health check supplied by the service |
-| `retention` | Number of verified releases; default `5` |
+| `deploy_root` | Absolute path; default `/opt`; normalize physically before use |
+| `service_name` | Lowercase slug; reject `/`, `..`, whitespace, shell metacharacters and empty values |
+| `artifact` | Path/package, type, SHA-256, version source, expected files and owner/group |
+| `release_number` | Allocated by the sequence state under a service lock; never manually guessed |
+| `config_path` | `<service-root>/conf/<name>`; external to releases |
+| `lifecycle.mode` | Exactly `systemd`, `manual-foreground` or `manual-background` |
+| lifecycle commands | Exact start, stop, status, readiness, liveness and smoke commands |
+| `migration` | Whether migrations exist, compatibility class, runner and approval/backup evidence |
+| `retention` | Integer `>=0`; default `5` |
 
-If any required input is unknown, inspect the package or host without changing it. Ask for the missing value only when it cannot be safely derived. Never guess a production path, command, or health endpoint.
+If a required input is unavailable, stop with a dry-run report. Do not infer a health endpoint, process identity, database safety, or stop command.
 
-## Standard workflow
+## Ordered workflow
 
-Read the relevant references before acting:
+Read only the references relevant to the request, then execute these gates in order:
 
-- [release-layout.md](references/release-layout.md) for path resolution and `current` handling.
-- [release-naming-and-retention.md](references/release-naming-and-retention.md) for release IDs, sequence state, and cleanup.
-- [deployment-checklist.md](references/deployment-checklist.md) for the ordered preflight, deploy, verify, rollback, and report gates.
-- [lifecycle-modes.md](references/lifecycle-modes.md) for systemd/manual lifecycle adapters and environment loading.
-- [knowledge-app-example.md](references/knowledge-app-example.md) only when the target resembles the known `knowledge-app` layout.
+1. Resolve and record `service_root`, physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
+2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files and bundled live configuration.
+3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. Never copy a package env file over `<service-root>/conf`.
+4. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.
+5. Promote a complete staging directory to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths, validating all resolved boundaries.
+6. Detect migration content and apply the migration gate. Prefer expand/contract; do not allow an unapproved incompatible or irreversible migration.
+7. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start using the declared environment-loading path.
+8. Transition to `health-verified` only after the complete health matrix passes. For manual-foreground, the operator must confirm the foreground process is running before checks; `Ctrl+C` is the stop action.
+9. Write a schema-valid record and transition to `recorded`. On any failure, keep the new release, record `failed_phase`, atomically restore `previous_release`, restart it, and re-run status and health.
+10. If rollback health passes, state is `rolled-back`; if it fails, state is `failed` with incident evidence and no third-release selection. Release the lock even after interruption via trap/reconcile.
+11. Run `retention preview`, review the exact deletion set, then run `retention apply --apply` only after success is recorded. Retention errors never delete protected or uncertain paths.
 
-Then execute the following sequence:
+## Reference routing
 
-1. Resolve `service_root = deploy_root/service_name` and verify that every target path stays beneath it.
-2. Inspect the current `current` target, available releases, required external config keys, disk space, permissions, artifact checksum, and lifecycle commands. Do not read secret values.
-3. Allocate the next service-local release number without reuse and build the release ID:
+- [release-layout.md](references/release-layout.md): root, physical path, current contract and layout.
+- [release-naming-and-retention.md](references/release-naming-and-retention.md): ID grammar, sequence state, lock, preview/apply and protection set.
+- [artifact-and-config-security.md](references/artifact-and-config-security.md): archive, permissions, SHA-256 and env parser/source boundaries.
+- [lifecycle-modes.md](references/lifecycle-modes.md): systemd, manual foreground/background, process identity and interruption handling.
+- [database-and-health.md](references/database-and-health.md): migration gates and health/smoke matrix.
+- [rollback-state-machine.md](references/rollback-state-machine.md): states, transitions, reconcile and incident stop.
+- [stack-and-recoverability.md](references/stack-and-recoverability.md): backend/frontend/nginx/migration stacks and service recovery.
+- [deployment-checklist.md](references/deployment-checklist.md): executable preflight-to-retention checklist.
+- [release-record.schema.json](references/release-record.schema.json): release record schema.
+- [knowledge-app-example.md](references/knowledge-app-example.md): historical layout example only; never copy its secrets or hard-code its host.
+- [sceneforge-issue-mapping.md](references/sceneforge-issue-mapping.md): map observed deployment findings to v2 controls.
 
-   ```text
-   <service-name>-<YYYYMMDDHHmmss>-<git-short-sha>-<number>
-   ```
+Reusable local helpers:
 
-   Replace the Git field with the package version, or with `manual` if neither Git metadata nor a package version exists.
-4. Prepare the artifact in a new staging directory, validate its contents and permissions, and promote it to `releases/<release-id>`. Do not modify `current` yet.
-5. Verify the external configuration exists, is readable by the service, and contains the declared required keys. Do not copy a version-bundled env file over the external config.
-6. Record the previous `current` target, stop the service with the selected lifecycle adapter, atomically point `current` at the new release, and start it with the selected adapter. Do not infer the mode from a host; require `lifecycle.mode`.
-7. For `manual-foreground`, output the explicit environment-loading and start command, let the operator start it and use `Ctrl+C` to stop it, then wait for operator confirmation before health checks. For `manual-background`, require an exact stop contract before starting. For `systemd`, use the unit's `EnvironmentFile` and lifecycle commands.
-8. Run status and application health checks. On success, write a release record with the release ID, old target, checksum, lifecycle mode, environment-loading mode, status, and rollback target.
-9. On any failed validation or health check, restore `current` to the recorded old target, stop/restart using the selected adapter, recheck the old release, retain the failed directory, and write a failure record with the failed phase.
-10. After a successful verification, preview and apply retention cleanup. Keep current, previous, failed/unverified, active, and the five newest verified releases.
+- `scripts/current-contract-test.sh`: safe current/release/service-root path contract test; it does not start a service unless explicitly asked.
+- `scripts/retention.sh`: preview by default and explicit `--apply` deletion of an exact safe set.
 
-## Safety gates
+## Required report
 
-- Do not run cleanup until the target list has been resolved, restricted to the service's `releases/` directory, and recorded.
-- Do not remove the current or rollback target, even if it is older than the configured retention count.
-- Do not replace a `current` directory with a regular directory; repair the layout or stop and report the conflict.
-- Do not declare success from a process start alone; require the configured status and health checks.
-- Do not require a PID file. In `manual-foreground`, use a foreground `exec` command and `Ctrl+C`; in `manual-background`, require an exact stop command or unique process contract.
-- Never use broad process termination such as `killall java`; it can stop unrelated services.
-- Do not assume systemd's `EnvironmentFile` is sourced by a direct Shell launch. Shell mode must explicitly load the external env file before starting the main process.
-- Do not include env-file values, API keys, passwords, tokens, private keys, or full connection URLs in output.
-- Do not claim a remote deployment succeeded unless the remote command output verifies the final pointer and service health.
-
-## Required deployment report
-
-Return a concise report containing:
+Use the same keys as the schema, including:
 
 ```text
-service: <service_name>
-service_root: <absolute service root>
-lifecycle_mode: systemd | manual-foreground | manual-background
-environment_loading: systemd EnvironmentFile | explicit Shell loader | not started
-release: <release id>
-previous_release: <resolved previous target or none>
-current: <resolved final current target>
-artifact_checksum: <checksum>
-status: verified | rolled_back | failed
-health_check: passed | failed
-rollback_target: <resolved target or none>
-retention: <count and deleted release IDs, or none>
-record: <release record path>
+schema_version, service, service_root, host, operator, timestamp, timezone,
+lifecycle_mode, environment_loading, version_source, source_commit,
+release_id, release_number, artifact, artifact_checksum, previous_release,
+current, status, failed_phase, health_check, smoke_check, rollback_target,
+rollback_result, retention, deleted_releases, record_path
 ```
 
-If the deployment is not executed, clearly label the report as a dry-run and list the exact commands and missing approvals/inputs instead of fabricating results.
+For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.
