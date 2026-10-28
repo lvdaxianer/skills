@@ -7,7 +7,7 @@
 
 ## 2. 评测与验证
 
-- [ ] 2.1 创建 `development-ready-demo/evals/evals.json`，覆盖文字需求输入、设计图输入、前后端复用边界和 TDD/质量门禁；通过 JSON 解析和字段检查确认每个评测用例具备 prompt、expected_output 和 expectations
+- [x] 2.1 创建 `development-ready-demo/evals/evals.json`，覆盖文字需求输入、设计图输入、前后端复用边界和 TDD/质量门禁；通过 JSON 解析和字段检查确认每个评测用例具备 prompt、expected_output 和 expectations
 - [ ] 2.2 执行 OpenSpec 严格校验、Skill 结构检查、链接检查、评测 JSON 校验和内容审查；确认规格要求、设计决策、任务清单与实际文件一致后，输出完整验证证据
 
 ## Workflow follow-up
