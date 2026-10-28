@@ -46,7 +46,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: maintain one `apis/<module>.md` per business module for external Controllers; endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation; adding or modifying external Controller/API routes |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **Project startup context sync**: maintains a committed `.project-context/` source and idempotently generates Agent startup files for `.claude`, `.codex`, `.kimi`, while rejecting absolute paths and sensitive values | Initializing project context, recording project conventions, restoring Agent setup after cloning, syncing multiple AI tools |
-| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **Task closeout audit**: read-only inspection of merge evidence, task branch/worktree existence, missing metadata, historical names, and orphan worktrees | Explicit `/task-closeout-audit` invocation |
+| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **Task closeout audit**: verify merge evidence and automatically clean proven-merged, safe task branches/worktrees while preserving unknown, unmerged, dirty, locked, and orphan resources | Explicit `/task-closeout-audit` invocation |
 
 ---
 
@@ -172,7 +172,7 @@ Skills match against their `description`. Examples:
 /project-hygiene                 # detect & sync baseline files / secret leak check
 /project-context-sync            # initialize, verify, and sync project startup context
 /rest-api-documentation          # REST API documentation and completeness audit
-/task-closeout-audit             # read-only merge, branch, and worktree closeout audit
+/task-closeout-audit             # audit and automatically clean proven-merged safe resources
 ```
 
 ### Combining skills

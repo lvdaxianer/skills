@@ -117,16 +117,25 @@ read_source_branch() {
 }
 
 # 输出固定标题，方便人工阅读和后续自动化解析。
-printf '%s\n' 'Task closeout audit (read-only)'
+printf '%s\n' 'Task closeout audit (merged-safe cleanup enabled)'
 printf '%s\n' "Repository: $repo_root"
-printf '%s\n' 'TASK|branch|merge|branch_state|worktree_state|dirty|source|name_check|path'
+printf '%s\n' 'TASK|branch|merge|branch_state|worktree_state|dirty|source|name_check|path|cleanup_state'
 
 # 汇总计数只反映当前可发现的本地记录。
 merged_count=0
 unmerged_count=0
 unknown_count=0
 pending_cleanup_count=0
+cleaned_count=0
+cleanup_skipped_count=0
+cleanup_failed_count=0
 orphan_count=0
+
+# 当前调用所在的 worktree 不自动删除，避免调用方 shell 落入已删除目录。
+current_worktree_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -n "$current_worktree_root" ]; then
+  current_worktree_root="$(CDPATH= cd -- "$current_worktree_root" && pwd -P)"
+fi
 
 # 逐个任务分支收集合并、资源和 metadata 证据。
 if [ "${#task_branches[@]}" -gt 0 ]; then
@@ -139,11 +148,15 @@ if [ "${#task_branches[@]}" -gt 0 ]; then
       worktree_state='PRESENT'
       if [ -d "$path" ]; then
         # dirty 状态只读检查，不会刷新或修改 worktree。
-        if [ -n "$(git -C "$path" status --porcelain 2>/dev/null)" ]; then
-          dirty='UNCOMMITTED'
-        else
-          dirty='CLEAN'
-        fi
+        dirty='CLEAN'
+        while IFS= read -r status_line || [ -n "$status_line" ]; do
+          [ -n "$status_line" ] || continue
+          # .source_branch 是 Skill 自己的本地追踪 metadata，不算任务改动。
+          if [ "${status_line:3}" != '.source_branch' ]; then
+            dirty='UNCOMMITTED'
+            break
+          fi
+        done < <(git -C "$path" status --porcelain --ignored --untracked-files=all 2>/dev/null)
       else
         dirty='UNKNOWN'
       fi
@@ -182,7 +195,62 @@ if [ "${#task_branches[@]}" -gt 0 ]; then
     if [ "$merge_state" = 'UNKNOWN' ]; then
       unknown_count=$((unknown_count + 1))
     fi
-    # 当前分支 refs 仍存在，因此已合并任务仍需清理 branch 资源。
+    # 默认不清理，只有完整合并证据和安全资源条件同时满足时才执行自动清理。
+    cleanup_state='NOT_APPLICABLE'
+    cleanup_reason='not-merged'
+    if [ "$merge_state" = 'MERGED' ]; then
+      cleanup_state='SKIPPED'
+      cleanup_reason='no-safe-cleanup-path'
+      if [ -z "$path" ]; then
+        cleanup_state='SKIPPED_NO_WORKTREE_EVIDENCE'
+        cleanup_reason='no-registered-worktree-metadata'
+        cleanup_skipped_count=$((cleanup_skipped_count + 1))
+      elif [ "$path" = "$current_worktree_root" ]; then
+        cleanup_state='SKIPPED_CURRENT_WORKTREE'
+        cleanup_reason='current-worktree-in-use'
+        cleanup_skipped_count=$((cleanup_skipped_count + 1))
+      elif [ "$dirty" = 'UNCOMMITTED' ]; then
+        cleanup_state='SKIPPED_DIRTY'
+        cleanup_reason='uncommitted-changes'
+        cleanup_skipped_count=$((cleanup_skipped_count + 1))
+      elif [ ! -d "$path" ]; then
+        cleanup_state='SKIPPED_MISSING_WORKTREE_PATH'
+        cleanup_reason='registered-path-missing'
+        cleanup_skipped_count=$((cleanup_skipped_count + 1))
+      else
+        case "$path" in
+          "$task_root"/*)
+            # 先移除 worktree，只有成功后才删除 branch，避免清理失败时级联丢失引用。
+            # --force 只用于清理已确认无用户改动的 worktree，允许移除本地
+            # .source_branch metadata；锁定 worktree 仍需更强覆盖，因此会失败。
+            if git -C "$repo_root" worktree remove --force -- "$path" >/dev/null 2>&1; then
+              worktree_state='ABSENT'
+              if git -C "$repo_root" branch -d -- "$branch" >/dev/null 2>&1; then
+                branch_state='ABSENT'
+                cleanup_state='CLEANED'
+                cleanup_reason='worktree-and-merged-branch-deleted'
+                cleaned_count=$((cleaned_count + 1))
+              else
+                cleanup_state='BRANCH_DELETE_FAILED'
+                cleanup_reason='worktree-deleted-but-branch-delete-failed'
+                cleanup_failed_count=$((cleanup_failed_count + 1))
+              fi
+            else
+              cleanup_state='WORKTREE_REMOVE_FAILED'
+              cleanup_reason='worktree-remove-failed'
+              cleanup_failed_count=$((cleanup_failed_count + 1))
+            fi
+            ;;
+          *)
+            cleanup_state='SKIPPED_OUTSIDE_TASK_ROOT'
+            cleanup_reason='worktree-outside-configured-task-root'
+            cleanup_skipped_count=$((cleanup_skipped_count + 1))
+            ;;
+        esac
+      fi
+    fi
+
+    # 清理后的资源状态才决定是否仍有待处理项。
     if [ "$merge_state" = 'MERGED' ] && { [ "$branch_state" = 'PRESENT' ] || [ "$worktree_state" = 'PRESENT' ]; }; then
       pending_cleanup_count=$((pending_cleanup_count + 1))
     fi
@@ -194,10 +262,11 @@ if [ "${#task_branches[@]}" -gt 0 ]; then
       name_check='WARNING_HISTORICAL_NAME'
     fi
 
-    printf 'TASK|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' \
+    printf 'TASK|%s|%s|%s|%s|%s|%s|%s|%s|%s|%s\n' \
       "$branch" "$merge_state" "$branch_state" "$worktree_state" "$dirty" \
-      "${source:-N/A}" "$name_check" "${path:-N/A}"
+      "${source:-N/A}" "$name_check" "${path:-N/A}" "$cleanup_state"
     printf '  evidence: %s (%s)\n' "$merge_reason" "$branch"
+    printf '  cleanup: %s (%s)\n' "$cleanup_state" "$cleanup_reason"
   done
 fi
 
@@ -225,6 +294,6 @@ if [ "${#task_branches[@]}" -eq 0 ] && [ "$orphan_count" -eq 0 ]; then
   printf '%s\n' 'NO_TASK_RECORDS|No discoverable task branches or task worktrees; historical completion is not inferred.'
 fi
 
-# 输出汇总并声明本次没有执行清理动作。
-printf '%s\n' 'SUMMARY|merged='"$merged_count"'|not_merged='"$unmerged_count"'|unknown='"$unknown_count"'|merged_pending_cleanup='"$pending_cleanup_count"'|orphan_worktrees='"$orphan_count"
-printf '%s\n' 'No cleanup action was executed.'
+# 输出汇总，明确记录自动清理、跳过和失败的数量。
+printf '%s\n' 'SUMMARY|merged='"$merged_count"'|not_merged='"$unmerged_count"'|unknown='"$unknown_count"'|merged_pending_cleanup='"$pending_cleanup_count"'|cleaned='"$cleaned_count"'|cleanup_skipped='"$cleanup_skipped_count"'|cleanup_failed='"$cleanup_failed_count"'|orphan_worktrees='"$orphan_count"
+printf '%s\n' 'Automatic cleanup was executed only for proven-merged, clean, non-current task resources.'
