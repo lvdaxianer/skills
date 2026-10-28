@@ -1,7 +1,7 @@
-# development-ready-demo Specification
+# design-to-development Specification
 
 ## Purpose
-让文字需求或设计图能够被转化为视觉接近、交互完整、结构可维护且能够继续复用的前后端 Demo，避免产出只适合一次性展示的临时代码。
+让文字需求或设计图能够被转化为视觉接近、交互完整、结构可维护且能够继续复用的前后端产品实现，避免产出只适合一次性展示的临时代码。
 
 ## Requirements
 
@@ -33,8 +33,8 @@ The Skill MUST use `superpowers:brainstorming` during requirement discussion and
 
 The Skill MUST use the built-in Vue frontend and Java Spring backend architecture, and MUST keep business boundaries independent from ORM-specific persistence details.
 
-#### Scenario: New demo generation
-- **WHEN** the user requests a new Demo
+#### Scenario: New product implementation generation
+- **WHEN** the user requests a new product implementation
 - **THEN** the output MUST contain a frontend and backend project with the prescribed technology stack and explicit module boundaries
 
 #### Scenario: Persistence replacement boundary
@@ -46,11 +46,11 @@ The Skill MUST use the built-in Vue frontend and Java Spring backend architectur
 The Skill MUST apply the frontend interaction, backend reliability, logging boundary, and code review rules to the corresponding implementation surfaces.
 
 #### Scenario: Frontend interaction implementation
-- **WHEN** the Demo contains forms, lists, destructive actions, asynchronous requests, or cross-page state
+- **WHEN** the product implementation contains forms, lists, destructive actions, asynchronous requests, or cross-page state
 - **THEN** the output MUST include the required loading, empty, error, disabled, confirmation, recovery, pagination, and stale-response behavior
 
 #### Scenario: Backend implementation
-- **WHEN** the Demo contains APIs, services, persistence, configuration, or data-changing operations
+- **WHEN** the product implementation contains APIs, services, persistence, configuration, or data-changing operations
 - **THEN** the output MUST define server-side validation, stable errors, authorization boundaries, transaction and idempotency behavior where relevant, environment separation, and safe observability
 
 ### Requirement: Use test-driven implementation
@@ -67,7 +67,7 @@ The Skill MUST require TDD for behavior changes: a focused test MUST fail for th
 
 ### Requirement: Deliver verification evidence and reuse guidance
 
-The Skill MUST deliver a runnable Demo together with startup instructions, test commands, API documentation when public routes exist, seed or example data, explicit assumptions, and a summary of reusable boundaries.
+The Skill MUST deliver a runnable product implementation together with startup instructions, test commands, API documentation when public routes exist, seed or example data, explicit assumptions, and a summary of reusable boundaries.
 
 #### Scenario: Verification succeeds
 - **WHEN** focused tests, broader checks, and the final review pass
@@ -75,4 +75,4 @@ The Skill MUST deliver a runnable Demo together with startup instructions, test 
 
 #### Scenario: Verification fails
 - **WHEN** a required test, build, review, or documentation check fails
-- **THEN** the Skill MUST report the failure and MUST NOT claim the Demo is complete
+- **THEN** the Skill MUST report the failure and MUST NOT claim the product implementation is complete
