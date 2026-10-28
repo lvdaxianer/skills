@@ -1,0 +1,23 @@
+{
+  "skill_name": "task-closeout-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请执行 /task-closeout-audit，扫描当前仓库全部任务分支和 worktree，告诉我哪些已合并、哪些资源还存在。只读检查，不要删除任何东西。",
+      "expected_output": "运行 bundled audit script，逐项报告 merge、branch、worktree、dirty 和 source 状态，并明确声明没有执行清理。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "运行 /task-closeout-audit。如果某个任务没有 .source_branch，或者分支已经不在本地，请不要猜它是否合并，明确列为 UNKNOWN 并解释缺少什么证据。",
+      "expected_output": "缺失 source metadata 或历史记录时报告 UNKNOWN，不用当前分支替代 source branch，也不把资源缺失推断为已合并清理。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "使用 /task-closeout-audit 检查仓库中所有 features/ 和 fixes/ 下的任务，包括历史命名不规范的分支以及孤立 detached worktree。",
+      "expected_output": "历史命名任务仍被纳入并标记 warning，detached 或非任务 worktree 被报告为 ORPHAN_WORKTREE。",
+      "files": []
+    }
+  ]
+}

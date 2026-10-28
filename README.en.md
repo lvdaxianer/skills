@@ -1,6 +1,6 @@
 # lvdaxianer-skills
 
-> A **Claude Code** skill collection for engineering standards, covering development workflow, code review, REST API documentation, backend reliability, frontend interaction, production logging, and DDD architecture. All skills are **guaranteed non-conflicting** with explicit cross-references.
+> A **Claude Code** skill collection for engineering standards, covering development workflow, code review, REST API documentation, backend reliability, frontend interaction, production logging, DDD architecture, and task closeout auditing. All skills are **guaranteed non-conflicting** with explicit cross-references.
 
 **Language**: [中文](./README.md) · **English**
 
@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Eleven Skills at a Glance](#eleven-skills-at-a-glance)
+- [Twelve Skills at a Glance](#twelve-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,7 +31,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Eleven Skills at a Glance
+## Twelve Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
@@ -46,6 +46,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`rest-api-documentation`](./rest-api-documentation/SKILL.md) | **REST API documentation**: maintain one `apis/<module>.md` per business module for external Controllers; endpoint purpose, method/URL, params, requestBody, request/response headers and cookies, status codes, errors, and complete integration examples | Creating, completing, standardizing, or reviewing REST API documentation; adding or modifying external Controller/API routes |
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **Project startup context sync**: maintains a committed `.project-context/` source and idempotently generates Agent startup files for `.claude`, `.codex`, `.kimi`, while rejecting absolute paths and sensitive values | Initializing project context, recording project conventions, restoring Agent setup after cloning, syncing multiple AI tools |
+| [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **Task closeout audit**: read-only inspection of merge evidence, task branch/worktree existence, missing metadata, historical names, and orphan worktrees | Explicit `/task-closeout-audit` invocation |
 
 ---
 
@@ -76,10 +77,10 @@ See each skill's "Skill Conflict Resolution" section for the full table.
 
 ## Development Workflow Explained
 
-`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 9 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 26-step task loop.
+`development-workflow` is the only **process orchestration skill** in this repository. It chains together the 10 companion local skills and external superpowers, OpenSpec, and `using-git-worktrees` suites. Unlike other skills, it does not define concrete standards — it only schedules which skill to invoke at which stage of the 26-step task loop.
 
 **Key characteristics**:
-- Composite skill: 10 local skills including the entry skill, plus external dependency suites
+- Composite skill: 11 local skills including the entry skill, plus external dependency suites
 - Process-only: defines "when to call which skill", not "what that skill's rules are"
 - Mandatory loop: brainstorm → confirm integration branch, create task branch/worktree (with `project-hygiene` baseline check) → OpenSpec → task boundary and dispatch → TDD → update `apis/<module>.md` for affected external Controller/API routes → verification/audit/review → commit (with secret/artifact leak check) → merge to `SOURCE_BRANCH` and clean up → final audit/archive
 - Integration model: one change confirms one integration branch. Each independently verifiable task starts from it in its own branch and worktree, then merges back after verification. No parent branch aggregates task branches.
@@ -114,6 +115,7 @@ cp -R logging-boundaries               ~/.claude/skills/
 cp -R project-hygiene                  ~/.claude/skills/
 cp -R project-context-sync             ~/.claude/skills/
 cp -R rest-api-documentation           ~/.claude/skills/
+cp -R task-closeout-audit              ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
 mkdir -p .claude/skills
@@ -129,7 +131,8 @@ REPO="$(pwd)"
 for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
-             project-context-sync project-hygiene rest-api-documentation; do
+             project-context-sync project-hygiene rest-api-documentation \
+             task-closeout-audit; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -169,6 +172,7 @@ Skills match against their `description`. Examples:
 /project-hygiene                 # detect & sync baseline files / secret leak check
 /project-context-sync            # initialize, verify, and sync project startup context
 /rest-api-documentation          # REST API documentation and completeness audit
+/task-closeout-audit             # read-only merge, branch, and worktree closeout audit
 ```
 
 ### Combining skills
@@ -213,10 +217,15 @@ lvdaxianer-skills/
 │   └── references/
 ├── project-hygiene/
 │   └── SKILL.md
-└── project-context-sync/
+├── project-context-sync/
+│   ├── SKILL.md
+│   ├── scripts/context_sync.py
+│   └── tests/test_context_sync.py
+└── task-closeout-audit/
     ├── SKILL.md
-    ├── scripts/context_sync.py
-    └── tests/test_context_sync.py
+    ├── scripts/audit_task_closeout.sh
+    ├── tests/test_audit_task_closeout.sh
+    └── evals/evals.json
 ```
 
 ---
