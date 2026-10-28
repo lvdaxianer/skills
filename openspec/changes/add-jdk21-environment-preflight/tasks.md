@@ -3,7 +3,7 @@
 ## 1. 环境预检与安装流程
 
 - [x] 1.1 新增 `references/environment-preflight.md`，定义 JDK 21 检查、平台包管理器安装、当前项目环境设置、失败停止和安全边界；通过文档结构与命令覆盖检查
-- [ ] 1.2 更新 `design-to-development/SKILL.md`、workflow 和 quality-gates，在 brainstorming 前增加 JDK 21 预检门禁；通过引用、顺序和硬门禁检查
+- [x] 1.2 更新 `design-to-development/SKILL.md`、workflow 和 quality-gates，在 brainstorming 前增加 JDK 21 预检门禁；通过引用、顺序和硬门禁检查
 
 ## 2. 评测与最终验证
 
