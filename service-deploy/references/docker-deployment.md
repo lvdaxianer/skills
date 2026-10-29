@@ -8,7 +8,9 @@ The Docker release is the tuple:
 
 ```text
 release-id
+repository:<release-id>
 image@sha256:<digest>
+repository:latest (verified alias state)
 container/compose.yaml or an equivalent CLI manifest
 docker-persistence-manifest.json
 override manifest and its checksum
@@ -48,11 +50,41 @@ docker buildx build \
 docker buildx imagetools inspect "$REGISTRY/$SERVICE:$RELEASE_ID"
 ```
 
-The deployment record MUST store the resulting digest. A mutable tag such as `latest`, `dev` or `snapshot` is not a deployment artifact and MUST fail validation when no digest is present.
+The deployment record MUST store the repository, release tag and resulting digest. The release tag MUST never be reused. `latest` is allowed only as a moving alias for the most recently verified release; it is not a deployment artifact and MUST fail validation when no digest has been resolved.
+
+## Release tag and `latest` alias contract
+
+Use the following references for one service:
+
+```text
+<registry>/<service-name>:<release-id>       # immutable historical release tag
+<registry>/<service-name>:latest             # moving pointer to latest verified release
+<registry>/<service-name>@sha256:<digest>     # only production start/rollback identity
+```
+
+The release tag is created and pushed with the image. It contains the full release ID and is never overwritten or reused. A short SHA-only tag such as `5119d6f` is not a standard deployment identity because it hides timestamp and sequence information. If `docker images` shows the same image ID on multiple rows, those rows are tags/aliases for one image, not necessarily multiple builds; the release record must still identify the canonical release tag and digest.
+
+`latest` MUST be updated only after all of the following have succeeded:
+
+1. the release tag was pushed and its digest inspected;
+2. the container was started by the resolved digest;
+3. status, readiness, liveness, dependency and business smoke checks passed;
+4. the release record was written as verified/recorded.
+
+Update the alias to the exact digest, under the deployment lock, then inspect it again:
+
+```sh
+docker buildx imagetools create \
+  --tag "$REGISTRY/$SERVICE:latest" \
+  "$IMAGE_DIGEST"
+docker buildx imagetools inspect "$REGISTRY/$SERVICE:latest"
+```
+
+The inspected `latest` digest MUST equal the recorded release digest. A failed or unverified release MUST leave the previous `latest` unchanged. If the service is already healthy but alias update or verification fails, do not roll back the service; record `latest_alias.status=failed`, preserve the digest-pinned runtime and retry the alias operation. After a healthy rollback, update `latest` to the previous release digest and verify it.
 
 ## Registry and pull contract
 
-Push a human-readable immutable tag `<service>:<release-id>`, but deploy only:
+Push a human-readable immutable tag `<service>:<release-id>` and maintain `latest` only after verification, but deploy only:
 
 ```text
 registry.example/<service>@sha256:<64-hex-digest>

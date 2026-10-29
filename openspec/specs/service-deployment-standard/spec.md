@@ -180,7 +180,7 @@ For `runtime_target=docker-container`, lifecycle commands MUST use an image that
 
 ### Requirement: Deployment produces an auditable release record
 
-每次发布 SHALL 生成符合统一 schema 的 record，包含状态、失败阶段、回滚、健康、smoke 和 retention 字段；不得记录环境变量值、密码、Token、私钥或完整敏感 URL。
+For `runtime_target=docker-container`, the release record MUST include the image repository, immutable release tag, resolved digest and latest alias status. Alias status MUST distinguish `updated`, `not_attempted`, `failed` and `not_applicable`; it MUST include the target digest and evidence path when an update was attempted, without recording secrets.
 
 #### Scenario: Record a failed rollback
 - **WHEN** 发布失败且回滚健康检查失败
@@ -197,3 +197,11 @@ For `runtime_target=docker-container`, lifecycle commands MUST use an image that
 #### Scenario: Failed release record
 - **WHEN** 发布在校验、启动或健康检查阶段失败
 - **THEN** 记录状态为失败，并包含失败阶段和可执行的回滚目标
+
+#### Scenario: Record verified Docker image alias
+- **WHEN** a Docker release passes health/smoke checks and `latest` is updated
+- **THEN** the record MUST show the release tag, resolved digest, alias target digest and successful verification evidence
+
+#### Scenario: Record latest alias failure
+- **WHEN** the service is healthy but the registry cannot update or verify `latest`
+- **THEN** the record MUST show alias status `failed`, preserve the running digest-pinned service and require an operator retry

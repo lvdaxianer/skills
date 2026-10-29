@@ -7,7 +7,7 @@
 
 ### Requirement: Docker releases pin immutable image artifacts
 
-Docker 发布 MUST 使用通过 SHA-256 digest 固定的镜像，并记录 service、release、source commit、构建时间和 provenance/SBOM 状态；生产部署不得使用 `latest`、`dev` 或 `snapshot` 作为唯一定位。镜像还 MUST 满足 Dockerfile 标准，且运行阶段不得依赖从 registry、包仓库、代码仓库或模型仓库下载资源。
+Docker 发布 MUST 同时维护不可复用的 `<repository>:<release-id>` 历史 tag、可审计的 `<repository>:latest` verified 移动别名和生产使用的 `<repository>@sha256:<digest>` 不可变引用。`latest` 不能单独作为部署 artifact；部署前必须解析并记录 digest。
 
 #### Scenario: Deploy a verified image
 - **WHEN** deployment manifest contains an image reference and digest that match the pulled image
@@ -24,6 +24,22 @@ Docker 发布 MUST 使用通过 SHA-256 digest 固定的镜像，并记录 servi
 #### Scenario: Declared business dependency access
 - **WHEN** the service needs a database, Redis, object store or other declared runtime dependency
 - **THEN** the dependency endpoint MAY be reachable, but registry, package, code and model repositories MUST remain outside the runtime allowlist
+
+#### Scenario: Publish a verified release and latest alias
+- **WHEN** the release tag is pushed, the image digest is inspected, the container is deployed by digest, all declared health/smoke checks pass and the release record is written
+- **THEN** the operator MAY update `latest` to that exact digest and MUST verify that `latest` resolves to the same digest
+
+#### Scenario: Failed release keeps latest unchanged
+- **WHEN** build, start, health or smoke validation fails
+- **THEN** the release tag and failed record remain available, but `latest` MUST continue pointing to the previous verified digest
+
+#### Scenario: Rollback updates latest after health passes
+- **WHEN** the new release fails and the recorded previous release passes rollback status and health checks
+- **THEN** `latest` MUST be updated to the previous release digest; if alias update fails, the running rollback remains digest-pinned and the failure is recorded for retry
+
+#### Scenario: Latest-only deployment
+- **WHEN** a production manifest contains only `<repository>:latest` without a resolved digest
+- **THEN** validation MUST fail before container replacement
 
 ### Requirement: Persistent data is explicitly classified and mounted
 

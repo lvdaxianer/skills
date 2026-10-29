@@ -13,7 +13,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Confirm required files, executable scripts, owner/group and release layout.
 - [ ] Check external env owner/group, mode, parser grammar, required key names/non-empty status and typed formats without printing values.
 - [ ] Resolve lifecycle mode, exact start/stop/status/health commands and environment-loading mechanism.
-- [ ] Resolve `runtime_target` as `host-process` or `docker-container`; for Docker record image digest, Compose/CLI manifest, project/name labels and registry/provenance evidence.
+- [ ] Resolve `runtime_target` as `host-process` or `docker-container`; for Docker record repository, immutable release tag, resolved image digest, latest alias status, Compose/CLI manifest, project/name labels and registry/provenance evidence.
 - [ ] For Docker, read and apply `dockerfile-standard.md`: verify digest-pinned bases, scoped `.dockerignore`, runtime stage, non-root user, `/app` layout, local entrypoint and required packaged resources.
 - [ ] For Docker, run `docker buildx build --check` and an offline or egress-restricted startup test; prove entrypoint/startup/healthcheck does not download or install resources.
 - [ ] For Docker, classify every `conf`, `data`, `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject container writable-layer-only business data.
@@ -51,6 +51,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Prove loaded JAR/executable comes from current release; process existence or Actuator UP alone is insufficient.
 - [ ] For Docker, prove the effective image digest and override classpath/configuration match the current descriptor; container `running` alone is insufficient.
 - [ ] For Docker, verify registry/package/code/model repositories are blocked at runtime; allow only declared business dependencies such as database, Redis or object storage.
+- [ ] Only after health/smoke pass and the verified release record is written, update `<repository>:latest` to the exact digest and inspect it again; the alias digest must equal the record.
 
 ## 5. Rollback and interruption
 
@@ -58,6 +59,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Stop only the new process identity; if stop fails, stop and request operator action.
 - [ ] Atomically restore recorded previous current, start it and rerun status/health.
 - [ ] For Docker, restore previous image digest, persistence manifest and override manifest; never remove volumes during rollback.
+- [ ] After rollback health passes, update `latest` to the previous release digest and verify it; if alias update fails, preserve the healthy digest-pinned service and record a retry-required alias failure.
 - [ ] If rollback passes, state `rolled-back`; if it fails, state `failed`, report incident and do not choose a third release.
 - [ ] After SSH interruption, run reconcile from durable state; never remove unknown locks or processes.
 
@@ -68,4 +70,5 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] After a verified success, run `retention.sh apply <service-root> 5 --apply`; protect current/previous/active/failed/unverified.
 - [ ] Record `deleted_releases`, release `record_path`, final current and retention result.
 - [ ] For Docker, retain image digests referenced by protected releases and delete images only by exact unreferenced digest; never use `docker system prune -a`.
+- [ ] Protect the digest referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
 - [ ] Release the lock and return the required report.
