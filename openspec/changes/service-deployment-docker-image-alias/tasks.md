@@ -8,7 +8,7 @@
 ## 2. Operational integration
 
 - [x] 2.1 Update `deployment-checklist.md` and Docker evals with post-health latest update and latest-only rejection cases.
-- [ ] 2.2 Synchronize source/registered Skill, update main OpenSpec specs and perform consistency audit for tag/digest/alias/retention/rollback rules.
+- [x] 2.2 Synchronize source/registered Skill, update main OpenSpec specs and perform consistency audit for tag/digest/alias/retention/rollback rules.
 
 ## 3. Verification and delivery
 
