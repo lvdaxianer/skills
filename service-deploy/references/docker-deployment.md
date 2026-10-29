@@ -20,6 +20,8 @@ override manifest and its checksum
 
 Build on a trusted build host or CI worker from a named source commit. Production MUST NOT build from an unreviewed context by default.
 
+The Dockerfile MUST also satisfy [dockerfile-standard.md](dockerfile-standard.md). Build-time network access is allowed only on the trusted build host/CI worker for pinned, checksum- or signature-verified inputs. Runtime startup MUST NOT download or install software, code, packages, models, scripts or other resources to complete the image. The image must contain those resources, or a declared read-only persistent mount must supply them before start.
+
 The build MUST:
 
 1. pin every base image to a digest;
@@ -30,6 +32,8 @@ The build MUST:
 6. add OCI labels for service, release ID, source commit, source URL and build timestamp;
 7. generate an SBOM and provenance attestation when policy requires them;
 8. produce an image reference and immutable digest before deployment.
+
+The build MUST keep build tools, package-manager caches and credentials out of the runtime stage. `ENTRYPOINT`, `CMD`, `HEALTHCHECK` and startup hooks MUST be local and deterministic. A local loopback health probe is allowed, but `curl`/`wget` output MUST NOT be saved, executed or used to fetch a runtime dependency.
 
 Example build/publish commands (the release system supplies the values; never print credentials):
 
@@ -63,6 +67,8 @@ docker image inspect "$IMAGE_DIGEST" \
 ```
 
 The deployment MUST compare the pulled digest and labels with the manifest. Registry authentication is an external secret input; it MUST NOT be written to release records or command output. If the digest cannot be pulled or inspected, stop before stopping the current runtime.
+
+Before accepting the image, run the Dockerfile lint and runtime startup contract from [dockerfile-standard.md](dockerfile-standard.md). Prefer `--network none`; if the service requires a database, Redis, object store or another declared business dependency, use an egress-restricted network that allows only those exact targets. Registry, OS package, language package, code and model repositories MUST remain blocked. A blocked business dependency is a dependency-health failure; an attempted software/resource download is an image-contract failure and MUST fail the release.
 
 ## Persistence contract
 
@@ -137,6 +143,8 @@ docker compose -f /service-root/current/container/compose.yaml config
 
 Resolve every host mount physically and reject paths outside service-root, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target image digest, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
 
+Also verify the runtime image contract before stop: `Config.User` is the declared non-root user, `WorkingDir` is `/app`, `Entrypoint` resolves inside the image, required `/app/bin` and `/app/lib` resources exist, and the startup process does not execute download/install commands. Inspect bounded logs, process command lines and declared filesystem changes; do not rely on `running` or an image healthcheck alone.
+
 After start, prove all declared checks:
 
 - container status and exact identity;
@@ -146,6 +154,7 @@ After start, prove all declared checks:
 - Nginx config/proxy/TLS checks where applicable;
 - read-only business API smoke tests;
 - loaded image digest and effective override/classpath evidence.
+- offline or egress-restricted startup evidence showing no undeclared resource download.
 
 Container running, `docker inspect` success or an HTTP `200` alone is insufficient.
 
