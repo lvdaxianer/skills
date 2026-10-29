@@ -12,4 +12,4 @@
 
 ## 3. Verification and delivery
 
-- [ ] 3.1 Run OpenSpec, schema, JSON/YAML, shell and source/registered parity checks; commit, merge into `master`, archive the change, remove this worktree/branch and verify integration.
+- [x] 3.1 Run OpenSpec, schema, JSON/YAML, shell and source/registered parity checks; commit, merge into `master`, archive the change, remove this worktree/branch and verify integration.
