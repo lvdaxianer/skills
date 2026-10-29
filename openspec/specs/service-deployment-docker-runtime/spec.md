@@ -7,7 +7,7 @@
 
 ### Requirement: Docker releases pin immutable image artifacts
 
-Docker 发布 MUST 同时维护不可复用的 `<repository>:<release-id>` 历史 tag、可审计的 `<repository>:latest` verified 移动别名和生产使用的 `<repository>@sha256:<digest>` 不可变引用。`latest` 不能单独作为部署 artifact；部署前必须解析并记录 digest。镜像还 MUST 满足 Dockerfile 标准，且运行阶段不得依赖从 registry、包仓库、代码仓库或模型仓库下载资源。
+Docker 发布 MUST 同时维护不可复用的 `<repository>:<release-id>` 历史 tag、可审计的 `<repository>:latest` verified 移动别名和生产使用的 `<repository>@sha256:<digest>` 不可变引用。`latest` 不能单独作为部署 artifact；部署前必须解析并记录 digest。
 
 #### Scenario: Deploy a verified image
 - **WHEN** deployment manifest contains an image reference and digest that match the pulled image
