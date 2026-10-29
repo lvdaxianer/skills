@@ -27,7 +27,9 @@ The release package MUST NOT contain live env values, private keys, or instructi
 
 ## Docker image and mount security
 
-For `runtime_target=docker-container`, validate the image by immutable digest and inspect OCI labels before replacing the current container. Build policy MUST pin base-image digests, reject secrets in build context/layers, and record SBOM/provenance status when policy requires it. Production MUST pull the verified digest and MUST NOT build from an unreviewed context.
+For `runtime_target=docker-container`, apply [dockerfile-standard.md](dockerfile-standard.md), validate the image by immutable digest and inspect OCI labels before replacing the current container. Build policy MUST pin base-image digests, reject secrets in build context/layers, and record SBOM/provenance status when policy requires it. Production MUST pull the verified digest and MUST NOT build from an unreviewed context.
+
+Build stages may fetch pinned and checksum- or signature-verified dependencies. Runtime stages, entrypoints, startup hooks and healthchecks MUST NOT download or install code, packages, models, scripts, certificates or other resources. An offline/egress-restricted startup test is required; access to declared database, Redis, object-store or other business dependencies is allowed, while registry, package, code and model repositories remain blocked.
 
 Render the Compose/CLI manifest before stop or create:
 

@@ -76,7 +76,7 @@
 
 ### Requirement: Lifecycle commands are service-provided
 
-部署流程 SHALL 支持 `runtime_target=host-process` 或 `runtime_target=docker-container`，并继续支持 `systemd`、`manual-foreground`、`manual-background`；每种组合 MUST 声明 start/stop/status/health、环境加载、容器身份或进程身份和持久化挂载方式。
+For `runtime_target=docker-container`, lifecycle commands MUST use an image that passed the Dockerfile standard and egress-restricted startup gate. This adds a Docker-specific validation gate but does not change the supported `systemd`, `manual-foreground` and `manual-background` modes.
 
 #### Scenario: Start a Docker service without systemd
 - **WHEN** runtime target 为 `docker-container` 且没有 systemd unit
@@ -117,6 +117,14 @@
 #### Scenario: Preserve host lifecycle modes
 - **WHEN** runtime target 为 `host-process`
 - **THEN** 既有 systemd、manual-foreground、manual-background 行为和物理路径 contract test MUST 保持不变
+
+#### Scenario: Runtime startup is self-contained
+- **WHEN** the image starts with registry, package, code and model repositories blocked and only declared business dependencies reachable
+- **THEN** startup, readiness, liveness and smoke checks may proceed
+
+#### Scenario: Runtime download is detected
+- **WHEN** startup logs, command lines, filesystem changes or network evidence show an undeclared download or installation
+- **THEN** deployment MUST fail, preserve the failed release and leave the previous current runtime unchanged
 
 ### Requirement: Environment loading follows lifecycle mode
 
