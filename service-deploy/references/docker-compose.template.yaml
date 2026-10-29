@@ -32,6 +32,12 @@ services:
       retries: 18
 
 # Replace every /service-root path with the physically resolved service root.
+# The image must pass dockerfile-standard.md before this file is rendered.
+# Build-time dependency downloads are allowed only when pinned and verified;
+# runtime entrypoint/startup/healthcheck must not download or install resources.
+# Prefer an egress-restricted network: allow only declared business dependencies
+# such as database/Redis/object storage, not registries or package/model stores.
+# Use --network none for services that do not require external dependencies.
 # Do not mount overrides/lib on /app/lib: that would hide packaged defaults.
 # Add database/index volumes only when the persistence manifest declares them,
 # including backup and restore procedures.
