@@ -15,7 +15,7 @@ Recommended order:
 
 On partial failure, reverse traffic exposure first, then frontend, backend and only the migration recovery procedure that is explicitly safe. Do not automatically reverse an irreversible schema change. Preserve all component releases and write one stack record referencing component records.
 
-For Docker stacks, each component uses an immutable image digest and explicit host persistence manifest. Frontend/backend overrides and persistent data are component-scoped unless the stack manifest declares a shared mount. A container recreation MUST use the same declared volumes and override checksums; a Compose project MUST not rely on an anonymous volume for business data.
+For Docker stacks, each component uses an immutable Registry digest or local image ID and explicit host persistence manifest. Frontend/backend overrides and persistent data are component-scoped unless the stack manifest declares a shared mount. A container recreation MUST use the same declared volumes and override checksums; a Compose project MUST not rely on an anonymous volume for business data.
 
 Nginx checks MUST include `nginx -t`, configured listen address/port, TLS certificate validity/ownership, upstream target and firewall boundary. Management ports such as `8081` MUST bind to the intended private interface or be firewall-restricted; they must not be publicly exposed. TLS, certificates, listeners and firewall rules belong to the infrastructure/operator boundary unless the manifest explicitly assigns them to the deployment.
 
@@ -27,4 +27,4 @@ Use a non-root service user with only release read/execute, conf read, logs writ
 
 After a crash or reboot, inspect the last state/record, current target, service user, cmdline, ports and health before starting anything. Do not start a second instance based only on a missing PID file.
 
-For Docker, inspect the exact Compose project/container labels, image digest, required mounts, persistent data paths and override manifest before recreation. `manual-background` does not auto-recover after reboot; systemd is recommended for unattended Docker services. Never recover by `docker system prune`, broad container filters or volume deletion.
+For Docker, inspect the exact Compose project/container labels, Registry digest or local image ID, required mounts, persistent data paths and override manifest before recreation. `manual-background` does not auto-recover after reboot; systemd is recommended for unattended Docker services. Never recover by `docker system prune`, broad container filters or volume deletion.

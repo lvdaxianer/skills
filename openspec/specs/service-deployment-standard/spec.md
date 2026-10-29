@@ -180,7 +180,7 @@ For `runtime_target=docker-container`, lifecycle commands MUST use an image that
 
 ### Requirement: Deployment produces an auditable release record
 
-For `runtime_target=docker-container`, the release record MUST include the image repository, immutable release tag, resolved digest and latest alias status. Alias status MUST distinguish `updated`, `not_attempted`, `failed` and `not_applicable`; it MUST include the target digest and evidence path when an update was attempted, without recording secrets.
+For `runtime_target=docker-container`, the release record MUST include `image_transport`, image repository, optional Registry, immutable release tag, identity kind, resolved Registry digest or local image ID and latest alias status. Alias status MUST distinguish `updated`, `not_attempted`, `failed` and `not_applicable`; it MUST include the target identity and evidence path when an update was attempted, without recording secrets.
 
 #### Scenario: Record a failed rollback
 - **WHEN** 发布失败且回滚健康检查失败
@@ -200,8 +200,8 @@ For `runtime_target=docker-container`, the release record MUST include the image
 
 #### Scenario: Record verified Docker image alias
 - **WHEN** a Docker release passes health/smoke checks and `latest` is updated
-- **THEN** the record MUST show the release tag, resolved digest, alias target digest and successful verification evidence
+- **THEN** the record MUST show the release tag, mode-specific image identity, alias target identity and successful verification evidence
 
 #### Scenario: Record latest alias failure
-- **WHEN** the service is healthy but the registry cannot update or verify `latest`
-- **THEN** the record MUST show alias status `failed`, preserve the running digest-pinned service and require an operator retry
+- **WHEN** the service is healthy but the selected alias update or verification cannot complete
+- **THEN** the record MUST show alias status `failed`, preserve the running identity-pinned service and require an operator retry

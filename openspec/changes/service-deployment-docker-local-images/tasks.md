@@ -8,7 +8,7 @@
 ## 2. Operational integration
 
 - [ ] 2.1 Update checklist, Compose comments and evals with no-Registry deployment, archive checksum and missing rollback image cases.
-- [ ] 2.2 Synchronize source/registered Skill, update main OpenSpec specs and audit registry-optional/latest/rollback/retention consistency.
+- [x] 2.2 Synchronize source/registered Skill, update main OpenSpec specs and audit registry-optional/latest/rollback/retention consistency.
 
 ## 3. Verification and delivery
 

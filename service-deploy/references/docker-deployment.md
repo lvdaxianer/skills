@@ -19,7 +19,7 @@ docker-persistence-manifest.json
 override manifest and its checksum
 ```
 
-`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, image digest, Compose project, mounts and ports match the current descriptor.
+`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor.
 
 ## Build contract
 
@@ -143,7 +143,7 @@ maintains `latest` only after verification, but deploys only:
 registry.example/<service>@sha256:<64-hex-digest>
 ```
 
-Before container creation:
+Before container creation in `registry` mode:
 
 ```sh
 docker pull "$IMAGE_DIGEST"
@@ -180,7 +180,7 @@ release tag MUST match the manifest. Archive mode is not a substitute for a
 Registry and MUST retain the verified archive until every protected rollback
 reference has another verified source.
 
-Before accepting the image, run the Dockerfile lint and runtime startup contract from [dockerfile-standard.md](dockerfile-standard.md). Prefer `--network none`; if the service requires a database, Redis, object store or another declared business dependency, use an egress-restricted network that allows only those exact targets. Registry, OS package, language package, code and model repositories MUST remain blocked. A blocked business dependency is a dependency-health failure; an attempted software/resource download is an image-contract failure and MUST fail the release.
+Before accepting the image in any mode, run the Dockerfile lint and runtime startup contract from [dockerfile-standard.md](dockerfile-standard.md). Prefer `--network none`; if the service requires a database, Redis, object store or another declared business dependency, use an egress-restricted network that allows only those exact targets. Registry, OS package, language package, code and model repositories MUST remain blocked. A blocked business dependency is a dependency-health failure; an attempted software/resource download is an image-contract failure and MUST fail the release.
 
 ## Persistence contract
 
@@ -253,7 +253,7 @@ Before stop, render and validate without creating containers:
 docker compose -f /service-root/current/container/compose.yaml config
 ```
 
-Resolve every host mount physically and reject paths outside service-root, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target image digest, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
+Resolve every host mount physically and reject paths outside service-root, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target Registry digest or local image ID, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
 
 Also verify the runtime image contract before stop: `Config.User` is the declared non-root user, `WorkingDir` is `/app`, `Entrypoint` resolves inside the image, required `/app/bin` and `/app/lib` resources exist, and the startup process does not execute download/install commands. Inspect bounded logs, process command lines and declared filesystem changes; do not rely on `running` or an image healthcheck alone.
 
@@ -265,16 +265,16 @@ After start, prove all declared checks:
 - database/Redis/object-store/index dependency probes;
 - Nginx config/proxy/TLS checks where applicable;
 - read-only business API smoke tests;
-- loaded image digest and effective override/classpath evidence.
+- loaded mode-specific image identity and effective override/classpath evidence.
 - offline or egress-restricted startup evidence showing no undeclared resource download.
 
 Container running, `docker inspect` success or an HTTP `200` alone is insufficient.
 
 ## Rollback and recovery
 
-On failure, stop only the new container identity, restore the recorded previous `current`, image digest, Compose manifest, persistence manifest and override manifest, recreate the exact previous container and rerun status/readiness/liveness/dependency/smoke checks. A previous image or required mount that cannot be restored makes rollback `failed` and requires incident handling; do not select a third release. Application rollback never automatically rolls back a database schema.
+On failure, stop only the new container identity, restore the recorded previous `current`, Registry digest or local image ID, Compose manifest, persistence manifest and override manifest, recreate the exact previous container and rerun status/readiness/liveness/dependency/smoke checks. A previous image, verified archive or required mount that cannot be restored makes rollback `failed` and requires incident handling; do not select a third release. Application rollback never automatically rolls back a database schema.
 
-After SSH interruption or host reboot, `reconcile` MUST inspect durable state, `current`, registry availability, mounts, labels and image digest before creating anything. `manual-background` has no automatic reboot recovery; use an operator runbook or choose systemd.
+After SSH interruption or host reboot, `reconcile` MUST inspect durable state, `current`, the selected transport's image identity/verified archive, mounts and labels before creating anything. `manual-background` has no automatic reboot recovery; use an operator runbook or choose systemd.
 
 ## Retention and image cleanup
 

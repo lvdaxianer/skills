@@ -10,7 +10,7 @@ Select `runtime_target=host-process` or `runtime_target=docker-container` separa
 | `manual-foreground` | restricted env load then `exec` foreground command | operator `Ctrl+C` | Not required | explicit loader/parser |
 | `manual-background` | restricted env load then service-approved background command | exact stop command or full identity contract | Optional evidence | explicit loader/parser |
 
-For Docker, the exact identity contract additionally includes Compose project or container name/ID, release label, image digest, configured user, start time, declared mounts and port ownership. A container ID alone is not sufficient.
+For Docker, the exact identity contract additionally includes Compose project or container name/ID, release label, Registry digest or local image ID, configured user, start time, declared mounts and port ownership. A container ID alone is not sufficient.
 
 ## systemd
 

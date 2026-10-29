@@ -140,7 +140,7 @@ docker history --no-trunc "$IMAGE_DIGEST"
 
 - `/app/bin/entrypoint.sh`、healthcheck、默认 JAR/库和必需静态资源存在且权限正确；
 - `Config.User` 为声明的非 root 用户，`WorkingDir` 为 `/app`，入口为本地路径；
-- image digest、OCI labels、SBOM/provenance 与 release record 一致；
+- selected image identity（Registry manifest digest 或 local image ID）、OCI labels、SBOM/provenance 与 release record 一致；
 - 启动日志没有下载/安装行为，进程命令行没有隐藏下载命令，容器没有产生未声明的文件；
 - 实际加载的 JAR/override 来自 current release 对应的 image/manifest；
 - 运行时网络策略只允许已声明的业务依赖。

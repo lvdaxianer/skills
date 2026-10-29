@@ -145,7 +145,8 @@
             "properties": {
               "registry": {"type": "null"},
               "digest": {"type": "null"},
-              "identity_kind": {"const": "local-image-id"}
+              "identity_kind": {"const": "local-image-id"},
+              "archive_checksum": {"type": "null"}
             }
           }
         }

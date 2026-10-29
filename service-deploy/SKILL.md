@@ -79,7 +79,7 @@ Read only the references relevant to the request, then execute these gates in or
 - [docker-deployment.md](references/docker-deployment.md): Docker image, registry, persistence, override, lifecycle, recovery and image retention contract.
 - [dockerfile-standard.md](references/dockerfile-standard.md): Dockerfile structure, build/runtime boundary, resource completeness and no-runtime-download contract.
 - [docker-persistence-manifest.schema.json](references/docker-persistence-manifest.schema.json): machine-readable Docker mount and override manifest schema.
-- [docker-compose.template.yaml](references/docker-compose.template.yaml): safe Compose starting template; replace service-root and image digest after validation.
+- [docker-compose.template.yaml](references/docker-compose.template.yaml): safe Compose starting template; replace service-root and mode-specific image identity after validation.
 - [lifecycle-modes.md](references/lifecycle-modes.md): systemd, manual foreground/background, process identity and interruption handling.
 - [database-and-health.md](references/database-and-health.md): migration gates and health/smoke matrix.
 - [rollback-state-machine.md](references/rollback-state-machine.md): states, transitions, reconcile and incident stop.

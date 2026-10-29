@@ -15,7 +15,7 @@ service_root = deploy_root/service_name
 │   ├── bin/                     # version runtime scripts
 │   ├── conf/                    # static, non-secret defaults only
 │   ├── lib/                     # application and dependencies
-│   └── container/                # Docker descriptor, image digest and manifests (container target only)
+│   └── container/                # Docker descriptor, image identity and manifests (container target only)
 ├── current -> releases/<id>     # only active pointer
 ├── conf/                        # external runtime config/secrets
 ├── data/                        # business files and non-rebuildable generated data
@@ -56,7 +56,7 @@ The contract test MUST call both:
 
 It MUST assert identical physical `service_root`, `releases`, and release target values; reject a current link outside releases, a regular directory named current, a dangling link and a symlink whose target escapes through another link.
 
-For `runtime_target=docker-container`, the same physical contract applies to the release descriptor: `current` MUST resolve inside `releases`, and its image digest, Compose/CLI manifest, persistence manifest and override manifest MUST be read from that resolved release. A Docker container is invalid when its release label or digest does not match the resolved descriptor.
+For `runtime_target=docker-container`, the same physical contract applies to the release descriptor: `current` MUST resolve inside `releases`, and its transport, Registry digest or local image ID, Compose/CLI manifest, persistence manifest and override manifest MUST be read from that resolved release. A Docker container is invalid when its release label or mode-specific image identity does not match the resolved descriptor.
 
 ## Atomic current switch
 
