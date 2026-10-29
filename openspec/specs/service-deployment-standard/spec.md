@@ -180,7 +180,7 @@ For `runtime_target=docker-container`, lifecycle commands MUST use an image that
 
 ### Requirement: Deployment produces an auditable release record
 
-For `runtime_target=docker-container`, the release record MUST include `image_transport`, image repository, optional Registry, immutable release tag, identity kind, resolved Registry digest or local image ID and latest alias status. Alias status MUST distinguish `updated`, `not_attempted`, `failed` and `not_applicable`; it MUST include the target identity and evidence path when an update was attempted, without recording secrets.
+For `runtime_target=docker-container`, the release record MUST include `image_transport`, image repository, optional Registry, immutable release tag, resolved Registry digest or local image ID, identity kind and latest alias status. `registry` MUST be nullable when the selected mode is `local-daemon` or `archive`; the record MUST identify the target identity and evidence path without recording secrets.
 
 #### Scenario: Record a failed rollback
 - **WHEN** 发布失败且回滚健康检查失败
@@ -205,3 +205,11 @@ For `runtime_target=docker-container`, the release record MUST include `image_tr
 #### Scenario: Record latest alias failure
 - **WHEN** the service is healthy but the selected alias update or verification cannot complete
 - **THEN** the record MUST show alias status `failed`, preserve the running identity-pinned service and require an operator retry
+
+#### Scenario: Record local Docker release
+- **WHEN** a Docker release is deployed without a Registry and its local image ID, tag and health evidence pass
+- **THEN** the record MUST show `image_transport`, local identity kind, release tag and latest alias target
+
+#### Scenario: Reject missing image transport
+- **WHEN** a Docker manifest does not declare whether it uses Registry, local daemon or archive
+- **THEN** deployment MUST stop before container replacement and request a dry-run input
