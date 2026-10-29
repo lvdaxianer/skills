@@ -3,7 +3,7 @@
 ## 1. Image tag and alias contract
 
 - [x] 1.1 Update `docker-deployment.md` and `SKILL.md` with release tag, digest deployment, verified `latest` update timing, rollback behavior and same-image-ID alias explanation.
-- [ ] 1.2 Extend `release-record.schema.json` with repository, release tag and latest alias audit fields while preserving host-process records.
+- [x] 1.2 Extend `release-record.schema.json` with repository, release tag and latest alias audit fields while preserving host-process records.
 
 ## 2. Operational integration
 
