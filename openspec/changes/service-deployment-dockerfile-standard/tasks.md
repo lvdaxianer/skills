@@ -8,7 +8,7 @@
 ## 2. Skill integration
 
 - [x] 2.1 Update `SKILL.md`, `deployment-checklist.md`, `artifact-and-config-security.md` and `docker-compose.template.yaml` with Dockerfile routing and offline startup acceptance.
-- [ ] 2.2 Add Dockerfile/offline-download eval cases and verify all references agree on runtime target, overlay, image digest and lifecycle behavior.
+- [x] 2.2 Add Dockerfile/offline-download eval cases and verify all references agree on runtime target, overlay, image digest and lifecycle behavior.
 
 ## 3. Verification and delivery
 

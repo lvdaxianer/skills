@@ -11,7 +11,7 @@ Kubernetes、Helm 和 Swarm 不自动继承本规范；这些目标必须使用�
 生产 Dockerfile MUST 满足以下规则：
 
 1. 生产基础镜像必须使用完整 digest，例如 `eclipse-temurin:21-jre@sha256:<64-hex>`；禁止只使用 `latest`、`stable`、`dev`、`snapshot` 或未审批的浮动 tag。
-2. 生产镜像 SHOULD 使用独立的 build stage 和 runtime stage；如果无法多阶段构建，必须记录原因，并证明构建工具、缓存和凭据不会进入 runtime stage。
+2. 生产镜像 MUST 使用独立的 build stage 和 runtime stage；如果确实无法多阶段构建，必须记录原因，并证明构建工具、缓存和凭据不会进入 runtime stage。
 3. 构建上下文必须有 `.dockerignore`，至少排除 `.git/`、`.env*`、密钥、证书私钥、`conf/`、`logs/`、`run/`、`release-records/`、本地缓存、测试输出和未审计构建产物。
 4. `COPY` 只能复制已声明的应用产物、默认配置、静态资源、模型和库；生产 Dockerfile 禁止使用远程 URL `ADD`。需要归档时先在 build stage 下载并校验，再用本地 `COPY` 进入 runtime stage。
 5. 依赖下载只能发生在受信任的 build stage。下载必须使用 lockfile、版本固定和 SHA-256/签名校验；下载结果必须成为可审计的镜像层或构建产物。
