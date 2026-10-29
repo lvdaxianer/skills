@@ -4,13 +4,16 @@
 
 Docker is an optional `runtime_target=docker-container`; it does not remove the existing `host-process` target or the three lifecycle modes `systemd`, `manual-foreground` and `manual-background`. Kubernetes, Helm, Swarm and cluster scheduling are outside this reference.
 
-The Docker release is the tuple:
+The Docker release is the tuple. `registry` is optional and the selected
+transport MUST be recorded in the release descriptor:
 
 ```text
 release-id
-repository:<release-id>
-image@sha256:<digest>
-repository:latest (verified alias state)
+image_transport: registry | local-daemon | archive
+service-name:<release-id>
+registry/service-name@sha256:<digest> (registry mode)
+service-name:<release-id> + local image ID (local-daemon/archive)
+service-name:latest (verified alias state)
 container/compose.yaml or an equivalent CLI manifest
 docker-persistence-manifest.json
 override manifest and its checksum
@@ -37,41 +40,65 @@ The build MUST:
 
 The build MUST keep build tools, package-manager caches and credentials out of the runtime stage. `ENTRYPOINT`, `CMD`, `HEALTHCHECK` and startup hooks MUST be local and deterministic. A local loopback health probe is allowed, but `curl`/`wget` output MUST NOT be saved, executed or used to fetch a runtime dependency.
 
-Example build/publish commands (the release system supplies the values; never print credentials):
+Example build commands. The publish step is conditional; the release system
+supplies the values and MUST never print credentials:
 
 ```sh
 docker buildx build \
   --provenance=true --sbom=true \
   --label org.opencontainers.image.revision="$SOURCE_COMMIT" \
   --label org.opencontainers.image.version="$RELEASE_ID" \
-  --tag "$REGISTRY/$SERVICE:$RELEASE_ID" \
-  --push .
+  --tag "$SERVICE:$RELEASE_ID" \
+  .
 
+# registry mode only: publish the same immutable tag
+docker tag "$SERVICE:$RELEASE_ID" "$REGISTRY/$SERVICE:$RELEASE_ID"
+docker push "$REGISTRY/$SERVICE:$RELEASE_ID"
+
+docker image inspect "$SERVICE:$RELEASE_ID" \
+  --format '{{.Id}} {{json .Config.Labels}}'
+
+# registry mode only
 docker buildx imagetools inspect "$REGISTRY/$SERVICE:$RELEASE_ID"
 ```
 
-The deployment record MUST store the repository, release tag and resulting digest. The release tag MUST never be reused. `latest` is allowed only as a moving alias for the most recently verified release; it is not a deployment artifact and MUST fail validation when no digest has been resolved.
+The deployment record MUST store `image_transport`, the service/release tag,
+the optional Registry, and exactly one image identity: a Registry manifest
+digest in `registry` mode or a local image ID in `local-daemon`/`archive` mode.
+The release tag MUST never be reused. `latest` is allowed only as a moving
+alias for the most recently verified release; it is not a deployment artifact
+and MUST fail validation when no immutable identity has been resolved.
 
 ## Release tag and `latest` alias contract
 
 Use the following references for one service:
 
 ```text
-<registry>/<service-name>:<release-id>       # immutable historical release tag
-<registry>/<service-name>:latest             # moving pointer to latest verified release
-<registry>/<service-name>@sha256:<digest>     # only production start/rollback identity
+<registry>/<service-name>:<release-id>       # registry mode historical tag
+<service-name>:<release-id>                  # local-daemon/archive historical tag
+<registry>/<service-name>:latest             # registry mode verified alias
+<service-name>:latest                        # local verified alias
+<registry>/<service-name>@sha256:<digest>    # registry production identity
+<service-name>:<release-id> + local image ID  # local production identity
 ```
 
-The release tag is created and pushed with the image. It contains the full release ID and is never overwritten or reused. A short SHA-only tag such as `5119d6f` is not a standard deployment identity because it hides timestamp and sequence information. If `docker images` shows the same image ID on multiple rows, those rows are tags/aliases for one image, not necessarily multiple builds; the release record must still identify the canonical release tag and digest.
+The release tag is created with the image and, in Registry mode only, pushed
+to the Registry. It contains the full release ID and is never overwritten or
+reused. A short SHA-only tag such as `5119d6f` is not a standard deployment
+identity because it hides timestamp and sequence information. If `docker
+images` shows the same image ID on multiple rows, those rows are tags/aliases
+for one image, not necessarily multiple builds; the release record must still
+identify the canonical release tag and the mode-specific immutable identity.
 
 `latest` MUST be updated only after all of the following have succeeded:
 
-1. the release tag was pushed and its digest inspected;
+1. the selected transport resolved and verified the immutable identity; Registry mode additionally pushed and inspected the release tag;
 2. the container was started by the resolved digest;
 3. status, readiness, liveness, dependency and business smoke checks passed;
 4. the release record was written as verified/recorded.
 
-Update the alias to the exact digest, under the deployment lock, then inspect it again:
+In `registry` mode, update the alias to the exact digest under the deployment
+lock, then inspect it again:
 
 ```sh
 docker buildx imagetools create \
@@ -80,11 +107,37 @@ docker buildx imagetools create \
 docker buildx imagetools inspect "$REGISTRY/$SERVICE:latest"
 ```
 
-The inspected `latest` digest MUST equal the recorded release digest. A failed or unverified release MUST leave the previous `latest` unchanged. If the service is already healthy but alias update or verification fails, do not roll back the service; record `latest_alias.status=failed`, preserve the digest-pinned runtime and retry the alias operation. After a healthy rollback, update `latest` to the previous release digest and verify it.
+In Registry mode, the inspected `latest` digest MUST equal the recorded
+release digest. A failed or unverified release MUST leave the previous
+`latest` unchanged. If the service is already healthy but alias update or
+verification fails, do not roll back the service; record
+`latest_alias.status=failed`, preserve the digest-pinned runtime and retry the
+alias operation. After a healthy rollback, update `latest` to the previous
+release identity and verify it.
 
-## Registry and pull contract
+For `local-daemon` and `archive`, update the local alias only after health and
+record success:
 
-Push a human-readable immutable tag `<service>:<release-id>` and maintain `latest` only after verification, but deploy only:
+```sh
+docker tag "$SERVICE:$RELEASE_ID" "$SERVICE:latest"
+docker image inspect "$SERVICE:latest" --format '{{.Id}} {{json .Config.Labels}}'
+```
+
+The inspected local image ID MUST equal the recorded release image ID. A local
+image ID MUST NOT be written as a fake `sha256:` Registry manifest digest.
+
+## Image transport and pull contract
+
+Select exactly one mode before stopping the current runtime:
+
+| Mode | Required identity | Allowed commands | Registry requirement |
+| --- | --- | --- | --- |
+| `registry` | resolved manifest digest | `docker push`, `docker pull`, `docker buildx imagetools inspect` | Registry URL/auth required; secrets never recorded |
+| `local-daemon` | local image ID from `docker image inspect` | local inspect, tag and run commands | no Registry, login or pull |
+| `archive` | SHA-256 of `docker save` archive plus loaded local image ID | `sha256sum -c`, `docker load`, local inspect/tag/run | no Registry, login or pull |
+
+Registry mode pushes a human-readable immutable tag `<service>:<release-id>` and
+maintains `latest` only after verification, but deploys only:
 
 ```text
 registry.example/<service>@sha256:<64-hex-digest>
@@ -98,7 +151,34 @@ docker image inspect "$IMAGE_DIGEST" \
   --format '{{json .RepoDigests}} {{json .Config.Labels}}'
 ```
 
-The deployment MUST compare the pulled digest and labels with the manifest. Registry authentication is an external secret input; it MUST NOT be written to release records or command output. If the digest cannot be pulled or inspected, stop before stopping the current runtime.
+The deployment MUST compare the pulled digest and labels with the manifest.
+Registry authentication is an external secret input; it MUST NOT be written to
+release records or command output. If the digest cannot be pulled or inspected,
+stop before stopping the current runtime.
+
+For local-daemon mode, validate the already-loaded image before stopping:
+
+```sh
+docker image inspect "$SERVICE:$RELEASE_ID" \
+  --format '{{.Id}} {{json .RepoTags}} {{json .Config.Labels}}'
+```
+
+Record the exact `Id`, release tag, OCI labels and local daemon identity. Do
+not run `docker pull`, `docker login` or `docker buildx imagetools`.
+
+For archive mode, create or receive the archive before the deployment gate:
+
+```sh
+sha256sum -c "$IMAGE_ARCHIVE.sha256"
+docker load --input "$IMAGE_ARCHIVE"
+docker image inspect "$SERVICE:$RELEASE_ID" \
+  --format '{{.Id}} {{json .RepoTags}} {{json .Config.Labels}}'
+```
+
+The checksum MUST be verified before `docker load`; the loaded image ID and
+release tag MUST match the manifest. Archive mode is not a substitute for a
+Registry and MUST retain the verified archive until every protected rollback
+reference has another verified source.
 
 Before accepting the image, run the Dockerfile lint and runtime startup contract from [dockerfile-standard.md](dockerfile-standard.md). Prefer `--network none`; if the service requires a database, Redis, object store or another declared business dependency, use an egress-restricted network that allows only those exact targets. Registry, OS package, language package, code and model repositories MUST remain blocked. A blocked business dependency is a dependency-health failure; an attempted software/resource download is an image-contract failure and MUST fail the release.
 
@@ -198,7 +278,7 @@ After SSH interruption or host reboot, `reconcile` MUST inspect durable state, `
 
 ## Retention and image cleanup
 
-The five-release policy applies to release descriptors. Before deleting an old descriptor, resolve exact paths under `releases/` and confirm its image digest is not referenced by current, previous, active, failed, unverified, or another retained release. Delete an image only by its exact digest after that reference check. Registry retention is separate from local Docker cache retention. An emergency disk cleanup MUST preserve persistent data, failed/unverified releases and all referenced images.
+The five-release policy applies to release descriptors. Before deleting an old descriptor, resolve exact paths under `releases/` and confirm its image identity (Registry digest or local image ID) is not referenced by current, previous, active, failed, unverified, or another retained release. Delete a local image only by its exact image ID after that reference check. Registry retention is separate from local Docker cache and verified archive retention. An emergency disk cleanup MUST preserve persistent data, failed/unverified releases, verified rollback archives and all referenced images.
 
 ## Kubernetes boundary
 
