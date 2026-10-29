@@ -17,20 +17,26 @@
   "container": {
     "type": ["object", "null"],
     "additionalProperties": false,
-    "required": ["repository", "release_tag", "image", "digest", "latest_alias", "compose_project", "container_id", "manifest_path", "persistence_manifest", "override_manifest"],
+    "required": ["repository", "release_tag", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "manifest_path", "persistence_manifest", "override_manifest"],
     "properties": {
       "repository": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]+$"},
       "release_tag": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
-      "image": {"type": "string", "pattern": "^[^@\\n]+@sha256:[A-Fa-f0-9]{64}$"},
-      "digest": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+      "image_transport": {"enum": ["registry", "local-daemon", "archive"]},
+      "registry": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(/[A-Za-z0-9._-]+)*$"},
+      "identity_kind": {"enum": ["registry-manifest-digest", "local-image-id"]},
+      "image": {"type": "string", "pattern": "^(?![^@\\n]+:latest$)[^@\\n]+(?::[^@\\n]+|@sha256:[A-Fa-f0-9]{64})$"},
+      "digest": {"type": ["string", "null"], "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+      "image_identity": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+      "archive_checksum": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"},
       "latest_alias": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["tag", "status", "target_digest", "verified_at", "evidence"],
+        "required": ["tag", "status", "target_digest", "target_identity", "verified_at", "evidence"],
         "properties": {
           "tag": {"const": "latest"},
           "status": {"enum": ["updated", "not_attempted", "failed", "not_applicable"]},
           "target_digest": {"type": ["string", "null"], "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+          "target_identity": {"type": ["string", "null"], "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
           "verified_at": {"type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(Z|[+-][0-9]{2}:[0-9]{2})$"},
           "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}}
         }
@@ -97,6 +103,71 @@
       },
       "then": {
         "properties": {"container": {"type": "null"}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "runtime_target": {"const": "docker-container"},
+          "container": {"type": "object", "properties": {"image_transport": {"const": "registry"}}}
+        },
+        "required": ["runtime_target", "container"]
+      },
+      "then": {
+        "properties": {
+          "container": {
+            "type": "object",
+            "required": ["registry", "digest", "image_identity"],
+            "properties": {
+              "registry": {"type": "string", "minLength": 1},
+              "digest": {"type": "string"},
+              "image": {"type": "string", "pattern": "^[^@\\n]+@sha256:[A-Fa-f0-9]{64}$"},
+              "identity_kind": {"const": "registry-manifest-digest"},
+              "archive_checksum": {"type": "null"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "runtime_target": {"const": "docker-container"},
+          "container": {"type": "object", "properties": {"image_transport": {"enum": ["local-daemon", "archive"]}}}
+        },
+        "required": ["runtime_target", "container"]
+      },
+      "then": {
+        "properties": {
+          "container": {
+            "type": "object",
+            "required": ["registry", "digest", "image_identity"],
+            "properties": {
+              "registry": {"type": "null"},
+              "digest": {"type": "null"},
+              "identity_kind": {"const": "local-image-id"},
+              "archive_checksum": {"type": "null"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "runtime_target": {"const": "docker-container"},
+          "container": {"type": "object", "properties": {"image_transport": {"const": "archive"}}}
+        },
+        "required": ["runtime_target", "container"]
+      },
+      "then": {
+        "properties": {
+          "container": {
+            "type": "object",
+            "required": ["archive_checksum"],
+            "properties": {"archive_checksum": {"type": "string", "minLength": 64, "maxLength": 64}}
+          }
+        }
       }
     }
   ]

@@ -13,7 +13,8 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Confirm required files, executable scripts, owner/group and release layout.
 - [ ] Check external env owner/group, mode, parser grammar, required key names/non-empty status and typed formats without printing values.
 - [ ] Resolve lifecycle mode, exact start/stop/status/health commands and environment-loading mechanism.
-- [ ] Resolve `runtime_target` as `host-process` or `docker-container`; for Docker record repository, immutable release tag, resolved image digest, latest alias status, Compose/CLI manifest, project/name labels and registry/provenance evidence.
+- [ ] Resolve `runtime_target` as `host-process` or `docker-container`; for Docker select exactly one `image_transport`: `registry`, `local-daemon` or `archive`. Record the immutable release tag, Registry manifest digest or local image ID, latest alias status, Compose/CLI manifest, project/name labels and mode-specific evidence.
+- [ ] For `registry`, verify Registry URL/auth, push/pull and manifest digest; for `local-daemon`, inspect the preloaded local image ID without `docker login`/`pull`; for `archive`, verify the archive SHA-256 before `docker load` and inspect the loaded image ID. Never require a Registry when the selected mode is local.
 - [ ] For Docker, read and apply `dockerfile-standard.md`: verify digest-pinned bases, scoped `.dockerignore`, runtime stage, non-root user, `/app` layout, local entrypoint and required packaged resources.
 - [ ] For Docker, run `docker buildx build --check` and an offline or egress-restricted startup test; prove entrypoint/startup/healthcheck does not download or install resources.
 - [ ] For Docker, classify every `conf`, `data`, `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject container writable-layer-only business data.
@@ -29,7 +30,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Extract only into a new staging directory below releases; never overwrite conf/logs/run/release-records.
 - [ ] Run the current contract test against both current and physical release script paths.
 - [ ] Promote complete staging directory to immutable release path.
-- [ ] For Docker, promote the immutable release descriptor containing image digest and persistence/override manifests; do not build from production context.
+- [ ] For Docker, promote the immutable release descriptor containing `image_transport`, release tag, mode-specific image identity and persistence/override manifests; do not build from production context.
 
 ## 3. Stop, switch and start
 
@@ -38,7 +39,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] State `stopped`; atomically replace current via same-directory temporary symlink; verify physical target.
 - [ ] State `switched`; start via systemd EnvironmentFile, restricted Shell loader or dedicated parser.
 - [ ] State `started`; verify process/service user, cmdline, loaded artifact and port ownership.
-- [ ] For Docker, verify exact container/project identity, service/release labels, image digest, configured user, mounts and port ownership.
+- [ ] For Docker, verify exact container/project identity, service/release labels, Registry digest or local image ID, configured user, mounts and port ownership.
 - [ ] For foreground mode, operator confirms process running before health checks; Ctrl+C remains the stop contract.
 
 ## 4. Health verification
@@ -51,15 +52,15 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Prove loaded JAR/executable comes from current release; process existence or Actuator UP alone is insufficient.
 - [ ] For Docker, prove the effective image digest and override classpath/configuration match the current descriptor; container `running` alone is insufficient.
 - [ ] For Docker, verify registry/package/code/model repositories are blocked at runtime; allow only declared business dependencies such as database, Redis or object storage.
-- [ ] Only after health/smoke pass and the verified release record is written, update `<repository>:latest` to the exact digest and inspect it again; the alias digest must equal the record.
+- [ ] Only after health/smoke pass and the verified release record is written, update `latest` under the lock: Registry mode uses the exact manifest digest; local-daemon/archive tags the exact local image ID. Inspect the alias and compare the mode-specific identity with the record.
 
 ## 5. Rollback and interruption
 
 - [ ] On failure, retain failed release and state `failed` with `failed_phase`.
 - [ ] Stop only the new process identity; if stop fails, stop and request operator action.
 - [ ] Atomically restore recorded previous current, start it and rerun status/health.
-- [ ] For Docker, restore previous image digest, persistence manifest and override manifest; never remove volumes during rollback.
-- [ ] After rollback health passes, update `latest` to the previous release digest and verify it; if alias update fails, preserve the healthy digest-pinned service and record a retry-required alias failure.
+- [ ] For Docker, restore the previous Registry digest or local image ID, persistence manifest and override manifest; for archive mode, require a verified rollback archive when the image is not loaded. Never remove volumes during rollback.
+- [ ] After rollback health passes, update `latest` to the previous mode-specific identity and verify it; if alias update fails, preserve the healthy pinned service and record a retry-required alias failure.
 - [ ] If rollback passes, state `rolled-back`; if it fails, state `failed`, report incident and do not choose a third release.
 - [ ] After SSH interruption, run reconcile from durable state; never remove unknown locks or processes.
 
@@ -69,6 +70,6 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Run `retention.sh preview <service-root> 5`, record exact deletion candidates.
 - [ ] After a verified success, run `retention.sh apply <service-root> 5 --apply`; protect current/previous/active/failed/unverified.
 - [ ] Record `deleted_releases`, release `record_path`, final current and retention result.
-- [ ] For Docker, retain image digests referenced by protected releases and delete images only by exact unreferenced digest; never use `docker system prune -a`.
-- [ ] Protect the digest referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
+- [ ] For Docker, retain image identities referenced by protected releases and verified rollback archives; delete local images only by exact unreferenced image ID; never use `docker system prune -a`.
+- [ ] Protect the identity referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
 - [ ] Release the lock and return the required report.

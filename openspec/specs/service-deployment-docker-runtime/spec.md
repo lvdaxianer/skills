@@ -7,11 +7,11 @@
 
 ### Requirement: Docker releases pin immutable image artifacts
 
-Docker 发布 MUST 同时维护不可复用的 `<repository>:<release-id>` 历史 tag、可审计的 `<repository>:latest` verified 移动别名和生产使用的 `<repository>@sha256:<digest>` 不可变引用。`latest` 不能单独作为部署 artifact；部署前必须解析并记录 digest。
+Docker 发布 MUST 明确 `image_transport` 为 `registry`、`local-daemon` 或 `archive`。三种模式都 MUST 维护不可复用的 `<service>:<release-id>` 历史 tag、可审计的 `<service>:latest` verified 移动别名和生产使用的不可变镜像身份；Registry digest 只适用于 `registry`，无 Registry 时必须记录本地 image ID，禁止伪造远程 digest。
 
 #### Scenario: Deploy a verified image
-- **WHEN** deployment manifest contains an image reference and digest that match the pulled image
-- **THEN** deployment may continue and the digest is written to the release record
+- **WHEN** a deployment manifest contains a mode-specific immutable image identity that matches the inspected or loaded image
+- **THEN** deployment may continue and the Registry digest or local image ID is written to the release record
 
 #### Scenario: Mutable tag is the only artifact reference
 - **WHEN** the manifest only contains `latest` or another mutable tag
@@ -26,20 +26,40 @@ Docker 发布 MUST 同时维护不可复用的 `<repository>:<release-id>` 历�
 - **THEN** the dependency endpoint MAY be reachable, but registry, package, code and model repositories MUST remain outside the runtime allowlist
 
 #### Scenario: Publish a verified release and latest alias
-- **WHEN** the release tag is pushed, the image digest is inspected, the container is deployed by digest, all declared health/smoke checks pass and the release record is written
-- **THEN** the operator MAY update `latest` to that exact digest and MUST verify that `latest` resolves to the same digest
+- **WHEN** the mode-specific image identity is inspected or loaded, the container is deployed by that identity, all declared health/smoke checks pass and the release record is written
+- **THEN** the operator MAY update `latest` to that exact digest or local image ID and MUST verify the alias resolves to the same identity
 
 #### Scenario: Failed release keeps latest unchanged
 - **WHEN** build, start, health or smoke validation fails
-- **THEN** the release tag and failed record remain available, but `latest` MUST continue pointing to the previous verified digest
+- **THEN** the release tag and failed record remain available, but `latest` MUST continue pointing to the previous verified image identity
 
 #### Scenario: Rollback updates latest after health passes
 - **WHEN** the new release fails and the recorded previous release passes rollback status and health checks
-- **THEN** `latest` MUST be updated to the previous release digest; if alias update fails, the running rollback remains digest-pinned and the failure is recorded for retry
+- **THEN** `latest` MUST be updated to the previous Registry digest or local image ID; if alias update fails, the running rollback remains identity-pinned and the failure is recorded for retry
 
 #### Scenario: Latest-only deployment
-- **WHEN** a production manifest contains only `<repository>:latest` without a resolved digest
+- **WHEN** a production manifest contains only `<service>:latest` without a resolved mode-specific identity
 - **THEN** validation MUST fail before container replacement
+
+#### Scenario: Registry image deployment
+- **WHEN** `image_transport=registry` 且 release tag 可解析到已校验的 manifest digest
+- **THEN** deployment may pull and start the exact digest, and registry authentication/pull evidence is recorded
+
+#### Scenario: Local daemon deployment without Registry
+- **WHEN** `image_transport=local-daemon` 且目标主机已有匹配 release tag 和 image ID
+- **THEN** deployment may start the local image by its recorded image ID without running `docker pull` or requiring Registry credentials
+
+#### Scenario: Archive image deployment without Registry
+- **WHEN** `image_transport=archive` 的 `docker save` 归档 SHA-256 校验通过并成功 `docker load`
+- **THEN** deployment MUST inspect the loaded image ID, release tag and OCI labels before start
+
+#### Scenario: Update latest locally
+- **WHEN** a local-daemon or archive release passes health/smoke checks and its record is verified
+- **THEN** deployment MAY run an exact local `docker tag` to update `latest` and MUST verify the alias points to the recorded image identity
+
+#### Scenario: Missing local rollback image
+- **WHEN** rollback target image ID is absent and no verified archive can restore it
+- **THEN** rollback MUST fail and report incident; it MUST NOT select a third image or delete volumes
 
 ### Requirement: Persistent data is explicitly classified and mounted
 
@@ -79,7 +99,7 @@ Adding, replacing or removing an override MUST go through an apply operation tha
 
 ### Requirement: Container identity is verified before stop and after start
 
-Docker lifecycle operations MUST target an exact Compose project/container name or recorded container ID and MUST verify service, release label, image digest, process state, configured user, mounts and port ownership. Broad container deletion, host Docker socket mounts and volume deletion are forbidden by default.
+Docker lifecycle operations MUST target an exact Compose project/container name or recorded container ID and MUST verify service, release label, Registry digest or local image ID, process state, configured user, mounts and port ownership. Broad container deletion, host Docker socket mounts and volume deletion are forbidden by default.
 
 #### Scenario: Start the intended release
 - **WHEN** a container is running with matching service/release labels, digest, mounts and ports
@@ -91,7 +111,7 @@ Docker lifecycle operations MUST target an exact Compose project/container name 
 
 ### Requirement: Container recovery reconstructs from durable state
 
-After SSH interruption or host reboot, recovery MUST inspect the durable release record, current target, image digest, override manifest, persistent mounts and container identity before starting anything. `systemd` is the recommended unattended adapter; manual-background MUST not claim automatic recovery without an explicit operator runbook.
+After SSH interruption or host reboot, recovery MUST inspect the durable release record, current target, selected transport's image identity or verified archive, override manifest, persistent mounts and container identity before starting anything. `systemd` is the recommended unattended adapter; manual-background MUST not claim automatic recovery without an explicit operator runbook.
 
 #### Scenario: Recover after container restart
 - **WHEN** the host restarts and current points to a verified release with available image and mounts
@@ -103,7 +123,7 @@ After SSH interruption or host reboot, recovery MUST inspect the durable release
 
 ### Requirement: Container images and persistent resources have separate retention
 
-Release retention MUST preserve current, previous, active, failed and unverified release descriptors and their referenced image digests. Image deletion MUST use an exact digest after no retained or running release references it; `docker system prune -a` and implicit volume deletion are forbidden.
+Release retention MUST preserve current, previous, active, failed and unverified release descriptors and their referenced Registry digests or local image IDs. Image/archive deletion MUST use an exact unreferenced identity after preview; `docker system prune -a` and implicit volume deletion are forbidden.
 
 #### Scenario: Apply five-release retention
 - **WHEN** retention selects an old verified release
