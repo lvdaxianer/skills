@@ -12,5 +12,5 @@
 
 ## 3. Verification and delivery
 
-- [ ] 3.1 Validate OpenSpec, Markdown/YAML/JSON syntax, source/registered skill parity and forbidden runtime-download coverage.
+- [x] 3.1 Validate OpenSpec, Markdown/YAML/JSON syntax, source/registered skill parity and forbidden runtime-download coverage.
 - [ ] 3.2 Perform final consistency audit, synchronize approved specs, commit, merge into `master`, archive the change, remove only this task worktree/branch and verify the integration branch.
