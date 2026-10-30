@@ -41,6 +41,8 @@ Use implementation mode when building or changing frontend UI behavior.
    actions across pages.
 6. Verify the implemented interaction with realistic slow-network, failure,
    repeated-click, keyboard, mobile, and empty-data scenarios when applicable.
+7. Apply the async operation lifecycle below to every state-changing action,
+   including delete, save, submit, publish, pay, upload, import, and batch work.
 
 ### Review mode
 
@@ -57,6 +59,42 @@ Use Review mode when auditing existing frontend interaction experience.
      feedback, or stability.
    - `可优化` (nice-to-have): Improves polish, delight, expert efficiency, or
      perceived responsiveness.
+
+### Async Operation Lifecycle
+
+Use one observable lifecycle for state-changing actions so users can tell what
+has started, what is still running, and what they can do next:
+
+- Enter `pending` or `busy` immediately after activation. The initiating
+  control MUST show a loading or equivalent busy state and MUST prevent
+  repeated activation until the request reaches a terminal state. For work
+  that completes in under roughly 300 ms, the control MAY remain disabled
+  without showing a spinner to avoid flicker.
+- Keep the initiating surface visible by default while the request is pending.
+  In a confirmation dialog, the confirm action MUST remain loading until the
+  request succeeds or fails; the dialog MUST NOT disappear without feedback
+  while the delete, save, publish, payment, upload, import, or batch request
+  is still in flight. If a documented product reason requires closing the
+  surface, the affected row, item, or task area MUST retain a visible pending
+  state and MUST prevent an equivalent action from being started again.
+- Apply data and navigation changes only after confirmed success. Only then
+  may the interface close the dialog or drawer, navigate, clear input, remove
+  an item, or report completion.
+- On failure, timeout, cancellation, or loss of connectivity, stop loading and
+  restore a safe actionable state. Preserve relevant input, selection, and
+  context, explain the next useful action, and provide retry, undo, cancel, or
+  another supported recovery path. Optimistic changes MUST roll back or have
+  an equally visible recovery path.
+- Long-running work MUST distinguish submitted, queued, processing, completed,
+  failed, and cancelled states. Show progress or an estimate when available,
+  offer cancellation when supported, and preserve or restore the task status
+  across refresh, navigation, and return to the product.
+- Define close, Escape, click-outside, refresh, navigation, and background-task
+  behavior while work is pending. These paths MUST NOT silently discard the
+  request or leave the user unable to discover its final outcome.
+- Pending, success, failure, cancellation, and recovery MUST use semantic
+  status feedback that assistive technology can perceive and MUST remain
+  consistent for equivalent actions across pages.
 
 ## Non-Negotiable Interaction Rules
 
