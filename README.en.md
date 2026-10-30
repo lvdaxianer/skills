@@ -9,7 +9,7 @@
 ## Table of Contents
 
 - [What Is This](#what-is-this)
-- [Twelve Skills at a Glance](#twelve-skills-at-a-glance)
+- [Thirteen Skills at a Glance](#thirteen-skills-at-a-glance)
 - [Relationships & Priority](#relationships--priority)
 - [Development Workflow Explained](#development-workflow-explained)
 - [Installation](#installation)
@@ -31,7 +31,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 
 ---
 
-## Twelve Skills at a Glance
+## Thirteen Skills at a Glance
 
 | Skill | Role | Trigger |
 |------|------|---------|
@@ -47,6 +47,7 @@ Goal: whether Claude Code is doing backend, frontend, review, logging, or DDD wo
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **Project baseline hygiene**: detection-driven, idempotent maintenance of four baseline files via managed blocks — .gitignore (artifacts, AI tool dirs, editor dirs, secret leak prevention), .gitattributes (EOL, binaries, lockfile merges), .editorconfig (cross-IDE format baseline), .env.example (env var contract sync) | Project init, build manifests added/removed, new tool/artifact/binary files, CRLF pollution, new env var references, baseline files out of sync |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **Project startup context sync**: maintains a committed `.project-context/` source and idempotently generates Agent startup files for `.claude`, `.codex`, `.kimi`, while rejecting absolute paths and sensitive values | Initializing project context, recording project conventions, restoring Agent setup after cloning, syncing multiple AI tools |
 | [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **Task closeout audit**: verify merge evidence and automatically clean proven-merged, safe task branches/worktrees while preserving unknown, unmerged, dirty, locked, and orphan resources | Explicit `/task-closeout-audit` invocation |
+| [`context-handoff`](./context-handoff/SKILL.md) | **Session context handoff**: turn project, server, progress, decisions, commands, todos, and risks into a safe, copy-ready Markdown handoff package | User is switching sessions, asks to preserve context, or explicitly invokes `/context-handoff` |
 
 ---
 
@@ -116,6 +117,7 @@ cp -R project-hygiene                  ~/.claude/skills/
 cp -R project-context-sync             ~/.claude/skills/
 cp -R rest-api-documentation           ~/.claude/skills/
 cp -R task-closeout-audit              ~/.claude/skills/
+cp -R context-handoff                  ~/.claude/skills/
 
 # Or project-only (applies to the current repo only)
 mkdir -p .claude/skills
@@ -132,7 +134,7 @@ for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
              project-context-sync project-hygiene rest-api-documentation \
-             task-closeout-audit; do
+             task-closeout-audit context-handoff; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -173,6 +175,7 @@ Skills match against their `description`. Examples:
 /project-context-sync            # initialize, verify, and sync project startup context
 /rest-api-documentation          # REST API documentation and completeness audit
 /task-closeout-audit             # audit and automatically clean proven-merged safe resources
+/context-handoff                 # generate a safe, copy-ready session context handoff
 ```
 
 ### Combining skills
@@ -221,10 +224,13 @@ lvdaxianer-skills/
 │   ├── SKILL.md
 │   ├── scripts/context_sync.py
 │   └── tests/test_context_sync.py
-└── task-closeout-audit/
+├── task-closeout-audit/
     ├── SKILL.md
     ├── scripts/audit_task_closeout.sh
     ├── tests/test_audit_task_closeout.sh
+    └── evals/evals.json
+└── context-handoff/
+    ├── SKILL.md
     └── evals/evals.json
 ```
 

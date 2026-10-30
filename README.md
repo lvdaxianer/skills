@@ -9,7 +9,7 @@
 ## 目录
 
 - [是什么](#是什么)
-- [十二个 skill 一览](#十二个-skill-一览)
+- [十三个 skill 一览](#十三个-skill-一览)
 - [关系与优先级](#关系与优先级)
 - [Development Workflow 详解](#development-workflow-详解)
 - [安装](#安装)
@@ -31,7 +31,7 @@
 
 ---
 
-## 十二个 skill 一览
+## 十三个 skill 一览
 
 | Skill | 定位 | 触发场景 |
 |------|------|----------|
@@ -47,6 +47,7 @@
 | [`project-hygiene`](./project-hygiene/SKILL.md) | **项目基线卫生**：检测驱动 + 托管块幂等维护四份基线文件——.gitignore（产物/AI 工具/编辑器目录、密钥防泄漏）、.gitattributes（换行符、二进制、锁文件合并）、.editorconfig（跨 IDE 格式底线）、.env.example（环境变量契约同步） | 项目初始化、新增/移除构建清单、出现新工具/产物/二进制文件、CRLF 污染、代码新增环境变量、基线文件失同步 |
 | [`project-context-sync`](./project-context-sync/SKILL.md) | **项目启动上下文同步**：维护可提交的 `.project-context/` 事实源，并幂等生成 `.claude`、`.codex`、`.kimi` 等 Agent 启动文件；拒绝绝对路径和敏感信息 | 初始化项目上下文、记录项目约定、clone 后恢复 Agent 配置、同步多个 AI 工具上下文 |
 | [`task-closeout-audit`](./task-closeout-audit/SKILL.md) | **任务收尾审计**：核验合并证据，并自动清理已确认合并且安全的临时分支与 worktree；保留缺失证据、未合并、脏、锁定和孤立资源 | 显式 `/task-closeout-audit` 调用 |
+| [`context-handoff`](./context-handoff/SKILL.md) | **会话上下文交接**：将项目、服务器、进度、决策、命令、待办和风险整理成安全、可复制的单一 Markdown 交接包 | 用户准备切换会话、要求总结上下文，或显式 `/context-handoff` 调用 |
 
 ---
 
@@ -116,6 +117,7 @@ cp -R project-hygiene                  ~/.claude/skills/
 cp -R project-context-sync             ~/.claude/skills/
 cp -R rest-api-documentation           ~/.claude/skills/
 cp -R task-closeout-audit              ~/.claude/skills/
+cp -R context-handoff                  ~/.claude/skills/
 
 # 或者只装项目级（只对当前仓库生效）
 mkdir -p .claude/skills
@@ -133,7 +135,7 @@ for skill in backend-reliability-guidelines code-review-spec commit ddd \
              development-workflow frontend-interaction-guidelines \
              git-branch-worktree-convention logging-boundaries \
              project-context-sync project-hygiene rest-api-documentation \
-             task-closeout-audit; do
+             task-closeout-audit context-handoff; do
   ln -sfn "$REPO/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -174,6 +176,7 @@ git submodule add https://github.com/<your-org>/lvdaxianer-skills .claude/skills
 /project-context-sync            # 初始化、校验和同步项目启动上下文
 /rest-api-documentation          # REST API 接口文档编写与完整性检查
 /task-closeout-audit             # 审计并自动清理已确认合并且安全的分支和 worktree
+/context-handoff                 # 生成安全、可复制的会话上下文交接包
 ```
 
 ### 组合调用示例
@@ -222,10 +225,13 @@ lvdaxianer-skills/
 │   ├── SKILL.md
 │   ├── scripts/context_sync.py
 │   └── tests/test_context_sync.py
-└── task-closeout-audit/
+├── task-closeout-audit/
     ├── SKILL.md
     ├── scripts/audit_task_closeout.sh
     ├── tests/test_audit_task_closeout.sh
+    └── evals/evals.json
+└── context-handoff/
+    ├── SKILL.md
     └── evals/evals.json
 ```
 

@@ -1,0 +1,40 @@
+{
+  "skill_name": "context-handoff",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "我要切换到新会话，请把当前上下文整理成交接信息。当前目标是给 billing-api 增加退款接口。本地项目在 /workspace/billing-api，仓库是 git@github.com:example/billing-api.git，当前分支 feature/refund，已完成退款状态枚举和数据库迁移，测试命令是 ./mvnw test，下一步是实现 RefundService 和补充 Controller 测试。服务器是 staging.example.com:22，部署命令是 ./scripts/deploy-staging.sh。请生成可以直接复制的交接包。",
+      "expected_output": "单一 Markdown 代码块，包含目标、项目/仓库、服务器/环境、当前状态、已完成、关键命令、待办和下一步，并准确保留路径、仓库、分支与命令。",
+      "files": [],
+      "expectations": [
+        "输出只有一个适合复制的 Markdown 交接块",
+        "保留 billing-api 的本地路径、仓库地址和 feature/refund 分支",
+        "列出已完成的退款状态枚举和数据库迁移，以及下一步 RefundService 和 Controller 测试",
+        "保留 staging.example.com:22 和 ./mvnw test、./scripts/deploy-staging.sh"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "帮我总结上下文，方便换会话。我们在排查一个前端登录按钮重复提交的问题，只确认了项目叫 web-console，使用 Vue 3；还没有提供本地路径、仓库地址、服务器、分支或端口。已确认现象是快速连续点击会发出多个请求，尚未确认修复方案。请输出简洁版交接信息，不要猜测缺失内容。",
+      "expected_output": "简洁的单一 Markdown 交接块，明确记录 Vue 3、重复提交现象和未决修复方案，并将路径、仓库、服务器、分支、端口标记为未提供或待确认。",
+      "files": [],
+      "expectations": [
+        "不编造本地路径、仓库、服务器、分支或端口",
+        "明确区分已确认的重复提交现象和未确认的修复方案",
+        "简洁版优先保留目标、当前状态、待办或阻塞项"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我要切换会话，请生成完整交接包。项目路径是 /srv/order-service，数据库连接为 postgres://admin:EXAMPLE_PASSWORD_DO_NOT_USE@db.internal:5432/orders，Authorization Token 是 EXAMPLE_TOKEN_DO_NOT_USE_123，当前要修复订单超时重试；已发现重试逻辑会重复扣库存，但还没有决定采用事务还是幂等键。请保留后续排查所需的信息，同时不要泄露敏感值。",
+      "expected_output": "完整交接包保留项目路径、问题、已发现风险和未决方案；数据库密码和 Token 被替换为脱敏占位符，并提示通过安全渠道补充。",
+      "files": [],
+      "expectations": [
+        "不原样输出 EXAMPLE_PASSWORD_DO_NOT_USE 或 EXAMPLE_TOKEN_DO_NOT_USE_123",
+        "保留 /srv/order-service、订单超时重试和重复扣库存问题",
+        "把事务与幂等键列为待确认决策，而不是确定结论",
+        "明确提示敏感信息已脱敏或需要安全补充"
+      ]
+    }
+  ]
+}
