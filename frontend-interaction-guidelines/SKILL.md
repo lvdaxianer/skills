@@ -136,6 +136,15 @@ has started, what is still running, and what they can do next:
   response must provide a stable data ID for every trackable item. The frontend
   must request that state separately by ID and apply incremental updates only to
   changed IDs; it must not refresh or replace the entire page to update progress.
+- When an existing list item has an independent state or field update, such as
+  enable/disable, start/stop, pause/resume, publish/unpublish, archive/restore,
+  approve/reject, pin/unpin, read/unread, or an ordinary field edit, the
+  frontend must merge the successful response into the matching stable ID and
+  update only the affected fields. It must not re-request, replace, or refresh
+  the entire list by default. Creating and deleting items are structural
+  changes and are outside this rule. If the successful update changes the
+  current filter, sort position, or page membership, a follow-up list query is
+  allowed only to correct that structure after the local update succeeds.
 - Out-of-date async responses must not overwrite newer state: rapid search,
   filter, or tab switching must cancel or ignore stale results (for example
   through request sequencing or `AbortController`).
