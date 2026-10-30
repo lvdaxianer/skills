@@ -11,7 +11,7 @@ any non-terminal state after interruption -> reconcile -> next safe state or fai
 
 Each state record includes `release_id`, `previous_release`, `current`, timestamp, operator, lifecycle mode and evidence paths. State transitions are append-only; a failed transition records `failed_phase` and does not erase the release.
 
-For `runtime_target=docker-container`, state evidence MUST additionally identify `image_transport`, Registry digest or local image ID, Compose project/container ID, persistence manifest checksum, host mount set and override manifest checksum. These are part of the rollback target; changing only `current` is not sufficient.
+For `runtime_target=docker-container`, state evidence MUST additionally identify `image_transport`, Registry digest or local image ID, Compose project/container ID, physical release root and Compose path, persistence manifest checksum, host mount set and release-bound override manifest checksum. These are part of the rollback target; changing only `current` or only the image is not sufficient.
 
 ## Transition gates
 
@@ -27,7 +27,7 @@ For `runtime_target=docker-container`, state evidence MUST additionally identify
 
 ## Failure behavior
 
-Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, and for Docker restore the recorded previous Registry digest or local image ID, verified archive when required, persistence manifest and override manifest before starting previous. Rerun status/health and verify the loaded artifact. If stop fails, do not continue; request operator intervention. If rollback health or required mount restoration fails, stop and report incident, preserve both releases and do not select a third version.
+Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, and for Docker restore the recorded previous Registry digest or local image ID, verified archive when required, physical Compose path, persistence manifest and release-bound override manifest before starting previous. Rerun status/health and verify the loaded artifact. If stop fails, do not continue; request operator intervention. If rollback health or required mount restoration fails, stop and report incident, preserve both releases and do not select a third version.
 
 ## SSH interruption recovery
 

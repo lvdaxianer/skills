@@ -64,11 +64,11 @@ Use systemd to supervise a foreground `docker compose up` or an equivalent exact
 
 ### Docker manual-foreground
 
-Run `docker compose -f /service-root/current/container/compose.yaml up` or an exact `docker run` without `-d`. The operator owns the terminal and presses `Ctrl+C`. The Skill waits for confirmation that the expected container identity is running before health checks.
+Run the selected release's physically rendered Compose file, for example `docker compose -f /service-root/releases/<release-id>/container/compose.yaml up`, or an exact `docker run` without `-d`. The operator owns the terminal and presses `Ctrl+C`. The Skill waits for confirmation that the expected container identity is running before health checks; do not rely on `current` to resolve mount sources.
 
 ### Docker manual-background
 
-Run `docker compose -f /service-root/current/container/compose.yaml up -d` or an exact `docker run --name <declared-name>`. Stop priority is exact service-owned Compose/container stop, then the recorded container ID after verifying labels, digest, user, start time, mounts and ports. Never use broad `docker rm -f`, `docker kill` filters or `docker system prune -a`. If identity or stop is ambiguous, fail closed and do not switch or roll back.
+Run the selected release's physically rendered Compose file with `docker compose ... up -d` or an exact `docker run --name <declared-name>`. Stop priority is exact service-owned Compose/container stop, then the recorded container ID after verifying labels, digest, user, start time, mounts and ports. Never use broad `docker rm -f`, `docker kill` filters or `docker system prune -a`. If identity or stop is ambiguous, fail closed and do not switch or roll back.
 
 Docker overrides are read-only mounts at separate extension points such as `/app/overrides/lib`; they MUST NOT be mounted over packaged `/app/lib`. Changing an override requires an apply/restart and full health/smoke verification.
 

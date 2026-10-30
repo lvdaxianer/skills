@@ -17,7 +17,7 @@
   "container": {
     "type": ["object", "null"],
     "additionalProperties": false,
-    "required": ["repository", "release_tag", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "manifest_path", "persistence_manifest", "override_manifest"],
+    "required": ["repository", "release_tag", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "release_root", "compose_path", "manifest_path", "persistence_manifest", "override_manifest"],
     "properties": {
       "repository": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]+$"},
       "release_tag": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
@@ -43,6 +43,8 @@
       },
       "compose_project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"},
       "container_id": {"type": ["string", "null"], "pattern": "^[a-fA-F0-9]{12,64}$"},
+      "release_root": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+$"},
+      "compose_path": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+/container/[^\\n]+$"},
       "manifest_path": {"type": "string", "pattern": "^/[^\\n]*$"},
       "persistence_manifest": {
         "type": "object",
@@ -69,7 +71,7 @@
     "lifecycle_mode": {"enum": ["systemd", "manual-foreground", "manual-background"]},
     "environment_loading": {"enum": ["systemd EnvironmentFile", "explicit Shell loader", "dedicated env parser", "not started"]},
     "version_source": {"enum": ["git", "package-version", "manual"]},
-    "source_commit": {"type": ["string", "null"], "pattern": "^[0-9a-fA-F]{7,64}$"},
+    "source_commit": {"type": ["string", "null"], "pattern": "^(manual|[0-9a-fA-F]{7,64})$"},
     "release_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
     "release_number": {"type": "string", "pattern": "^[0-9]{3}$"},
     "artifact": {"type": "object", "additionalProperties": false, "required": ["path", "type"], "properties": {"path": {"type": "string", "minLength": 1}, "type": {"type": "string", "minLength": 1}, "signature": {"enum": ["verified", "not_configured", "not_required", "failed"]}, "provenance": {"enum": ["verified", "not_configured", "not_required", "failed"]}}},

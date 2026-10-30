@@ -17,9 +17,9 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] For `registry`, verify Registry URL/auth, push/pull and manifest digest; for `local-daemon`, inspect the preloaded local image ID without `docker login`/`pull`; for `archive`, verify the archive SHA-256 before `docker load` and inspect the loaded image ID. Never require a Registry when the selected mode is local.
 - [ ] For Docker, read and apply `dockerfile-standard.md`: verify digest-pinned bases, scoped `.dockerignore`, runtime stage, non-root user, `/app` layout, local entrypoint and required packaged resources.
 - [ ] For Docker, run `docker buildx build --check` and an offline or egress-restricted startup test; prove entrypoint/startup/healthcheck does not download or install resources.
-- [ ] For Docker, classify every `conf`, `data`, `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject container writable-layer-only business data.
+- [ ] For Docker, classify every `conf`, `data`, release-bound `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject a global shared override directory and container writable-layer-only business data.
 - [ ] For Docker, validate rendered mounts physically, reject `/app/lib` replacement, Docker socket/host-root mounts and implicit anonymous business volumes.
-- [ ] For Docker, validate override manifest, JAR/config checksums, deterministic precedence and compatibility evidence without printing values.
+- [ ] For Docker, validate the release-bound override manifest, JAR/config/HTML checksums, deterministic precedence and compatibility evidence without printing values; if HTML is packaged in the image, record `embedded-in-image` and do not invent a mount.
 - [ ] For manual-background, validate user/cmdline/artifact/start-time/port identity and exact stop contract.
 - [ ] Detect migrations, compatibility class, runner, backup and approval evidence.
 

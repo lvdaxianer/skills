@@ -1,5 +1,5 @@
 ---
-name: service-deployment-standard
+name: service-deployment
 description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, container persistence, incremental JAR/config overrides, or deployment-standard work. Enforces v2 immutable releases/current, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
 compatibility: "Linux shell utilities; systemd optional; service-specific lifecycle and health commands required."
 ---
@@ -12,11 +12,20 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
 
 - `service_root = deploy_root/service_name`; `deploy_root` is an absolute user input, default `/opt`. A custom root such as `/uinnova/deploy` MUST never write the default tree.
 - `runtime_target` MUST be explicitly `host-process` or `docker-container`. Docker does not remove or rename the lifecycle modes `systemd`, `manual-foreground` and `manual-background`.
-- Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and records stay outside releases.
-- For Docker, the release is an immutable release tag plus its resolved Registry manifest digest or local image ID, a release descriptor and the auditable `latest` alias state; the container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records or non-rebuildable indexes.
+- Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and operational records stay outside releases, while the release's own immutable descriptor/manifest stays inside that release.
+- For Docker, the release is an immutable release tag plus its resolved Registry manifest digest or local image ID, a release descriptor and the auditable `latest` alias state. Every effective override (JAR, config, HTML/static asset or future extension) MUST live inside that release directory; the container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records or non-rebuildable indexes.
 - Docker image transport MUST be explicitly `registry`, `local-daemon` or `archive`; Registry is optional. Every mode MUST use `<service-name>:<release-id>` as an immutable local release tag, record the identity as a Registry manifest digest or local image ID, and use `latest` only as a verified moving alias. A short SHA-only tag or a latest-only deployment is not a standard deployment identity.
-- Docker host mounts MUST be declared with purpose, container path, read-only flag, backup policy and restore procedure. `conf/`, non-rebuildable `data/`, declared `volumes/`, `overrides/` and `release-records/` are durable inputs; `run/`, temp, PID state and rebuildable caches are not.
-- A Docker `overrides/` layer MAY add/replace declared configuration and JARs, but MUST be read-only, manifest/checksum validated, recorded and loaded before packaged defaults without mounting over the packaged `/app/lib` or entrypoint.
+- Docker host mounts MUST be declared with purpose, container path, read-only flag, backup policy and restore procedure. Cross-release durable inputs are `conf/`, non-rebuildable `data/`, declared `volumes/`, `logs/` and `release-records/`; release-bound `overrides/` are immutable release inputs, not a global shared directory. `run/`, temp, PID state and rebuildable caches are not durable release inputs.
+- A Docker `overrides/` layer MAY add/replace declared configuration, JARs, HTML/static assets or future extension points, but MUST be copied into the release being deployed, read-only, manifest/checksum validated, recorded and loaded before packaged defaults without mounting over the packaged `/app/lib` or entrypoint.
+- The canonical Docker release unit is:
+  ```text
+  releases/<release-id>/
+  ├── container/compose.yaml       # rendered with physical absolute paths
+  ├── overrides/                   # lib/html/future effective overrides
+  ├── release-manifest.json        # image, source commit and checksums
+  └── <other immutable release content>
+  ```
+  `current -> releases/<release-id>` is only a human/operator entry point. A Docker Compose mount MUST point at the selected physical release directory, so changing `current` changes the selected unit but cannot make an already rendered Compose file silently consume another release's override.
 - Docker images MUST satisfy [dockerfile-standard.md](references/dockerfile-standard.md): build-time dependencies are pinned and verified, runtime resources are already present in the image or declared mounts, and entrypoint/startup/healthcheck commands MUST NOT download or install resources at runtime.
 - New release IDs MUST match exactly:
 
@@ -48,7 +57,8 @@ Collect and validate before any stop or write action:
 | `runtime_target` | Exactly `host-process` or `docker-container` |
 | `lifecycle.mode` | Exactly `systemd`, `manual-foreground` or `manual-background` |
 | lifecycle commands | Exact start, stop, status, readiness, liveness and smoke commands |
-| Docker manifest | Required for `docker-container`: `image_transport`, service/release tag, Registry and manifest digest only when `registry` is selected, local image ID for `local-daemon`/`archive`, latest alias status, Dockerfile/build evidence, Compose/CLI manifest, declared mounts, container labels and override manifest |
+| Docker manifest | Required for `docker-container`: `image_transport`, service/release tag, Registry and manifest digest only when `registry` is selected, local image ID for `local-daemon`/`archive`, latest alias status, Dockerfile/build evidence, Compose/CLI manifest, declared mounts, container labels and release-bound override manifest |
+| release-bound overrides | Required for Docker when overrides exist: physical `<service-root>/releases/<release-id>/overrides/` root, per-file SHA-256, effective mount/container path, precedence and compatibility evidence; a global `<service-root>/overrides/` directory MUST NOT be used as an effective input |
 | persistence mounts | Required for Docker data/config/index paths: host path, container path, purpose, read-only, backup and restore procedure |
 | `migration` | Whether migrations exist, compatibility class, runner and approval/backup evidence |
 | `retention` | Integer `>=0`; default `5` |
@@ -63,7 +73,7 @@ Read only the references relevant to the request, then execute these gates in or
 2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. For Docker, validate the selected image transport: Registry mode requires the resolved manifest digest and pull evidence; local-daemon mode requires an existing local image ID; archive mode requires a SHA-256-verified `docker save` archive and `docker load` evidence. In all modes validate the Dockerfile/build evidence, service/release tag, OCI labels, provenance/SBOM policy, required runtime files and rendered Compose/CLI manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files, bundled live configuration and runtime download/install behavior.
 3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
 4. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.
-5. Promote a complete staging directory or Docker release descriptor to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths for host-process releases; for Docker, validate the current descriptor, transport-specific image identity, labels, mounts, override manifest and offline/egress-restricted startup.
+5. Promote a complete staging directory or Docker release descriptor to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths for host-process releases; for Docker, render Compose with the physical absolute release path (never `current`), then validate the current descriptor, transport-specific image identity, labels, mounts, release-bound override manifest and offline/egress-restricted startup.
 6. Detect migration content and apply the migration gate. Prefer expand/contract; do not allow an unapproved incompatible or irreversible migration.
 7. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start the host process or exact Docker/Compose identity using the declared environment-loading path.
 8. Transition to `health-verified` only after the complete health matrix passes. For manual-foreground, the operator must confirm the foreground process is running before checks; `Ctrl+C` is the stop action.
@@ -78,7 +88,8 @@ Read only the references relevant to the request, then execute these gates in or
 - [artifact-and-config-security.md](references/artifact-and-config-security.md): archive, permissions, SHA-256 and env parser/source boundaries.
 - [docker-deployment.md](references/docker-deployment.md): Docker image, registry, persistence, override, lifecycle, recovery and image retention contract.
 - [dockerfile-standard.md](references/dockerfile-standard.md): Dockerfile structure, build/runtime boundary, resource completeness and no-runtime-download contract.
-- [docker-persistence-manifest.schema.json](references/docker-persistence-manifest.schema.json): machine-readable Docker mount and override manifest schema.
+- [docker-persistence-manifest.schema.json](references/docker-persistence-manifest.schema.json): machine-readable Docker persistent mount and release-bound override manifest schema.
+- [docker-release-manifest.schema.json](references/docker-release-manifest.schema.json): machine-readable release unit schema binding image, physical Compose, override checksums and source commit.
 - [docker-compose.template.yaml](references/docker-compose.template.yaml): safe Compose starting template; replace service-root and mode-specific image identity after validation.
 - [lifecycle-modes.md](references/lifecycle-modes.md): systemd, manual foreground/background, process identity and interruption handling.
 - [database-and-health.md](references/database-and-health.md): migration gates and health/smoke matrix.
@@ -107,4 +118,4 @@ current, status, failed_phase, health_check, smoke_check, rollback_target,
 rollback_result, retention, deleted_releases, record_path
 ```
 
-For a Docker report, also include image transport, optional Registry, immutable release tag, identity kind and image identity (manifest digest or local image ID), latest alias status/target identity/evidence path, Compose project, container ID when available, persistence mount summary, override manifest checksum and effective override files. For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.
+For a Docker report, also include image transport, optional Registry, immutable release tag, identity kind and image identity (manifest digest or local image ID), latest alias status/target identity/evidence path, Compose project, container ID when available, physical release root, release-bound Compose path, persistence mount summary, override manifest checksum and effective override files. For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.

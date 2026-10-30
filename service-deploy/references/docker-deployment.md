@@ -16,10 +16,11 @@ service-name:<release-id> + local image ID (local-daemon/archive)
 service-name:latest (verified alias state)
 container/compose.yaml or an equivalent CLI manifest
 docker-persistence-manifest.json
-override manifest and its checksum
+release-manifest.json
+release-bound override manifest and its checksum
 ```
 
-`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor.
+`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor. Every effective override MUST be under that same release directory. Compose MUST use the rendered physical release path, such as `/service-root/releases/<release-id>/overrides/lib`, not `/service-root/current` or a global `/service-root/overrides` path.
 
 ## Build contract
 
@@ -192,7 +193,7 @@ The service root is the only default host boundary. A custom `deploy_root` conti
 | TLS/Nginx config | `<service-root>/conf/tls/`, `<service-root>/conf/nginx/` | read-only | certificate/key backup under security policy |
 | business files | `<service-root>/data/` | read-write only at declared subpaths | MUST have restore procedure |
 | containerized database/index | `<service-root>/volumes/<name>/` | dedicated read-write volume | MUST have database/index backup or rebuild evidence |
-| incremental override | `<service-root>/overrides/` | read-only | record and backup manifest/files |
+| release-bound incremental override | `<service-root>/releases/<release-id>/overrides/` | read-only | record and backup manifest/files with the release |
 | logs | `<service-root>/logs/` or journald | write-only/log driver | bounded rotation and capacity alert |
 | release/audit state | `<service-root>/release-records/` and `current` | not normally mounted | MUST be retained for recovery |
 | runtime state | `<service-root>/run/` | optional temporary mount | never the sole source of truth |
@@ -204,15 +205,15 @@ Prefer an external database, Redis, Milvus/Elasticsearch and object store. If an
 
 ## Defaults and incremental overrides
 
-The image MAY contain default configuration and default `/app/lib`. The host overlay MUST be mounted at a separate path:
+The image MAY contain default configuration and default `/app/lib`. The selected release's overlay MUST be mounted at a separate path using its physical absolute path:
 
 ```yaml
 volumes:
-  - /service-root/overrides/lib:/app/overrides/lib:ro
+  - /service-root/releases/<release-id>/overrides/lib:/app/overrides/lib:ro
   - /service-root/conf:/app/config/overrides:ro
 ```
 
-Never mount `/service-root/overrides/lib` on `/app/lib`: that hides every packaged library. The service launcher MUST document deterministic precedence, normally:
+Never mount `/service-root/overrides/lib` on `/app/lib`, and never use a global override directory as the effective source: both hide or de-couple release content. The service launcher MUST document deterministic precedence, normally:
 
 ```text
 packaged defaults < external base config < external override config < environment variables
@@ -221,7 +222,7 @@ override JARs before packaged JARs on the classpath
 
 The service-specific merge rules MUST be declared for properties, YAML or JSON. If a format cannot be safely merged, require a complete external replacement file and record that decision.
 
-`overrides/manifest.yaml` or JSON MUST list every override file, its mode (`add`, `replace` or `merge`), SHA-256, reason and compatibility evidence. Only regular files in declared extension points are allowed. Startup scripts, entrypoints, Docker socket, host root, release switching scripts and arbitrary host paths are not valid overrides.
+`releases/<release-id>/overrides/manifest.yaml` or JSON MUST list every override file, its mode (`add`, `replace` or `merge`), SHA-256, reason and compatibility evidence. Only regular files in declared extension points are allowed. Startup scripts, entrypoints, Docker socket, host root, release switching scripts and arbitrary host paths are not valid overrides. `html/` is valid only when the image/runtime declares and tests an exact container path; if frontend assets are packaged into the image, they roll back with the image and MUST NOT receive a fictitious mount.
 
 An operator MUST apply overrides through the deployment workflow. Dropping a JAR into the directory does not activate it until validation, restart/recreate, health and smoke checks complete. The record stores names, checksums, load order and manifest checksum, never file contents or secrets.
 
@@ -233,7 +234,7 @@ The unit supervises a foreground Docker/Compose adapter and uses the current man
 
 ### `manual-foreground`
 
-Use `docker compose -f /service-root/current/container/compose.yaml up` or an equivalent `docker run` command without `-d`. The operator owns the terminal and uses `Ctrl+C`; health checks begin only after the operator confirms the exact container is running.
+Use the selected release's physically rendered Compose file, for example `docker compose -f /service-root/releases/<release-id>/container/compose.yaml up`, or an equivalent `docker run` command without `-d`. The operator owns the terminal and uses `Ctrl+C`; health checks begin only after the operator confirms the exact container is running. Do not resolve mount paths through `current`.
 
 ### `manual-background`
 
@@ -250,10 +251,10 @@ Never use broad container-name filters, `docker rm -f $(docker ps -aq)`, `docker
 Before stop, render and validate without creating containers:
 
 ```sh
-docker compose -f /service-root/current/container/compose.yaml config
+docker compose -f /service-root/releases/<release-id>/container/compose.yaml config
 ```
 
-Resolve every host mount physically and reject paths outside service-root, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target Registry digest or local image ID, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
+Resolve every host mount physically and reject paths outside service-root, release-bound override paths outside the selected release, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target Registry digest or local image ID, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
 
 Also verify the runtime image contract before stop: `Config.User` is the declared non-root user, `WorkingDir` is `/app`, `Entrypoint` resolves inside the image, required `/app/bin` and `/app/lib` resources exist, and the startup process does not execute download/install commands. Inspect bounded logs, process command lines and declared filesystem changes; do not rely on `running` or an image healthcheck alone.
 
@@ -272,7 +273,7 @@ Container running, `docker inspect` success or an HTTP `200` alone is insufficie
 
 ## Rollback and recovery
 
-On failure, stop only the new container identity, restore the recorded previous `current`, Registry digest or local image ID, Compose manifest, persistence manifest and override manifest, recreate the exact previous container and rerun status/readiness/liveness/dependency/smoke checks. A previous image, verified archive or required mount that cannot be restored makes rollback `failed` and requires incident handling; do not select a third release. Application rollback never automatically rolls back a database schema.
+On failure, stop only the new container identity, restore the recorded previous `current`, Registry digest or local image ID, physical Compose manifest, persistence manifest and release-bound override manifest, recreate the exact previous container and rerun status/readiness/liveness/dependency/smoke checks. A previous image, verified archive or required mount that cannot be restored makes rollback `failed` and requires incident handling; do not select a third release. Application rollback never automatically rolls back a database schema.
 
 After SSH interruption or host reboot, `reconcile` MUST inspect durable state, `current`, the selected transport's image identity/verified archive, mounts and labels before creating anything. `manual-background` has no automatic reboot recovery; use an operator runbook or choose systemd.
 

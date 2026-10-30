@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.lvdaxianer.local/service-deployment/docker-release-manifest.schema.json",
+  "title": "Docker Release Unit Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "service", "service_root", "release_id", "source_commit", "image", "compose_path", "overrides", "persistent_paths"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
+    "service_root": {"type": "string", "pattern": "^/[^\\n]*$"},
+    "release_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
+    "source_commit": {"type": "string", "pattern": "^(manual|[0-9a-fA-F]{7,64})$"},
+    "image": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reference", "transport", "identity_kind", "identity"],
+      "properties": {
+        "reference": {"type": "string", "pattern": "^(?!.*:latest$)(?!.*:dev$)[A-Za-z0-9._:/@-]+$"},
+        "transport": {"enum": ["registry", "local-daemon", "archive"]},
+        "identity_kind": {"enum": ["registry-manifest-digest", "local-image-id"]},
+        "identity": {"type": "string", "pattern": "^sha256:[A-Fa-f0-9]{64}$"},
+        "archive_checksum": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
+    "compose_path": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+/container/[^\\n]+$"},
+    "overrides": {
+      "type": "object", "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "sha256", "files"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^overrides/[^/][^\\n]*$"},
+          "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+          "files": {"type": "array", "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["path", "sha256", "mode"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^overrides/[^/][^\\n]*$"},
+              "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
+              "mode": {"enum": ["add", "replace", "merge"]},
+              "compatibility": {"type": "string", "minLength": 1}
+            }
+          }}
+        }
+      }
+    },
+    "persistent_paths": {"type": "array", "uniqueItems": true, "items": {"enum": ["conf", "data", "logs", "volumes", "release-records"]}},
+    "html_status": {"enum": ["embedded-in-image", "external-release-override", "not_applicable"]}
+  }
+}

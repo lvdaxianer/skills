@@ -4,12 +4,13 @@
   "title": "Docker Persistence and Override Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "service", "service_root", "release_id", "runtime_target", "mounts", "overrides"],
+  "required": ["schema_version", "service", "service_root", "release_id", "release_root", "runtime_target", "mounts", "overrides"],
   "properties": {
     "schema_version": {"type": "string", "const": "1"},
     "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
     "service_root": {"type": "string", "pattern": "^/[^\\n]*$"},
     "release_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
+    "release_root": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+$"},
     "runtime_target": {"const": "docker-container"},
     "compose_project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"},
     "mounts": {
@@ -44,6 +45,13 @@
               "required": ["purpose"]
             },
             "then": {"properties": {"read_only": {"const": true}}}
+          },
+          {
+            "if": {
+              "properties": {"purpose": {"const": "override"}},
+              "required": ["purpose"]
+            },
+            "then": {"properties": {"host_path": {"pattern": "^/[^\\n]*/releases/[^/]+/overrides/[^\\n]+$"}}}
           }
         ]
       }
@@ -53,7 +61,7 @@
       "additionalProperties": false,
       "required": ["manifest_path", "manifest_sha256", "lib", "config"],
       "properties": {
-        "manifest_path": {"type": "string", "pattern": "^/[^\\n]*$"},
+        "manifest_path": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+/overrides/[^\\n]+$"},
         "manifest_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
         "lib": {
           "type": "array",

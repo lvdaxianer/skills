@@ -15,7 +15,7 @@ Recommended order:
 
 On partial failure, reverse traffic exposure first, then frontend, backend and only the migration recovery procedure that is explicitly safe. Do not automatically reverse an irreversible schema change. Preserve all component releases and write one stack record referencing component records.
 
-For Docker stacks, each component uses an immutable Registry digest or local image ID and explicit host persistence manifest. Frontend/backend overrides and persistent data are component-scoped unless the stack manifest declares a shared mount. A container recreation MUST use the same declared volumes and override checksums; a Compose project MUST not rely on an anonymous volume for business data.
+For Docker stacks, each component uses an immutable Registry digest or local image ID and explicit host persistence manifest. Frontend/backend overrides are component-scoped and release-bound unless the stack manifest declares a shared release artifact; persistent data remains outside releases. A container recreation MUST use the same declared volumes and release-bound override checksums; a Compose project MUST not rely on an anonymous volume for business data.
 
 Nginx checks MUST include `nginx -t`, configured listen address/port, TLS certificate validity/ownership, upstream target and firewall boundary. Management ports such as `8081` MUST bind to the intended private interface or be firewall-restricted; they must not be publicly exposed. TLS, certificates, listeners and firewall rules belong to the infrastructure/operator boundary unless the manifest explicitly assigns them to the deployment.
 

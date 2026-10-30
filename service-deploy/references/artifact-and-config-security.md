@@ -34,7 +34,7 @@ Build stages may fetch pinned and checksum- or signature-verified dependencies. 
 Render the Compose/CLI manifest before stop or create:
 
 ```sh
-docker compose -f /service-root/current/container/compose.yaml config
+docker compose -f /service-root/releases/<release-id>/container/compose.yaml config
 docker image inspect registry.example/service@sha256:<digest>  # registry mode
 # or: docker image inspect service-name:<release-id>            # local modes
 ```
