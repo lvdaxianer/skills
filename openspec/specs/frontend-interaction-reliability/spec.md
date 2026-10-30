@@ -98,3 +98,27 @@ Equivalent operations MUST use consistent pending, success, failure, cancellatio
 #### Scenario: A request changes state while a screen reader is active
 - **WHEN** an operation enters pending, succeeds, fails, or becomes recoverable
 - **THEN** the relevant status is exposed through an accessible semantic announcement or status region and is not communicated by color alone
+
+### Requirement: 已有列表项的独立状态更新必须按数据 ID 增量更新
+
+当列表已有项发生独立状态或字段更新时，前端 MUST 在成功后仅更新受影响数据 ID 对应的字段，不得为此重新请求、替换或刷新整个列表。新增和删除属于列表结构变化，不受本要求约束。
+
+#### Scenario: 更新单个列表项的独立状态
+
+- **WHEN** 用户启用、停用、启动、停止、暂停、恢复、发布、下线、归档、审批、拒绝、置顶或修改已有列表项字段
+- **THEN** 前端在请求成功后仅更新目标 ID 对应的状态或字段，并保留其他列表项、分页位置、排序、筛选、选择和当前交互上下文
+
+#### Scenario: 批量更新多个已有列表项
+
+- **WHEN** 用户对多个已有列表项执行同一种状态或字段更新
+- **THEN** 前端仅更新成功响应中受影响的稳定 ID，不得通过整页重新查询来反映这些变更
+
+#### Scenario: 状态更新失败或响应过期
+
+- **WHEN** 更新请求失败、超时、取消，或其响应已落后于同一项的更新
+- **THEN** 前端不得覆盖列表中的新状态，必须保留可恢复的错误或取消反馈，并允许安全重试
+
+#### Scenario: 状态变化导致列表结构需要校正
+
+- **WHEN** 成功的状态更新使列表项不再满足当前筛选条件，或其排序位置、分页归属发生变化
+- **THEN** 前端可以在局部更新成功后重新获取列表以校正结构，但不得把结构校正作为所有独立状态更新的默认反馈方式
