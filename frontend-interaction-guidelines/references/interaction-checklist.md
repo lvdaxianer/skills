@@ -218,6 +218,32 @@ communicates, and how safely the interaction behaves.
   tab switching cancels or ignores out-of-date results (for example through
   request sequencing or `AbortController`).
 
+### Async operation lifecycle checks
+
+- Every state-changing action enters a pending or busy state immediately after
+  activation, disables repeated triggering, and keeps the loading state until
+  the request reaches a terminal outcome; requests under roughly 300 ms may
+  omit a spinner to avoid flicker while still blocking duplicate activation.
+- In a confirmation dialog, the confirm action remains loading until the
+  request succeeds or fails. The dialog, drawer, or form remains visible by
+  default while work is pending; if it closes by design, the affected content
+  retains a visible pending state and prevents an equivalent retry or second
+  submission.
+- Success changes happen only after confirmation from the data source: close,
+  navigate, clear, remove, or report completion only after success is known.
+- Failure, timeout, cancellation, and offline outcomes stop loading, restore a
+  safe action state, preserve relevant input or selection, explain the next
+  useful action, and provide retry, undo, cancel, or another recovery path.
+- Long-running or background work distinguishes submitted, queued, processing,
+  completed, failed, and cancelled states; progress or an estimate and a
+  cancellation path are shown when the operation supports them.
+- Refresh, navigation, close, Escape, click-outside, and return-to-page
+  behavior is defined while work is pending, and the final result remains
+  discoverable instead of being silently discarded.
+- Pending, success, failure, cancellation, and recovery states are exposed via
+  semantic status feedback for assistive technology and use consistent language,
+  placement, timing, and recovery patterns across equivalent product actions.
+
 ### Runtime and page lifecycle
 
 - Page lifecycle events are handled: polling, timers, and subscriptions pause
