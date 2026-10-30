@@ -177,6 +177,15 @@ communicates, and how safely the interaction behaves.
   trackable item exposes a stable data ID, state is requested separately by ID,
   and only changed IDs are updated incrementally. Updating progress must not
   re-fetch or replace the entire page.
+- When an existing list item changes an independent state or field—such as
+  enable/disable, start/stop, pause/resume, publish/unpublish, archive/restore,
+  approve/reject, pin/unpin, read/unread, or an ordinary field edit—the
+  successful response updates only the affected fields for the matching stable
+  ID. The implementation does not re-fetch or replace the whole list by
+  default. Creating and deleting items are structural changes and are outside
+  this check; a follow-up query is allowed only when a successful change alters
+  the current filter, sort position, or page membership and the list needs
+  structural correction.
 
 ### Notifications and transient feedback
 
@@ -212,6 +221,9 @@ communicates, and how safely the interaction behaves.
 - Frontend debounce/throttle is not treated as a replacement for backend idempotency
   when duplicate requests can affect data integrity.
 - Every optimistic update has failure rollback or a visible recovery path.
+- Independent state or field updates on existing list items use stable IDs and
+  incremental updates, preserving unaffected rows and the user's current
+  pagination, sorting, filtering, selection, and interaction context.
 - Page navigation, refresh, request failure, cancellation, and retry behavior are
   defined for long-running operations.
 - Stale async responses cannot overwrite newer state: rapid search, filter, or
