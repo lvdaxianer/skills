@@ -132,6 +132,33 @@ has started, what is still running, and what they can do next:
   requests can change data.
 - List queries must use explicit pagination to bound network transfer, memory use,
   and rendering work; unbounded full-list queries are not permitted.
+
+### List/table refresh anti-flicker
+
+- List and table refreshes MUST keep existing content mounted while a refresh is
+  pending. Do not bind the list's display condition to `loading` (for example,
+  `v-if="!loading && items.length"`), because that unmounts and remounts the
+  entire list. Inspect pagination, summary, and other accompanying regions for
+  the same problem.
+- A list's display condition MUST depend on whether data exists, not on whether
+  a refresh is in progress. During manual refresh or polling, keep the previous
+  content visible and show busy feedback on the initiating refresh control.
+  Full-page loading or an initial placeholder is allowed only when the first
+  request has no data to display.
+- Refresh merges MUST use a stable unique item ID as the row key and perform a
+  shallow row comparison. Reuse the existing object reference for unchanged
+  rows and update only rows with real changes; do not replace the whole list in
+  a way that rebuilds every row unnecessarily.
+- Manual refresh and automatic polling MUST use the same ID-based incremental
+  update path. Polling MUST NOT force a full-list remount or full-page loading
+  state merely because fresh data is being requested.
+- Verification MUST intercept the list request and delay it by about one second.
+  While the request is in flight, assert that the list DOM node remains the same
+  instance and that no initial-loading placeholder appears. Add or update the
+  relevant tests, and require all tests and type checks to pass.
+- Changes made to address refresh flicker MUST remain scoped to the refresh,
+  mounting, merge, and verification logic; do not alter unrelated behavior.
+
 - When paginated list items expose intermediate state such as progress, the list
   response must provide a stable data ID for every trackable item. The frontend
   must request that state separately by ID and apply incremental updates only to
