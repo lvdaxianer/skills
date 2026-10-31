@@ -19,9 +19,9 @@ The unit owns lifecycle and environment loading:
 ```ini
 [Service]
 User=knowledge
-WorkingDirectory=/opt/knowledge-app/current
-EnvironmentFile=/opt/knowledge-app/conf/knowledge-runtime.env
-ExecStart=/opt/knowledge-app/current/bin/run-main.sh
+WorkingDirectory=/service-root/current
+EnvironmentFile=/service-root/conf/service-runtime.env
+ExecStart=/service-root/current/bin/run-main.sh
 Restart=on-failure
 RestartSec=5
 TimeoutStartSec=90

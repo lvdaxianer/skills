@@ -12,15 +12,15 @@ services:
       com.example.image-transport: local-daemon
       com.example.image-identity: sha256:REPLACE_WITH_LOCAL_IMAGE_ID
     env_file:
-      - /service-root/conf/service-runtime.env
+      - ${DEPLOY_ROOT}/conf/service-runtime.env
     volumes:
       # External configuration and overrides are read-only.
-      - /service-root/conf:/app/config/overrides:ro
+      - ${DEPLOY_ROOT}/conf:/app/config/overrides:ro
       # Render this as the physical path of the selected release, never current.
-      - /service-root/releases/<release-id>/overrides/lib:/app/overrides/lib:ro
+      - ${RELEASE_ROOT}/overrides/lib:/app/overrides/lib:ro
       # Business data and logs are explicit; do not use the container layer.
-      - /service-root/data:/app/data
-      - /service-root/logs:/app/logs
+      - ${DEPLOY_ROOT}/data:/app/data
+      - ${DEPLOY_ROOT}/logs:/app/logs
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=256m
     security_opt:
@@ -35,9 +35,9 @@ services:
       timeout: 3s
       retries: 18
 
-# Replace every placeholder with physically resolved absolute paths. The override
-# source MUST be /service-root/releases/<release-id>/overrides, never a global
-# /service-root/overrides directory and never a current symlink path.
+# Render DEPLOY_ROOT as the complete physical service root and RELEASE_ROOT as
+# ${DEPLOY_ROOT}/releases/<release-id>. The override source MUST be RELEASE_ROOT,
+# never a global ${DEPLOY_ROOT}/overrides directory or a current symlink path.
 # The image must pass dockerfile-standard.md before this file is rendered.
 # Set com.example.image-transport to registry, local-daemon or archive and
 # record the matching manifest digest or local image ID in the release record.

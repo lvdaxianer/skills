@@ -3,9 +3,9 @@
 ## Path model
 
 ```text
-deploy_root  = user-provided absolute path, default /opt
-service_name = lowercase slug
-service_root = deploy_root/service_name
+DEPLOY_ROOT = user-provided absolute final service root, default /opt
+service_name = lowercase slug used for release IDs, image names and records only
+service_root = DEPLOY_ROOT
 ```
 
 ```text
@@ -30,7 +30,7 @@ service_root = deploy_root/service_name
 └── release-records/             # records and sequence.state
 ```
 
-`current`, `releases`, and the external `conf` boundary are mandatory. For Docker, release-bound `overrides`, `data` and `volumes` are created only when declared by the persistence manifest. `bin`, `logs`, `run` and `release-records` are created when needed, but operational record/lock paths MUST be inside service root. The immutable release descriptor remains inside its release; no business data may live only in a container writable layer.
+`current`, `releases`, and the external `conf` boundary are mandatory. `DEPLOY_ROOT` is already the complete service root; never append `service_name` to it. For Docker, release-bound `overrides`, `data` and `volumes` are created only when declared by the persistence manifest. `bin`, `logs`, `run` and `release-records` are created when needed, but operational record/lock paths MUST be inside service root. The immutable release descriptor remains inside its release; no business data may live only in a container writable layer.
 
 ## Physical resolution contract
 

@@ -10,7 +10,7 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
 
 ## Non-negotiable invariants
 
-- `service_root = deploy_root/service_name`; `deploy_root` is an absolute user input, default `/opt`. A custom root such as `/uinnova/deploy` MUST never write the default tree.
+- `DEPLOY_ROOT` is the final service deployment root, supplied as an absolute user input and defaulting to `/opt`; do not append `service_name` to it. A custom root such as `/uinnova/deploy/service-root` MUST never write the default tree. `service_name` remains metadata for release IDs, image names, labels and records only.
 - `runtime_target` MUST be explicitly `host-process` or `docker-container`. Docker does not remove or rename the lifecycle modes `systemd`, `manual-foreground` and `manual-background`.
 - Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and operational records stay outside releases, while the release's own immutable descriptor/manifest stays inside that release.
 - For Docker, the release is an immutable release tag plus its resolved Registry manifest digest or local image ID, a release descriptor and the auditable `latest` alias state. Every effective override (JAR, config, HTML/static asset or future extension) MUST live inside that release directory; the container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records or non-rebuildable indexes.
@@ -26,6 +26,7 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
   └── <other immutable release content>
   ```
   `current -> releases/<release-id>` is only a human/operator entry point. A Docker Compose mount MUST point at the selected physical release directory, so changing `current` changes the selected unit but cannot make an already rendered Compose file silently consume another release's override.
+- Common path variables MUST be resolved once before deployment: `DEPLOY_ROOT` is the complete physical `service_root`; `RELEASE_ROOT=${DEPLOY_ROOT}/releases/<release-id>`; `CONF_ROOT=${DEPLOY_ROOT}/conf`; `DATA_ROOT=${DEPLOY_ROOT}/data`; `LOG_ROOT=${DEPLOY_ROOT}/logs`; `RUN_ROOT=${DEPLOY_ROOT}/run`; and `RECORD_ROOT=${DEPLOY_ROOT}/release-records`. Templates MUST consume these variables rather than concatenate `DEPLOY_ROOT` with `service_name`.
 - Docker images MUST satisfy [dockerfile-standard.md](references/dockerfile-standard.md): build-time dependencies are pinned and verified, runtime resources are already present in the image or declared mounts, and entrypoint/startup/healthcheck commands MUST NOT download or install resources at runtime.
 - New release IDs MUST match exactly:
 
@@ -49,7 +50,7 @@ Collect and validate before any stop or write action:
 
 | Input | Required contract |
 | --- | --- |
-| `deploy_root` | Absolute path; default `/opt`; normalize physically before use |
+| `DEPLOY_ROOT` | Absolute final service root; default `/opt`; normalize physically before use; never append `service_name` |
 | `service_name` | Lowercase slug; reject `/`, `..`, whitespace, shell metacharacters and empty values |
 | `artifact` | Path/package, type, SHA-256, version source, expected files and owner/group |
 | `release_number` | Allocated by the sequence state under a service lock; never manually guessed |
@@ -69,7 +70,7 @@ If a required input is unavailable, stop with a dry-run report. Do not infer a h
 
 Read only the references relevant to the request, then execute these gates in order:
 
-1. Resolve and record `service_root`, physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
+1. Resolve and record `DEPLOY_ROOT` as `service_root`, then resolve physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
 2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. For Docker, validate the selected image transport: Registry mode requires the resolved manifest digest and pull evidence; local-daemon mode requires an existing local image ID; archive mode requires a SHA-256-verified `docker save` archive and `docker load` evidence. In all modes validate the Dockerfile/build evidence, service/release tag, OCI labels, provenance/SBOM policy, required runtime files and rendered Compose/CLI manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files, bundled live configuration and runtime download/install behavior.
 3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
 4. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.

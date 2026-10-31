@@ -4,7 +4,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 
 ## 1. Preflight (read-only)
 
-- [ ] Validate absolute `deploy_root`, lowercase `service_name`, release ID fields and `service_root` boundary.
+- [ ] Validate absolute `DEPLOY_ROOT` as the complete `service_root`, lowercase `service_name` as metadata, release ID fields and the physical root boundary.
 - [ ] Resolve `current` with physical paths; record current, previous and reject outside/dangling/regular-directory targets.
 - [ ] Acquire `run/deploy.lock`; install traps for lock and named temporary state cleanup.
 - [ ] Check disk warning/critical thresholds, owner/group, service user, runtime version and permissions.

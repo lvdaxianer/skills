@@ -185,7 +185,7 @@ Before accepting the image in any mode, run the Dockerfile lint and runtime star
 
 ## Persistence contract
 
-The service root is the only default host boundary. A custom `deploy_root` continues to work exactly as it does for host releases.
+The service root is the only default host boundary. `DEPLOY_ROOT` is already that complete service root; a custom value continues to work exactly as it does for host releases and MUST NOT be combined with `service_name`.
 
 | Class | Default host location | Container treatment | Backup requirement |
 | --- | --- | --- | --- |
