@@ -77,6 +77,42 @@ Use Review mode when auditing existing backend behavior.
    - `可优化`: Improves performance, maintainability, naming, diagnostics,
      developer experience, or operational polish.
 
+## Stable Public Error Contract and Request Trace Context
+
+Every externally visible backend error MUST have a stable, caller-safe
+contract. The public response MUST contain a machine-readable `errorCode`, a
+clear Chinese `message`, and the request `traceId`; an optional `details`
+field MUST contain only explicitly safe, structured data.
+
+- Define error types as a centralized enum or equivalent registry. At minimum,
+  distinguish validation, authentication, authorization, not-found, conflict
+  or idempotency, rate-limit, upstream failure, and unexpected internal errors.
+  Each type MUST map to a stable error code, appropriate HTTP status, and a
+  default Chinese message.
+- A global exception handler MUST map known exceptions to that contract. It MUST
+  never expose framework text such as `HttpServerErrorException`, exception
+  class names, stack traces, database schema details, or raw upstream responses
+  as the public message.
+- The response MUST be safe for frontend display and branching. The original
+  exception object, message, and stack are for internal diagnostics only; they
+  MUST be recorded through the logging boundary after sensitive data is
+  redacted, never copied directly into the public response.
+- At the request boundary, accept an upstream trace ID only after validating its
+  format and length; otherwise generate a new trace ID. Store it in the
+  request context (Java/Spring: MDC backed by a ThreadLocal-compatible
+  implementation), return the same value in the error response, and clear it in
+  a `finally` block.
+- Async work, thread pools, scheduled tasks, queue consumers, and RPC calls MUST
+  propagate the request context explicitly and MUST clear worker context before
+  the worker is reused. Do not rely on raw `ThreadLocal` inheritance for pooled
+  threads; use the language/framework context-propagation mechanism.
+- Error mapping, trace ID response, original-stack logging, context propagation,
+  and worker cleanup MUST have focused tests. Tests MUST verify that one request's
+  trace ID cannot appear in another request's response or log context.
+
+The production logging details are governed by `logging-boundaries`; this
+section defines the backend contract and recovery boundary, not log formatting.
+
 ## Non-Negotiable Backend Rules
 
 - Every data-changing API, service, job, webhook, and batch action must define

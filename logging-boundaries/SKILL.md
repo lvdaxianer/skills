@@ -44,6 +44,32 @@ description: "Use when writing or reviewing backend production logs for HTTP han
 
 ---
 
+## 异常响应与原始错误日志边界
+
+后端异常必须同时满足“前端可理解”和“内部可诊断”两个边界：前端只拿
+稳定错误码、明确中文消息和 `traceId`；日志保留经过脱敏的原始异常上下文
+与完整堆栈。不得把框架默认文本（例如 `HttpServerErrorException`）、异常类名、
+堆栈、数据库结构或未脱敏的上游响应直接返回前端。
+
+- 全局异常处理器负责把错误类型枚举映射为稳定 `errorCode`、HTTP 状态和中文
+  `message`，并从 MDC/ThreadLocal 读取同一个 `traceId` 返回；业务层不要各自
+  拼接错误文本或直接返回 `Exception#getMessage()`。
+- 预期业务/校验异常使用 `WARN`，未预期异常使用 `ERROR`；记录原始 throwable
+  作为日志参数的最后一项，保留 stack，不要只记录 `getMessage()`。同一异常
+  只在统一处理边界记录一次，避免 catch 内打日志后再次抛出造成双写。
+- “原文错误”只允许进入内部日志，而且必须先脱敏和限长；密码、token、密钥、
+  完整身份证/银行卡、原始请求值和未受控 body 在任何日志级别都禁止明文出现。
+- 请求入口必须生成或校验后透传 `traceId`，写入 MDC/ThreadLocal 兼容上下文；
+  请求结束必须在 `finally` 清理。日志格式由框架自动输出 traceId，禁止在每条
+  消息中手动拼接 `traceId`。
+- `@Async`、线程池、`CompletableFuture`、定时任务、MQ 和 RPC 派生任务必须
+  显式透传上下文，并在 worker 完成后清理，避免线程复用时串用上一个请求的
+  traceId。Java 使用 TaskDecorator/TTL，Go 使用 `context.Context`，Python
+  使用 `contextvars`，Node.js 使用 `AsyncLocalStorage`。
+
+前端拿到的 `traceId` 只用于反馈和排障关联，不得替代安全的错误码，也不得把
+内部原始异常当作用户提示。
+
 ## 决策矩阵（速查）
 
 **在什么事件打什么级别** —— 打开 [`references/decision-matrix.md`](references/decision-matrix.md) 查完整表。核心口诀：
