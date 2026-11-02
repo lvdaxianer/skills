@@ -113,6 +113,35 @@ field MUST contain only explicitly safe, structured data.
 The production logging details are governed by `logging-boundaries`; this
 section defines the backend contract and recovery boundary, not log formatting.
 
+## Import Parsing and Bounded Batch Ingestion
+
+Import flows that parse external files, payloads, or messages and persist the
+results MUST use a bounded batch-ingestion pipeline. Parsing MUST NOT write one
+database row at a time directly from the parse loop.
+
+- Separate parsing and validation from persistence. Parsed records MUST first
+  enter a bounded buffer, queue, or staging area; the buffer MUST apply
+  backpressure, pause, reject, or otherwise slow producers when it is full.
+- Use a configurable batch window and a maximum `batchSize`. Flush when the
+  window expires OR the batch reaches `batchSize`, whichever happens first.
+  The window MUST be bounded and observable; a fixed blocking `sleep` is not a
+  substitute for a scheduler, queue, or batch coordinator.
+- Bound the buffer capacity, batch size, request duration, and transaction
+  duration. Unbounded memory accumulation and one-shot full-file database
+  commits are prohibited. Large imports SHOULD run as recoverable background
+  work rather than blocking an interactive request.
+- Each batch MUST have an explicit transaction boundary and a durable status.
+  Commit progress only after the database confirms success; a failed batch MUST
+  retain its input range, failure reason, retry count, and recovery or dead-letter
+  path. One failed batch MUST NOT silently discard other batches.
+- Import retries, job recovery, and duplicate message delivery MUST be safe.
+  Use an import task ID, business unique key, idempotency key, or deduplication
+  record so a batch cannot create duplicate rows after a retry.
+- Batch processing MUST expose progress and a recoverable terminal state:
+  queued, processing, completed, partially failed, failed, or cancelled. Tests
+  MUST cover window/size flush behavior, batch transaction failure, retry,
+  duplicate input, backpressure, and resume-from-failure behavior.
+
 ## Non-Negotiable Backend Rules
 
 - Every data-changing API, service, job, webhook, and batch action must define
