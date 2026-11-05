@@ -16,8 +16,11 @@ services:
     volumes:
       # External configuration and overrides are read-only.
       - ${DEPLOY_ROOT}/conf:/app/config/overrides:ro
-      # Render this as the physical path of the selected release, never current.
-      - ${RELEASE_ROOT}/overrides/lib:/app/overrides/lib:ro
+      # Generated once per release in override_chain, newest layer first.
+      # The renderer must emit one physical mount per layer, for example:
+      # - /service-root/releases/<new-id>/overrides:/app/overrides/layers/00:ro
+      # - /service-root/releases/<base-id>/overrides:/app/overrides/layers/01:ro
+      - ${RELEASE_ROOT}/overrides:/app/overrides/layers/00:ro
       # Business data and logs are explicit; do not use the container layer.
       - ${DEPLOY_ROOT}/data:/app/data
       - ${DEPLOY_ROOT}/logs:/app/logs
@@ -36,8 +39,9 @@ services:
       retries: 18
 
 # Render DEPLOY_ROOT as the complete physical service root and RELEASE_ROOT as
-# ${DEPLOY_ROOT}/releases/<release-id>. The override source MUST be RELEASE_ROOT,
-# never a global ${DEPLOY_ROOT}/overrides directory or a current symlink path.
+# ${DEPLOY_ROOT}/releases/<release-id>. Replace the sample override mount with
+# the complete physical override_chain, newest first. Never use a global
+# ${DEPLOY_ROOT}/overrides directory or a current symlink path.
 # The image must pass dockerfile-standard.md before this file is rendered.
 # Set com.example.image-transport to registry, local-daemon or archive and
 # record the matching manifest digest or local image ID in the release record.
@@ -49,6 +53,8 @@ services:
 # Prefer an egress-restricted network: allow only declared business dependencies
 # such as database/Redis/object storage, not registries or package/model stores.
 # Use --network none for services that do not require external dependencies.
-# Do not mount overrides/lib on /app/lib: that would hide packaged defaults.
+# The service adapter must load /app/overrides/layers/00 before older layers and
+# packaged defaults. Do not mount an override layer on /app/lib: that hides
+# packaged defaults.
 # Add database/index volumes only when the persistence manifest declares them,
 # including backup and restore procedures.

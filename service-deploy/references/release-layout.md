@@ -15,7 +15,7 @@ service_root = DEPLOY_ROOT
 │   ├── bin/                     # version runtime scripts
 │   ├── conf/                    # static, non-secret defaults only
 │   ├── lib/                     # application and dependencies
-│   ├── overrides/               # release-bound effective overrides only
+│   ├── overrides/               # release-bound delta layer only
 │   │   ├── lib/
 │   │   ├── html/                # only when an actual runtime path exists
 │   │   └── <future-override>/
@@ -30,7 +30,7 @@ service_root = DEPLOY_ROOT
 └── release-records/             # records and sequence.state
 ```
 
-`current`, `releases`, and the external `conf` boundary are mandatory. `DEPLOY_ROOT` is already the complete service root; never append `service_name` to it. For Docker, release-bound `overrides`, `data` and `volumes` are created only when declared by the persistence manifest. `bin`, `logs`, `run` and `release-records` are created when needed, but operational record/lock paths MUST be inside service root. The immutable release descriptor remains inside its release; no business data may live only in a container writable layer.
+`current`, `releases`, and the external `conf` boundary are mandatory. `DEPLOY_ROOT` is already the complete service root; never append `service_name` to it. For Docker, release-bound `overrides` are immutable delta layers; an effective release may reference an ordered chain of earlier release layers without copying them. `data` and `volumes` are created only when declared by the persistence manifest. `bin`, `logs`, `run` and `release-records` are created when needed, but operational record/lock paths MUST be inside service root. The immutable release descriptor remains inside its release; no business data may live only in a container writable layer.
 
 ## Physical resolution contract
 
@@ -59,7 +59,7 @@ The contract test MUST call both:
 
 It MUST assert identical physical `service_root`, `releases`, and release target values; reject a current link outside releases, a regular directory named current, a dangling link and a symlink whose target escapes through another link.
 
-For `runtime_target=docker-container`, the same physical contract applies to the release descriptor: `current` MUST resolve inside `releases`, and its transport, Registry digest or local image ID, physical Compose manifest, persistence manifest and release-bound override manifest MUST be read from that resolved release. Compose MUST be rendered with `/service-root/releases/<release-id>` as an absolute host path; it MUST NOT rely on `/service-root/current` for a mount source. A Docker container is invalid when its release label, override mount or mode-specific image identity does not match the resolved descriptor.
+For `runtime_target=docker-container`, the same physical contract applies to the release descriptor: `current` MUST resolve inside `releases`, and its transport, Registry digest or local image ID, physical Compose manifest, persistence manifest and release-bound override manifest/chain MUST be read from that resolved release. Compose MUST be rendered with absolute host paths for every release in the chain; it MUST NOT rely on `/service-root/current` for a mount source. A Docker container is invalid when its release label, ordered override mounts or mode-specific image identity does not match the resolved descriptor.
 
 ## Atomic current switch
 
@@ -79,4 +79,4 @@ If `mv -Tf` is not supported, stop and use a host-supported same-filesystem atom
 
 Tar extraction MUST target only a staging directory below `releases` and MUST reject entries named `conf`, `logs`, `run`, `release-records`, or their absolute/relative variants. The live file `<service-root>/conf/<name>` remains untouched during release promotion.
 
-Docker host paths MUST resolve under the same physical service root. `conf`, `data`, `volumes`, `logs` and `release-records` are mounted only through a checked manifest; effective `overrides` MUST resolve under the selected release directory. Never mount a global `<service-root>/overrides` as an effective release input, never mount `overrides/lib` over the image's packaged `/app/lib`, and never mount `/var/run/docker.sock`, the host root or a release directory as writable application data.
+Docker host paths MUST resolve under the same physical service root. `conf`, `data`, `volumes`, `logs` and `release-records` are mounted only through a checked manifest; every `override_chain` layer MUST resolve under a release directory and be mounted by its physical absolute path. Never mount a global `<service-root>/overrides` as an effective release input, never mount an override layer over the image's packaged `/app/lib`, and never mount `/var/run/docker.sock`, the host root or a release directory as writable application data.

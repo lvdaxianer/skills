@@ -16,7 +16,7 @@ Kubernetes、Helm 和 Swarm 不自动继承本规范；这些目标必须使用�
 4. `COPY` 只能复制已声明的应用产物、默认配置、静态资源、模型和库；生产 Dockerfile 禁止使用远程 URL `ADD`。需要归档时先在 build stage 下载并校验，再用本地 `COPY` 进入 runtime stage。
 5. 依赖下载只能发生在受信任的 build stage。下载必须使用 lockfile、版本固定和 SHA-256/签名校验；下载结果必须成为可审计的镜像层或构建产物。
 6. runtime stage 必须使用非 root 用户运行；例外必须记录原因、影响范围和补偿控制。用户、组、UID/GID 必须固定或由发布 manifest 明确记录，不能依赖宿主机动态创建。
-7. 必须设置显式 `WORKDIR /app`，并使用 `/app/bin`、`/app/lib`、`/app/conf`、`/app/data` 等稳定路径。Java 服务的默认库必须保留在 `/app/lib`，增量覆盖只能使用独立的 `/app/overrides/lib` 挂载。
+7. 必须设置显式 `WORKDIR /app`，并使用 `/app/bin`、`/app/lib`、`/app/conf`、`/app/data` 等稳定路径。Java 服务的默认库必须保留在 `/app/lib`；增量覆盖必须通过部署流程挂载到 `/app/overrides/layers/<precedence>/lib` 等独立、只读的 layer 路径，不能覆盖 `/app/lib`。
 8. 必须使用本地、确定性的 `ENTRYPOINT`；启动脚本必须以 `exec` 替换为实际主进程。`CMD` 只能提供稳定默认参数，不得包含下载、安装或远程脚本。
 9. `HEALTHCHECK` 只能做快速本地探测；它不能下载资源、修改数据或替代部署流程中的 readiness、liveness、依赖和业务 smoke check。
 10. runtime 镜像必须支持 `read_only: true`；确需写入的临时目录只能使用声明的 `tmpfs` 或持久化挂载。不得把业务数据、配置、证书、日志、release record 或不可重建索引留在容器 writable layer 中。
@@ -30,11 +30,11 @@ Kubernetes、Helm 和 Swarm 不自动继承本规范；这些目标必须使用�
 ├── bin/
 │   ├── entrypoint.sh       # 本地启动入口，负责校验并 exec 主进程
 │   └── healthcheck.sh      # 快速本地探测，不下载资源
-├── lib/                    # 镜像内默认库，不能被 overrides/lib 直接遮蔽
+├── lib/                    # 镜像内默认库，不能被任何 override layer 直接遮蔽
 ├── conf/                   # 非敏感默认配置；live 配置来自外部 conf/ 或 EnvironmentFile
 ├── data/                   # 仅在 manifest 明确声明时使用
 └── overrides/
-    └── lib/                # 运行时只读 override 挂载点
+    └── layers/             # 由 Compose 为 release override_chain 挂载的只读层
 ```
 
 镜像内的 `conf/` 只能是非敏感默认值。部署不得把镜像默认配置复制回 `<service-root>/conf`，也不得把宿主机 live env、证书或密钥打进镜像。
@@ -81,7 +81,7 @@ HEALTHCHECK --interval=5s --timeout=3s --retries=18 \\
 - 使用 `set -eu` 或等价的失败即停策略，并在启动前校验必需本地文件、目录和外部配置的存在性；
 - 不 `source` 镜像内未经验证的 live 配置；Shell env loader 必须遵守 [artifact-and-config-security.md](artifact-and-config-security.md)；
 - 不执行远程 shell、包安装或资源下载；
-- 按服务声明的顺序加载 `/app/overrides/lib` 和 `/app/lib`，不得用 override 目录覆盖 `/app/lib`；
+- 按 `override_chain` 的 precedence 从新到旧加载 `/app/overrides/layers/<n>/lib`，最后加载 `/app/lib`；不得用 override layer 覆盖 `/app/lib`，也不得假设只有一个 override 目录；
 - 最后使用 `exec` 启动唯一主进程，并将退出码传递给容器运行时；
 - 不依赖宿主机当前目录、宿主机 PATH、未声明的 socket 或任意外部文件。
 

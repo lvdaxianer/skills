@@ -17,7 +17,7 @@
   "container": {
     "type": ["object", "null"],
     "additionalProperties": false,
-    "required": ["repository", "release_tag", "release_mode", "base_release", "build_mode", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "release_root", "compose_path", "manifest_path", "persistence_manifest", "override_manifest"],
+    "required": ["repository", "release_tag", "release_mode", "base_release", "build_mode", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "release_root", "compose_path", "manifest_path", "persistence_manifest", "override_manifest", "override_strategy", "override_chain"],
     "properties": {
       "repository": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]+$"},
       "release_tag": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
@@ -68,7 +68,9 @@
           "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"},
           "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "mode"], "properties": {"path": {"type": "string", "minLength": 1}, "sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "mode": {"enum": ["add", "replace", "merge"]}}}}
         }
-      }
+      },
+      "override_strategy": {"enum": ["none", "layered"]},
+      "override_chain": {"type": "array", "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"}}
     }
   },
     "lifecycle_mode": {"enum": ["systemd", "manual-foreground", "manual-background"]},

@@ -23,7 +23,7 @@ release-manifest.json
 release-bound override manifest and its checksum
 ```
 
-`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor. Every effective override MUST be under that same release directory. Compose MUST use the rendered physical release path, such as `/service-root/releases/<release-id>/overrides/lib`, not `/service-root/current` or a global `/service-root/overrides` path.
+`current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor. The current release owns only its delta; every effective override MUST resolve through its recorded `override_chain` of release directories. Compose MUST use rendered physical release paths, such as `/service-root/releases/<release-id>/overrides` mounted as `/app/overrides/layers/00`, not `/service-root/current` or a global `/service-root/overrides` path.
 
 ## Build contract
 
@@ -60,11 +60,14 @@ An override-only release MUST satisfy all of the following:
    immutable image identity.
 2. `release_mode=override-only`, `build_mode=reused` and `base_release` identify
    that previous release.
-3. The new release copies the effective override set into its own
-   `releases/<new-id>/overrides/` directory and writes a new checksum manifest;
-   it MUST NOT edit the old release or use a global override directory.
+3. The new release stores only the changed override files in its own
+   `releases/<new-id>/overrides/` directory and writes a checksum manifest plus
+   an ordered `override_chain` pointing to earlier release layers; it MUST NOT
+   copy the full effective tree, edit an old release or use a global override
+   directory.
 4. The new manifest records the same image identity as `base_release` and the
-   rendered Compose file mounts only the new release's physical override path.
+   rendered Compose file mounts every physical release path in `override_chain`,
+   newest first, never a `current` symlink path.
 5. The normal stop, recreate/start, health, dependency, smoke and loaded-
    override checks pass before `current` or `latest` changes.
 
@@ -257,15 +260,29 @@ Prefer an external database, Redis, Milvus/Elasticsearch and object store. If an
 
 ## Defaults and incremental overrides
 
-The image MAY contain default configuration and default `/app/lib`. The selected release's overlay MUST be mounted at a separate path using its physical absolute path:
+The image MAY contain default configuration and default `/app/lib`. Each
+release's `overrides/` directory is an immutable delta layer. The selected
+release manifest MUST provide an ordered `override_chain`, newest layer first.
+The renderer MUST mount every layer at a separate container path using physical
+absolute host paths:
 
 ```yaml
 volumes:
-  - /service-root/releases/<release-id>/overrides/lib:/app/overrides/lib:ro
+  # Generated once per layer in override_chain; index 00 has highest precedence.
+  - /service-root/releases/<new-id>/overrides:/app/overrides/layers/00:ro
+  - /service-root/releases/<base-id>/overrides:/app/overrides/layers/01:ro
   - /service-root/conf:/app/config/overrides:ro
 ```
 
-Never mount `/service-root/overrides/lib` on `/app/lib`, and never use a global override directory as the effective source: both hide or de-couple release content. The service launcher MUST document deterministic precedence, normally:
+The service adapter MUST load `/app/overrides/layers/00` before `01`, then older
+layers, and finally packaged defaults. For JARs this means the ordered layer
+`lib` directories are earlier on the classpath. For HTML/static assets, the
+adapter MUST either support ordered roots or create a read-only overlay view
+from the chain; if neither is possible, block the override-only release instead
+of copying or silently dropping older layers. Never mount a global
+`/service-root/overrides` directory or any override layer on `/app/lib`.
+
+The service launcher MUST document deterministic precedence, normally:
 
 ```text
 packaged defaults < external base config < external override config < environment variables
@@ -274,9 +291,21 @@ override JARs before packaged JARs on the classpath
 
 The service-specific merge rules MUST be declared for properties, YAML or JSON. If a format cannot be safely merged, require a complete external replacement file and record that decision.
 
-`releases/<release-id>/overrides/manifest.yaml` or JSON MUST list every override file, its mode (`add`, `replace` or `merge`), SHA-256, reason and compatibility evidence. Only regular files in declared extension points are allowed. Startup scripts, entrypoints, Docker socket, host root, release switching scripts and arbitrary host paths are not valid overrides. `html/` is valid only when the image/runtime declares and tests an exact container path; if frontend assets are packaged into the image, they roll back with the image and MUST NOT receive a fictitious mount.
+`releases/<release-id>/overrides/manifest.yaml` or JSON MUST list every file in
+the current delta, its mode (`add`, `replace` or `merge`), SHA-256, reason and
+compatibility evidence. The release manifest MUST list every release ID in the
+effective `override_chain` and its layer checksum. Only regular files in
+declared extension points are allowed. Startup scripts, entrypoints, Docker
+socket, host root, release switching scripts and arbitrary host paths are not
+valid overrides. `html/` is valid only when the image/runtime declares and tests
+an exact layered or overlay container path; if frontend assets are packaged into
+the image, they roll back with the image and MUST NOT receive a fictitious mount.
 
-An operator MUST apply overrides through the deployment workflow. Dropping a JAR into the directory does not activate it until validation, restart/recreate, health and smoke checks complete. The record stores names, checksums, load order and manifest checksum, never file contents or secrets.
+An operator MUST apply overrides through the deployment workflow. Dropping a JAR
+into any layer does not activate it until a new release manifest, chain,
+restart/recreate, health and smoke checks complete. The record stores layer IDs,
+names, checksums, load order and manifest checksum, never file contents or
+secrets.
 
 ## Container lifecycle modes
 
@@ -306,7 +335,12 @@ Before stop, render and validate without creating containers:
 docker compose -f /service-root/releases/<release-id>/container/compose.yaml config
 ```
 
-Resolve every host mount physically and reject paths outside service-root, release-bound override paths outside the selected release, protected release paths, undeclared device/FIFO targets and writable mounts for config/secret/override paths. Verify the target Registry digest or local image ID, labels, Compose project, container user, ports, required mounts and no forbidden Docker socket/root mounts.
+Resolve every host mount physically and reject paths outside service-root,
+release-bound override paths outside the selected `override_chain`, protected
+release paths, undeclared device/FIFO targets and writable mounts for
+config/secret/override paths. Verify the target Registry digest or local image
+ID, labels, Compose project, container user, ports, required mounts and no
+forbidden Docker socket/root mounts.
 
 Also verify the runtime image contract before stop: `Config.User` is the declared non-root user, `WorkingDir` is `/app`, `Entrypoint` resolves inside the image, required `/app/bin` and `/app/lib` resources exist, and the startup process does not execute download/install commands. Inspect bounded logs, process command lines and declared filesystem changes; do not rely on `running` or an image healthcheck alone.
 

@@ -41,7 +41,7 @@ docker image inspect registry.example/service@sha256:<digest>  # registry mode
 
 Resolve every host path with `readlink -f`/`realpath` and require it to remain below the physical service root. Reject writable mounts for `conf`, secrets, certificates and `overrides`; reject device/FIFO paths, `/var/run/docker.sock`, the host root, release directories as mutable data and any path containing traversal. `docker compose down --volumes` is a destructive data operation and is not part of normal deployment.
 
-The image's packaged `/app/lib` and default configuration remain available. Mount overrides at a separate path such as `/app/overrides/lib:ro`; mounting a host override directory over `/app/lib` is a hard failure because it hides packaged defaults. The effective classpath/config merge must be declared and recorded.
+The image's packaged `/app/lib` and default configuration remain available. Mount each physical release layer at a separate path such as `/app/overrides/layers/00:ro` and `/app/overrides/layers/01:ro`, in the exact order recorded by `override_chain`; mounting a host override directory over `/app/lib` is a hard failure because it hides packaged defaults. The effective classpath/config merge must be declared and recorded. A layer may contain only its delta, so the runtime adapter must search newer layers before older layers and then packaged defaults; it must not require a copied effective tree.
 
 Docker image, mount and override failures MUST occur before stopping the current runtime. Do not print registry credentials, environment values, override contents or secret paths beyond the minimum redacted path metadata needed for diagnosis.
 

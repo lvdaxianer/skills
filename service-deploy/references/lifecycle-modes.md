@@ -70,7 +70,7 @@ Run the selected release's physically rendered Compose file, for example `docker
 
 Run the selected release's physically rendered Compose file with `docker compose ... up -d` or an exact `docker run --name <declared-name>`. Stop priority is exact service-owned Compose/container stop, then the recorded container ID after verifying labels, digest, user, start time, mounts and ports. Never use broad `docker rm -f`, `docker kill` filters or `docker system prune -a`. If identity or stop is ambiguous, fail closed and do not switch or roll back.
 
-Docker overrides are read-only mounts at separate extension points such as `/app/overrides/lib`; they MUST NOT be mounted over packaged `/app/lib`. Changing an override requires an apply/restart and full health/smoke verification.
+Docker overrides are read-only mounts at separate ordered extension points such as `/app/overrides/layers/00/lib` and `/app/overrides/layers/01/lib`; they MUST NOT be mounted over packaged `/app/lib`. Changing an override creates a new delta release, updates `override_chain`, requires an apply/restart and full health/smoke verification. The runtime must resolve the first matching file from newest to oldest layer, then the packaged default.
 
 ## Interruption and cleanup
 

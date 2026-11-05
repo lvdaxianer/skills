@@ -22,6 +22,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] For Docker, classify every `conf`, `data`, release-bound `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject a global shared override directory and container writable-layer-only business data.
 - [ ] For Docker, validate rendered mounts physically, reject `/app/lib` replacement, Docker socket/host-root mounts and implicit anonymous business volumes.
 - [ ] For Docker, validate the release-bound override manifest, JAR/config/HTML checksums, deterministic precedence and compatibility evidence without printing values; if HTML is packaged in the image, record `embedded-in-image` and do not invent a mount.
+- [ ] For Docker, validate `override_chain` newest-first, ensure every referenced release layer exists and is protected from retention, and verify the runtime adapter loads newer layers before older layers without copying the full effective tree.
 - [ ] For manual-background, validate user/cmdline/artifact/start-time/port identity and exact stop contract.
 - [ ] Detect migrations, compatibility class, runner, backup and approval evidence.
 
@@ -73,5 +74,6 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] After a verified success, run `retention.sh apply <service-root> 5 --apply`; protect current/previous/active/failed/unverified.
 - [ ] Record `deleted_releases`, release `record_path`, final current and retention result.
 - [ ] For Docker, retain image identities referenced by protected releases and verified rollback archives; delete local images only by exact unreferenced image ID; never use `docker system prune -a`.
+- [ ] For Docker layered overrides, retain every release referenced by a protected `override_chain`; never delete a base layer still referenced by a current, previous, active, failed, unverified or retained release.
 - [ ] Protect the identity referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
 - [ ] Release the lock and return the required report.
