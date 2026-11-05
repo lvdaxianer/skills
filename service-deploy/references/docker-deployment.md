@@ -9,6 +9,9 @@ transport MUST be recorded in the release descriptor:
 
 ```text
 release-id
+release_mode: initial-image | image-update | override-only
+base_release (required for override-only)
+build_mode: built | reused
 image_transport: registry | local-daemon | archive
 service-name:<release-id>
 registry/service-name@sha256:<digest> (registry mode)
@@ -24,9 +27,54 @@ release-bound override manifest and its checksum
 
 ## Build contract
 
+This build contract applies to `release_mode=initial-image` and
+`release_mode=image-update`. For `release_mode=override-only`, do not run the
+build; follow the reuse checks below and validate the recorded image identity.
+
 Build on a trusted build host or CI worker from a named source commit. Production MUST NOT build from an unreviewed context by default.
 
 The Dockerfile MUST also satisfy [dockerfile-standard.md](dockerfile-standard.md). Build-time network access is allowed only on the trusted build host/CI worker for pinned, checksum- or signature-verified inputs. Runtime startup MUST NOT download or install software, code, packages, models, scripts or other resources to complete the image. The image must contain those resources, or a declared read-only persistent mount must supply them before start.
+
+## Initial image build and override-only releases
+
+The first Docker deployment for a service has no verified base release. It MUST
+build the image from the reviewed Dockerfile and source context, verify the
+resulting image identity, and then create the first release descriptor. The
+selected transport determines how that built image reaches the target:
+
+```text
+initial-image -> build and verify image -> create release -> health/smoke -> record
+```
+
+After a verified release exists, classify every change before starting a build:
+
+| Change scope | Release action | Image action |
+| --- | --- | --- |
+| Only `releases/<new-id>/overrides/lib`, `html` or another declared override changes | Create a new release directory and new release-bound manifests | Reuse the previous verified image identity; do not build a new image |
+| External `conf`, `data` or `logs` changes only | Follow the relevant external-data/config procedure | No image build; do not silently turn it into an override |
+| Application files packaged into the image, Dockerfile, base image, OS/runtime dependency, entrypoint, healthcheck, user, ports, default HTML/lib or other image content changes | Create a new image release | Build and verify a new image |
+
+An override-only release MUST satisfy all of the following:
+
+1. A previous release record is `verified`/`recorded` and contains a resolvable
+   immutable image identity.
+2. `release_mode=override-only`, `build_mode=reused` and `base_release` identify
+   that previous release.
+3. The new release copies the effective override set into its own
+   `releases/<new-id>/overrides/` directory and writes a new checksum manifest;
+   it MUST NOT edit the old release or use a global override directory.
+4. The new manifest records the same image identity as `base_release` and the
+   rendered Compose file mounts only the new release's physical override path.
+5. The normal stop, recreate/start, health, dependency, smoke and loaded-
+   override checks pass before `current` or `latest` changes.
+
+If the previous image identity is missing, cannot be inspected, or cannot be
+retrieved under the selected transport, an override-only release is blocked.
+Recover the recorded image or perform a new image build; never use `latest`, an
+unverified tag or a guessed image as the base. Reusing an image means avoiding
+`docker build`; Registry mode may still pull the exact recorded digest when the
+target does not have it, while local-daemon/archive modes require the exact local
+image or a verified archive.
 
 The build MUST:
 
@@ -66,7 +114,8 @@ docker buildx imagetools inspect "$REGISTRY/$SERVICE:$RELEASE_ID"
 The deployment record MUST store `image_transport`, the service/release tag,
 the optional Registry, and exactly one image identity: a Registry manifest
 digest in `registry` mode or a local image ID in `local-daemon`/`archive` mode.
-The release tag MUST never be reused. `latest` is allowed only as a moving
+It MUST also store `release_mode`, `build_mode` and `base_release` when an image
+is reused. The release tag MUST never be reused. `latest` is allowed only as a moving
 alias for the most recently verified release; it is not a deployment artifact
 and MUST fail validation when no immutable identity has been resolved.
 
@@ -85,7 +134,10 @@ Use the following references for one service:
 
 The release tag is created with the image and, in Registry mode only, pushed
 to the Registry. It contains the full release ID and is never overwritten or
-reused. A short SHA-only tag such as `5119d6f` is not a standard deployment
+reused. In an `override-only` release, the new full release tag MAY be added to
+the same immutable image identity as `base_release`; this is a new tag pointing
+to the same image, not a rebuild and not a mutation of the old tag. A short
+SHA-only tag such as `5119d6f` is not a standard deployment
 identity because it hides timestamp and sequence information. If `docker
 images` shows the same image ID on multiple rows, those rows are tags/aliases
 for one image, not necessarily multiple builds; the release record must still

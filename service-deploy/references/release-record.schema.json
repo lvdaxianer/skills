@@ -17,10 +17,13 @@
   "container": {
     "type": ["object", "null"],
     "additionalProperties": false,
-    "required": ["repository", "release_tag", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "release_root", "compose_path", "manifest_path", "persistence_manifest", "override_manifest"],
+    "required": ["repository", "release_tag", "release_mode", "base_release", "build_mode", "image_transport", "registry", "identity_kind", "image", "digest", "image_identity", "archive_checksum", "latest_alias", "compose_project", "container_id", "release_root", "compose_path", "manifest_path", "persistence_manifest", "override_manifest"],
     "properties": {
       "repository": {"type": "string", "pattern": "^[A-Za-z0-9._:/-]+$"},
       "release_tag": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
+      "release_mode": {"enum": ["initial-image", "image-update", "override-only"]},
+      "base_release": {"type": ["string", "null"], "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
+      "build_mode": {"enum": ["built", "reused"]},
       "image_transport": {"enum": ["registry", "local-daemon", "archive"]},
       "registry": {"type": ["string", "null"], "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*(/[A-Za-z0-9._-]+)*$"},
       "identity_kind": {"enum": ["registry-manifest-digest", "local-image-id"]},
