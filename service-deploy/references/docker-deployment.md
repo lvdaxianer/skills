@@ -21,6 +21,7 @@ container/compose.yaml or an equivalent CLI manifest
 docker-persistence-manifest.json
 release-manifest.json
 release-bound override manifest and its checksum
+optional override-compaction evidence
 ```
 
 `current` MUST point to the release descriptor under `releases/<release-id>/`. A container is accepted only when its labels, mode-specific image identity, Compose project, mounts and ports match the current descriptor. The current release owns only its delta; every effective override MUST resolve through its recorded `override_chain` of release directories. Compose MUST use rendered physical release paths, such as `/service-root/releases/<release-id>/overrides` mounted as `/app/overrides/layers/00`, not `/service-root/current` or a global `/service-root/overrides` path.
@@ -54,6 +55,12 @@ After a verified release exists, classify every change before starting a build:
 | External `conf`, `data` or `logs` changes only | Follow the relevant external-data/config procedure | No image build; do not silently turn it into an override |
 | Application files packaged into the image, Dockerfile, base image, OS/runtime dependency, entrypoint, healthcheck, user, ports, default HTML/lib or other image content changes | Create a new image release | Build and verify a new image |
 
+If the new image intentionally includes the complete effective override content,
+classify it as `image-update` with `override_compaction.mode=baked`. This is an
+image build, not an override-only release. The build input MUST be the exact
+recorded `override_chain`, materialized deterministically in a temporary build
+context; do not read an untracked global override directory.
+
 An override-only release MUST satisfy all of the following:
 
 1. A previous release record is `verified`/`recorded` and contains a resolvable
@@ -78,6 +85,40 @@ unverified tag or a guessed image as the base. Reusing an image means avoiding
 `docker build`; Registry mode may still pull the exact recorded digest when the
 target does not have it, while local-daemon/archive modes require the exact local
 image or a verified archive.
+
+## Override compaction and historical cleanup
+
+Override compaction is the controlled way to reduce a long layer chain. It is
+allowed only during `initial-image` or `image-update`, never during
+`override-only` reuse:
+
+1. Resolve the complete `override_chain` physically and validate every layer
+   manifest, file checksum, precedence and compatibility.
+2. Materialize the effective override tree in a temporary build context using
+   the same newer-to-older precedence that the runtime adapter uses. Record the
+   ordered source release IDs, a checksum of the ordered source chain and a
+   checksum of the materialized effective tree. Do not modify source releases.
+3. Build the new image with that materialized tree in the declared image path,
+   verify the immutable image identity and inspect that the expected JAR/HTML
+   files are inside the image. The new release uses
+   `override_strategy=none`, an empty runtime `override_chain`, and
+   `override_compaction.mode=baked`.
+4. Deploy the new image, recreate the container, and pass status, readiness,
+   liveness, dependency, loaded-artifact and business smoke checks. Verify the
+   service does not read the old host override layers.
+5. Write the verified release record before cleanup. Then run
+   `retention preview <service-root> 5` and inspect the exact source-layer
+   deletion set. Only `retention apply <service-root> 5 --apply` may remove
+   unprotected source releases or their exact unused image identities.
+
+If any build, image inspection, health, smoke, record or retention preview step
+fails, keep all source layers and the failed release. Never delete historical
+layers as part of `docker build`, `docker tag`, container recreation or a
+generic `rm` command. `current`, `previous`, active, failed, unverified and
+operator-protected releases remain protected. After cleanup, rollback to a
+deleted source release is unavailable unless its own self-contained image and
+required release evidence were retained, so the retention result must be
+reported explicitly.
 
 The build MUST:
 
@@ -300,6 +341,9 @@ socket, host root, release switching scripts and arbitrary host paths are not
 valid overrides. `html/` is valid only when the image/runtime declares and tests
 an exact layered or overlay container path; if frontend assets are packaged into
 the image, they roll back with the image and MUST NOT receive a fictitious mount.
+For a compaction release, the manifest instead records the source chain and
+effective-tree checksum; an empty runtime chain is valid only when image
+inspection proves those files are packaged.
 
 An operator MUST apply overrides through the deployment workflow. Dropping a JAR
 into any layer does not activate it until a new release manifest, chain,

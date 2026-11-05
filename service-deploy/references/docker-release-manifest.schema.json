@@ -4,7 +4,7 @@
   "title": "Docker Release Unit Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "service", "service_root", "release_id", "release_mode", "base_release", "source_commit", "image", "compose_path", "overrides", "override_strategy", "override_chain", "persistent_paths"],
+  "required": ["schema_version", "service", "service_root", "release_id", "release_mode", "base_release", "source_commit", "image", "compose_path", "overrides", "override_strategy", "override_chain", "override_compaction", "persistent_paths"],
   "properties": {
     "schema_version": {"type": "string", "const": "1"},
     "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
@@ -62,6 +62,17 @@
         }
       }
     },
+    "override_compaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "source_release_ids", "source_chain_sha256", "effective_tree_sha256"],
+      "properties": {
+        "mode": {"enum": ["not_applicable", "baked"]},
+        "source_release_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"}},
+        "source_chain_sha256": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"},
+        "effective_tree_sha256": {"type": ["string", "null"], "pattern": "^[A-Fa-f0-9]{64}$"}
+      }
+    },
     "persistent_paths": {"type": "array", "uniqueItems": true, "items": {"enum": ["conf", "data", "logs", "volumes", "release-records"]}},
     "html_status": {"enum": ["embedded-in-image", "external-release-override", "not_applicable"]}
   },
@@ -77,6 +88,14 @@
     {
       "if": {"properties": {"release_mode": {"const": "override-only"}}, "required": ["release_mode"]},
       "then": {"properties": {"base_release": {"type": "string"}, "override_strategy": {"const": "layered"}, "image": {"properties": {"build_mode": {"const": "reused"}, "base_release": {"type": "string"}}}}}
+    },
+    {
+      "if": {"properties": {"override_compaction": {"properties": {"mode": {"const": "baked"}}}}, "required": ["override_compaction"]},
+      "then": {"properties": {"release_mode": {"enum": ["initial-image", "image-update"]}, "override_strategy": {"const": "none"}, "override_chain": {"const": []}, "override_compaction": {"properties": {"source_release_ids": {"minItems": 1}, "source_chain_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}, "effective_tree_sha256": {"type": "string", "pattern": "^[A-Fa-f0-9]{64}$"}}}}}
+    },
+    {
+      "if": {"properties": {"override_compaction": {"properties": {"mode": {"const": "not_applicable"}}}}, "required": ["override_compaction"]},
+      "then": {"properties": {"override_compaction": {"properties": {"source_release_ids": {"maxItems": 0}, "source_chain_sha256": {"type": "null"}, "effective_tree_sha256": {"type": "null"}}}}}
     }
   ]
 }

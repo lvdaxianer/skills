@@ -23,6 +23,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] For Docker, validate rendered mounts physically, reject `/app/lib` replacement, Docker socket/host-root mounts and implicit anonymous business volumes.
 - [ ] For Docker, validate the release-bound override manifest, JAR/config/HTML checksums, deterministic precedence and compatibility evidence without printing values; if HTML is packaged in the image, record `embedded-in-image` and do not invent a mount.
 - [ ] For Docker, validate `override_chain` newest-first, ensure every referenced release layer exists and is protected from retention, and verify the runtime adapter loads newer layers before older layers without copying the full effective tree.
+- [ ] For Docker compaction builds, validate `override_compaction.mode=baked`, the ordered source release IDs, source-chain checksum and effective-tree checksum; prove the new image contains the effective JAR/HTML/config content and does not read old host layers.
 - [ ] For manual-background, validate user/cmdline/artifact/start-time/port identity and exact stop contract.
 - [ ] Detect migrations, compatibility class, runner, backup and approval evidence.
 
@@ -75,5 +76,6 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Record `deleted_releases`, release `record_path`, final current and retention result.
 - [ ] For Docker, retain image identities referenced by protected releases and verified rollback archives; delete local images only by exact unreferenced image ID; never use `docker system prune -a`.
 - [ ] For Docker layered overrides, retain every release referenced by a protected `override_chain`; never delete a base layer still referenced by a current, previous, active, failed, unverified or retained release.
+- [ ] For Docker compaction, never delete source layers during image build; only after the new release is verified and recorded, run retention preview/apply and record exact deleted source release IDs.
 - [ ] Protect the identity referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
 - [ ] Release the lock and return the required report.
