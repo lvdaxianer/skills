@@ -36,7 +36,7 @@ description: "Use when writing or reviewing backend production logs for HTTP han
 |---|------|------|
 | 1 | **DEBUG 必须支持不重启热开** | 项目必须启用受访问控制保护的 Actuator `/loggers`（Java）或等价机制（Go/Python 用配置中心 + 监听），粒度到「包」或「类」 |
 | 2 | **INFO 摘要或受控全量 / DEBUG 安全快照** | 小型、安全、字段受控且低频的请求 DTO，经统一脱敏和限长后，INFO 允许完整记录；其他请求 INFO 只打业务摘要，DEBUG 只打脱敏、限长的诊断快照。任何级别都禁止原样序列化未受控 body |
-| 3 | **业务上下文内必带 traceId** | HTTP 请求、MQ 消费、定时任务、RPC 调用 —— 所有业务上下文内的日志必须自动带 traceId；存在认证或租户上下文时再带 userId / tenantId。系统级日志（启动、GC、框架初始化）豁免 |
+| 3 | **业务日志必须关联 trace context** | HTTP 请求、MQ 消费、定时任务、RPC 调用 —— 业务入口必须先校验并透传上游 trace context，或在链路起点生成有效 `traceId`，之后才允许输出业务日志；存在认证或租户上下文时再带 userId / tenantId。系统级日志（启动、GC、框架初始化）豁免 |
 | 4 | **敏感字段全局脱敏** | 手机号、身份证、银行卡、password、token 必须由日志框架层（Logback Converter / zerolog Hook / structlog processor）统一脱敏，不依赖业务代码自觉 |
 | 5 | **异步/线程池必须透传 MDC** | `@Async`、`ExecutorService`、`CompletableFuture` 一律要求验证 MDC 传播（Java 用 TTL 或 TaskDecorator；Go 用 context；Python 用 contextvars） |
 
@@ -59,9 +59,10 @@ description: "Use when writing or reviewing backend production logs for HTTP han
   只在统一处理边界记录一次，避免 catch 内打日志后再次抛出造成双写。
 - “原文错误”只允许进入内部日志，而且必须先脱敏和限长；密码、token、密钥、
   完整身份证/银行卡、原始请求值和未受控 body 在任何日志级别都禁止明文出现。
-- 请求入口必须生成或校验后透传 `traceId`，写入 MDC/ThreadLocal 兼容上下文；
-  请求结束必须在 `finally` 清理。日志格式由框架自动输出 traceId，禁止在每条
-  消息中手动拼接 `traceId`。
+- 业务入口必须生成或校验后透传 `traceId`，写入 MDC/ThreadLocal 兼容上下文；
+  请求或任务结束必须在 `finally` 清理。日志格式由框架自动输出 traceId，禁止在每条
+  消息中手动拼接 `traceId`。没有上游请求的定时任务、独立批处理和脚本属于链路
+  起点：先生成本次执行的 `traceId`，再决定是否输出日志；它们不需要伪造入站 Header。
 - `@Async`、线程池、`CompletableFuture`、定时任务、MQ 和 RPC 派生任务必须
   显式透传上下文，并在 worker 完成后清理，避免线程复用时串用上一个请求的
   traceId。Java 使用 TaskDecorator/TTL，Go 使用 `context.Context`，Python
@@ -69,6 +70,17 @@ description: "Use when writing or reviewing backend production logs for HTTP han
 
 前端拿到的 `traceId` 只用于反馈和排障关联，不得替代安全的错误码，也不得把
 内部原始异常当作用户提示。
+
+## 业务日志与链路输出边界
+
+`traceId` 是跨服务日志的关联键，不是“事后把已经抑制的日志变出来”的开关。
+HTTP、MQ、RPC 及其派生异步调用必须传播同一个 `traceId`；每个服务的关键业务
+日志由日志框架自动带上该 ID，日志平台即可按 `traceId` 查询已经产生的跨服务日志。
+
+定时任务可以在执行前指定诊断 `traceId`，或在任务入口生成本次执行的 `traceId`。
+普通成功执行默认不输出固定 INFO；失败、超时、状态变化、阈值告警或人工诊断
+时才输出相应日志。若执行期间没有产生日志，事后不能仅凭 `traceId` 补回过程日志，
+应通过任务执行记录和 Metrics 提供结果。
 
 ## 导入批次日志边界
 
@@ -94,6 +106,7 @@ description: "Use when writing or reviewing backend production logs for HTTP han
 异常分支   → WARN + 安全上下文（常开）
 未预期异常 → ERROR + stack（常开）
 过程细节   → DEBUG 安全诊断快照（默认关，热开）
+定时任务正常成功 → 默认静默，异常/诊断/状态变化才输出
 高频数值   → 不打日志，走 Metrics
 ```
 
