@@ -12,7 +12,7 @@
 
 ## 3. 规范验证与审查
 
-- [ ] 3.1 运行 `openspec validate traceid-aware-logging-boundaries --strict`、文档链接/关键词一致性检查和完整 diff 审查，确认所有新增要求有对应文档证据
+- [x] 3.1 运行 `openspec validate traceid-aware-logging-boundaries --strict`、文档链接/关键词一致性检查和完整 diff 审查，确认所有新增要求有对应文档证据
 
 ## Workflow follow-up
 
