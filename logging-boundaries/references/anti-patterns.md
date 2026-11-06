@@ -20,6 +20,9 @@
 | 10 | 用日志代替 Trace（step1/step2） | 🟢 可优化 | `log.info.*step\d` |
 | 11 | 手动拼 traceId 到消息里 | 🟢 可优化 | `MDC.get.*traceId.*log\.\|log.*traceId=" \+` |
 | 12 | 业务上下文内日志缺 traceId（异步/线程池丢失） | 🔴 必须 | `@Async\|Executor\|CompletableFuture\|threadPool` 附近查 MDC 透传 |
+| 13 | 定时任务每次成功都固定打印开始/结束日志 | 🟡 应该 | `@Scheduled\|cron\|scheduler` 附近查无条件 `log.info.*start\|log.info.*done` |
+| 14 | 未建立 trace context 就输出业务日志 | 🔴 必须 | 业务入口到首条 `log.*` 之间查 `traceId` 生成/透传与 MDC/context 绑定 |
+| 15 | 承诺事后通过 traceId 补回未产生日志 | 🟡 应该 | `traceId` 查询/诊断说明附近查“事后补日志/回放日志” |
 
 ---
 
@@ -231,6 +234,61 @@ public TaskExecutor taskExecutor() {
 ```
 
 详见 [`scenarios/async-mdc.md`](../scenarios/async-mdc.md)。
+
+---
+
+### 13. 定时任务每次成功都固定打印开始/结束日志（日志刷屏）
+
+```java
+// ❌ 反例：每次成功执行都产生两条常开 INFO，高频任务会持续刷屏
+log.info("job start, name={}", jobName);
+runJob();
+log.info("job done, name={}, costMs={}", jobName, costMs);
+
+// ✅ 正例：正常成功默认静默；诊断、状态变化或异常才输出
+if (diagnosticEnabled || stateChanged) {
+    log.info("job done, name={}, traceId={}, costMs={}", jobName, traceId, costMs);
+}
+if (failureCount > 0) {
+    log.warn("job partial failure, name={}, fail={}", jobName, failureCount);
+}
+```
+
+定时任务入口仍必须建立本次执行的 trace context；静默的是正常成功日志，不是
+取消链路关联。统计和趋势交给 Metrics，诊断开关必须有访问控制、时间窗口和数量上限。
+
+### 14. 未建立 trace context 就输出业务日志（链路孤儿）
+
+```java
+// ❌ 反例：首条业务日志发生时 MDC 仍为空
+log.info("job started");
+MDC.put("traceId", traceId);
+
+// ✅ 正例：先透传或生成，再由日志框架自动输出
+String traceId = traceContext.resolveOrCreateRootTraceId();
+MDC.put("traceId", traceId);
+try {
+    log.info("job started");
+} finally {
+    MDC.clear();
+}
+```
+
+HTTP、MQ、RPC 从上游校验并透传；定时任务和独立批处理没有入站 Header 时生成
+traceId。下游 HTTP/RPC 请求才需要把当前 traceId 注入出站 Header。
+
+### 15. 承诺事后通过 traceId 补回未产生日志
+
+```text
+// ❌ 反例：普通成功任务没有产生日志，却承诺之后按 traceId 回放全过程
+任务完成后查询 traceId → 期待得到被静默抑制的过程日志
+
+// ✅ 正例：需要完整排障时，执行前指定 traceId 或开启受控诊断
+执行前开启诊断 → 任务和下游传播 traceId → 查询已经产生的日志
+```
+
+`traceId` 只能关联已经写入日志系统的事件，不能凭空生成被抑制的日志；普通成功
+执行应通过任务执行记录和 Metrics 提供结果。
 
 ---
 
