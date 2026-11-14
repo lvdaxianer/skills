@@ -30,6 +30,16 @@
 
 运行元数据写入调用方提供的运行目录 `runtime.json`，包含 `projectRoot`、`sharedKnowledgeRoot`、`serviceVersion`、`pid`、`host`、`port`、`managedBy` 和 `startedAt`。该文件是可恢复线索，不替代项目文件事实源。
 
+## 文件事实源
+
+`FileFactStore` 将权威数据写入项目 `.product/runs/<runId>/`：
+
+- `run.json`：运行快照和入口档位。
+- `interaction.jsonl`：追加式 Worker 消息账本，状态变化追加新事件，不覆盖历史。
+- `audit.jsonl`：人工和系统审计事件。
+
+`control-plane/cache/index.json` 只保存可重建索引，删除后可通过 `rebuildIndex()` 从 `run.json` 重新生成。服务重启或新 Worker 上下文建立时，应从这些文件恢复运行和目标 Worker 的待执行消息。
+
 ## 本地测试
 
 ```bash

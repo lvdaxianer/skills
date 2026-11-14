@@ -126,3 +126,45 @@ git diff --check                                                    PASS
 ### 审计结论
 
 Task 2.2 的启动、复用、元数据和冲突行为与规格一致；未知端口占用不会被强制终止，服务未就绪会以稳定阻塞错误停止总控继续执行。
+
+## 任务 2.3 文件事实源与恢复审计
+
+### 边界与执行方式
+
+- 边界：只实现项目文件事实源、追加式 `interaction.jsonl`、审计事件、run 恢复和可重建索引；不实现 Worker 编排、知识归属 UI、错误分类或外部部署。
+- 执行方式：记录了直接执行回退。事实源目录、JSONL 状态归并、恢复快照和索引重建共享同一文件协议，拆分并行会造成 schema 和追加语义漂移。
+
+### TDD 证据
+
+- RED：新增事实源测试时，4 个测试因 `fact-store.mjs` 缺失失败，既有 9 个控制平面测试保持通过。
+- GREEN：实现文件事实源并补齐首次运行目录初始化后，同一命令通过 13 个测试，覆盖新实例恢复、追加不覆盖、目标/动作过滤和索引重建。
+
+### 能力核对
+
+- [x] `run.json`、`interaction.jsonl` 和 `audit.jsonl` 写入项目 `.product/runs/<runId>/`，作为权威文件事实源。
+- [x] Worker 消息状态变化通过同一 `message_id` 的新 JSONL 事件追加，恢复时按最后事件归并。
+- [x] 只有 `action=execute`、目标 Worker 匹配且最新状态为 `pending/processing` 的消息进入待执行恢复集。
+- [x] 运行恢复同时返回 run 快照、未消费消息和审计事件；新 `FileFactStore` 实例可直接恢复。
+- [x] `control-plane/cache/index.json` 只作为缓存，可删除并从全部 `run.json` 确定性重建。
+- [x] 标识符、消息动作/状态/类型、引用数组和审计最小字段均有校验，路径穿越不会进入运行目录。
+
+### 领域规范核对
+
+- `code-review-spec`：通过追加式写入、原子 JSON 写入、稳定错误码、结构校验和不覆盖历史审查；未发现把缓存当权威或静默吞掉损坏 JSONL 的行为。
+- `backend-reliability-guidelines`：通过目录初始化、缺失空账本恢复、损坏文件显式失败、可重建缓存和路径边界审查。
+- `logging-boundaries`：本任务没有新增生产日志，事实源只记录可审计业务字段；没有写入模型隐藏思维链或秘密。
+- `rest-api-documentation`：本任务新增的是本地文件模块，不新增外部 REST 路由；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，门禁不适用。
+- `project-hygiene`：新增可重建缓存目录忽略规则；项目 `.product/runs` 和审计文件不被忽略，保留为可提交事实源。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (13 passed, 0 failed)
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+```
+
+### 审计结论
+
+Task 2.3 的事实文件、交互账本、恢复快照和索引重建与规格一致；服务重启后可通过新事实源实例恢复运行上下文，缓存丢失不会损坏权威记录。
