@@ -57,6 +57,12 @@
 
 公共 Guardrail 只能通过脱敏、可移植、复现/规范依据和两名独立复检人的晋升门禁，写入配置的共享根目录。Worker 通过 `createLessonSnapshot({ maxItems })` 读取有限条目和证据引用，不直接读取全部历史事件；`excluded` 和未晋升候选不会进入快照。
 
+## 验收证据门禁
+
+`VerificationStore` 为每条验收标准创建 `.product/runs/<runId>/contracts.json`，并把证据追加到 `verification/evidence/`。命令证据必须有退出码，API 证据必须有摘要，浏览器证据必须包含页面 URL、操作记录、页面断言和截图引用。证据还必须绑定当前 commit 或 release。
+
+评估结果只有三种：`FAILED` 表示证据明确失败，`INCONCLUSIVE` 表示证据缺失或版本不一致，`VERIFIED` 表示每条验收标准都有完整、通过且绑定当前版本的证据。结果会写入 `verification/verification-bundle.json`，其中包含证据引用、原因、绑定信息和 SHA-256 哈希；只有 `VERIFIED` 才能作为后续开发交接或发布判断的依据。
+
 ## 本地测试
 
 ```bash

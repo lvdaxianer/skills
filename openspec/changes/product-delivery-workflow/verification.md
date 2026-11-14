@@ -297,3 +297,44 @@ browser local UI load/edit                                         PASS
 ### 审计结论
 
 Task 3.3 已把人工知识归属落到 EJS 风格服务端模板和 loopback API；人工覆盖、排除、公共发布都经过后端治理门禁，控制台不能绕过证据和审计要求。
+
+## 任务 4.1 验收证据门禁审计
+
+### 边界与执行方式
+
+- 边界：只实现功能点验收契约、命令/API/浏览器/冒烟证据记录、版本绑定检查和 verification bundle；不实现开发交接适配、真实浏览器采集器或部署调用。
+- 执行方式：记录了直接执行回退。契约字段、证据类型、评估状态和 bundle 哈希共同构成一个门禁协议，拆分并行会造成证据字段与状态语义漂移。
+
+### TDD 证据
+
+- RED：新增证据测试时，4 个场景因 `verification-evidence.mjs` 缺失失败，既有 26 个测试保持通过。
+- GREEN：补齐契约、证据存储、版本绑定和 bundle 生成后，同一命令通过 30 个测试。
+
+### 能力核对
+
+- [x] 每条验收标准生成独立契约，明确验证类型、操作、预期结果和必要证据字段。
+- [x] 命令证据要求命令与退出码，API 证据要求摘要，浏览器证据要求页面 URL、操作记录、页面断言和截图引用。
+- [x] 证据先落盘并允许被评估为 `FAILED` 或 `INCONCLUSIVE`，不因缺少字段而伪造成功。
+- [x] 所有证据必须绑定当前 commit 或 release；版本不匹配只能得到 `INCONCLUSIVE`。
+- [x] 完整且通过的证据才得到 `VERIFIED`，并生成带证据引用、原因、绑定信息和 SHA-256 哈希的 `verification-bundle.json`。
+
+### 领域规范核对
+
+- `code-review-spec`：通过稳定状态/错误码、类型白名单、原子写入、有限证据字段和内容哈希审查；未保存隐藏思维链或秘密。
+- `backend-reliability-guidelines`：通过缺失证据降级、版本绑定、失败优先和可恢复文件事实源审查。
+- `logging-boundaries`：本任务没有新增生产日志；bundle 只保存验证摘要、引用和状态，不保存完整日志或敏感内容。
+- `rest-api-documentation`：本任务新增本地文件模块，不新增外部 REST 路由；门禁不适用。
+- `frontend-interaction-guidelines`：本任务没有新增 UI 交互；浏览器证据只定义采集字段，门禁不适用。
+- `project-hygiene`：验证文件写入项目 `.product/runs/<runId>/verification/`，运行证据未进入共享公共目录。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (30 passed, 0 failed)
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+```
+
+### 审计结论
+
+任务 4.1 已把“功能点完成”收紧为可回放的证据门禁；缺少截图、URL、API 摘要、命令退出码或版本绑定时不会标记 `VERIFIED`。
