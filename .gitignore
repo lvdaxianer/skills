@@ -5,6 +5,7 @@
 /.Codex/worktrees/
 /.product/control-plane/run/
 /.product/control-plane/logs/
+/.product/control-plane/cache/
 /.superpowers/
 node_modules/
 *.tsbuildinfo
