@@ -381,3 +381,47 @@ openspec validate product-delivery-workflow --strict                   PASS
 ### 审计结论
 
 任务 4.2 已把产品总控到工程 Skill 的边界落为可恢复消息协议；不完整的 PRD、任务、验收、复检或假设不会自动进入开发执行。
+
+## 任务 4.3 service-deployment 可选交接审计
+
+### 边界与执行方式
+
+- 边界：只实现最终部署决策、dry-run 报告、部署参数门禁和 `service-deployment` 执行消息；不执行 shell、systemd、Docker、SSH 或真实服务切换。
+- 执行方式：记录了直接执行回退。部署授权、参数校验、脱敏摘要和执行消息共享同一安全边界，拆分并行会产生未授权部署风险。
+
+### TDD 证据
+
+- RED：新增部署交接测试时，3 个场景因 `service-deployment-adapter.mjs` 缺失失败，既有 32 个测试保持通过。
+- GREEN：补齐最终审计状态门禁、dry-run、授权校验、参数校验、脱敏和幂等消息后，同一命令通过 35 个测试。
+
+### 能力核对
+
+- [x] 最终审计未通过时不能进入部署决策；通过后先生成 `dry_run: true` 报告并返回部署询问。
+- [x] 未明确 `approved: true` 时不发送 `service-deployment` 执行消息。
+- [x] 授权缺少操作者、原因或部署必需参数时不发送执行消息，不猜测路径、健康命令、迁移安全性或秘密。
+- [x] 参数完整合法且用户明确授权后，才追加目标为 `service-deployment`、`action=execute` 的待执行消息。
+- [x] 部署消息通过固定 correlation ID 幂等，运行状态变为 `DEPLOYMENT_REQUESTED`，并保留审计事件。
+- [x] dry-run 和消息参数摘要过滤密码、token、私钥、凭证和环境值字段；实际部署权威仍是 `service-deployment`。
+
+### 领域规范核对
+
+- `code-review-spec`：通过稳定错误码、白名单参数、绝对路径/服务名校验、幂等 correlation ID、原子报告写入和无秘密落账审查。
+- `backend-reliability-guidelines`：通过最终状态门禁、授权前置、缺失输入 dry-run、失败安全和追加式审计审查。
+- `logging-boundaries`：本任务没有新增生产日志；部署报告与消息只保存必要元数据，不保存秘密或完整配置。
+- `rest-api-documentation`：本任务新增本地 Worker 交接，不新增外部 REST 路由；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，部署询问由总控流程在最终阶段呈现，门禁不适用。
+- `project-hygiene`：未新增部署脚本、外部依赖或真实运行产物，只新增协议、适配器和测试。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (35 passed, 0 failed)
+node --check service-deployment-adapter.mjs                            PASS
+awk line-length check                                                   PASS
+git diff --check                                                        PASS
+openspec validate product-delivery-workflow --strict                   PASS
+```
+
+### 审计结论
+
+任务 4.3 已把“最后询问是否部署”落为明确状态和 dry-run 事实源；没有当前请求的明确授权，系统不会调用真实部署，只会等待用户选择或生成可审阅报告。
