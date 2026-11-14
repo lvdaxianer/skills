@@ -73,3 +73,49 @@ openspec validate global-knowledge-console --strict                   PASS
 ## 结论
 
 Task 2.1/2.2 per-task audit 通过，允许标记完成并提交。文件事实优先、SQLite 可重建和失败可恢复约束已落地。
+
+# Task 3 验证记录
+
+## 边界
+
+- 实现全局目录领域服务和 loopback HTTP API，覆盖问题 CRUD、项目注册、同步状态和重建入口。
+- 实现 `ownership_changed`、`rule_reused`、公共晋升事实，以及项目有效规则和跨项目差异计算。
+- 未实现 EJS 控制台页面交互；页面将在 Task 4 接入这些 API。
+
+## TDD 证据
+
+- RED：领域服务测试 3 个场景因 `global-knowledge-catalog.mjs` 不存在而失败；HTTP 测试 2 个场景因全局路由不存在而失败。
+- GREEN：领域服务 focused tests 3 项、HTTP loopback focused tests 2 项通过。
+- 回归：控制面全量测试 51 项通过。
+
+## 能力核对
+
+- [x] 创建、编辑、软删除、恢复、项目注册和重建操作均先写 JSON 文件事实，再同步 SQLite。
+- [x] 写操作返回 `operationId`、投影结果和同步状态；列表/规则/差异响应包含 `isComplete` 或同步护栏。
+- [x] 归属移动追加 `ownership_changed`，公共复制追加 `rule_reused`，公共规则原文件不被修改。
+- [x] 公共发布要求脱敏、可移植性和至少一次独立复检；失败返回稳定门禁错误。
+- [x] 项目规则按 `project > hybrid > common` 选择，并返回继承、覆盖和 hybrid 关系。
+- [x] HTTP 错误包含稳定 `errorCode`、安全中文消息和 `traceId`；单条资源不存在返回 404。
+- [x] `apis/global-knowledge.md` 覆盖新增 route、请求、响应、错误和 curl 示例。
+
+## 可靠性审计
+
+- `backend-reliability-guidelines`：通过。覆盖输入校验、参数白名单、文件事实事务顺序、幂等 operationId、审计字段、稳定错误和回放历史。
+- `code-review-spec`：通过。新增代码使用中文注释、参数化 SQLite 写入、loopback 边界和 120 列内格式检查。
+- `rest-api-documentation`：通过。所有新增全局 route 统一记录在 `apis/global-knowledge.md`，未引入未记录 Controller。
+- `verification-before-completion`：通过。最新命令输出支持 focused、full、syntax、diff 和 OpenSpec 结论。
+
+## 验证命令
+
+```text
+node --test .../test/global-knowledge-api.test.mjs .../test/global-control-plane-api.test.mjs  PASS (5 passed, 0 failed)
+npm test --prefix product-delivery-workflow/references/control-plane                         PASS (51 passed, 0 failed)
+node --check 新增/修改 Node 文件                                                        PASS
+awk 行长检查新增代码                                                                  PASS
+git diff --check                                                                       PASS
+openspec validate global-knowledge-console --strict                                     PASS
+```
+
+## 结论
+
+Task 3.1/3.2/3.3 per-task audit 通过，允许标记完成并提交。API 已为 Task 4 EJS 控制台提供全局治理、项目规则和差异能力。
