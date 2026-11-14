@@ -425,3 +425,32 @@ openspec validate product-delivery-workflow --strict                   PASS
 ### 审计结论
 
 任务 4.3 已把“最后询问是否部署”落为明确状态和 dry-run 事实源；没有当前请求的明确授权，系统不会调用真实部署，只会等待用户选择或生成可审阅报告。
+
+## 任务 5.1 端到端集成验证审计
+
+### 边界与执行方式
+
+- 边界：只新增控制平面端到端集成测试和 EJS 入口约束测试，不新增生产运行时逻辑，不调用真实部署。
+- 执行方式：记录了直接执行回退。测试需要串联同一 run 的事实源、PRD、交接、证据和部署决策，拆分并行会失去状态链路验证价值。
+
+### 验证覆盖
+
+- [x] `feature` 需求实测贯通主 Worker、产品/研发双复检、`DEVELOPMENT_READY` 和开发执行消息。
+- [x] 同一 run 创建验收契约、记录命令证据并得到 `VERIFIED`。
+- [x] 最终审计后生成部署 dry-run；未授权时没有 `service-deployment` 执行消息。
+- [x] 控制台入口必须是 `ui/index.ejs`，独立 `ui/index.html` 不得重新出现。
+- [x] 完整控制平面测试仍覆盖启动复用、文件恢复、知识治理、API/UI、PRD、证据和部署适配。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (37 passed, 0 failed)
+node --check product-delivery-integration.test.mjs                         PASS
+awk line-length check                                                       PASS
+git diff --check                                                            PASS
+openspec validate product-delivery-workflow --strict                       PASS
+```
+
+### 审计结论
+
+任务 5.1 证明从需求到开发、验收和部署决策的关键状态可以在同一事实源中回放；集成测试不会把未授权或缺少证据的流程伪装成完成。
