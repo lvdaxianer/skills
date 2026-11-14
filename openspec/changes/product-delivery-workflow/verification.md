@@ -84,3 +84,45 @@ awk line-length check                                               PASS
 ### 审计结论
 
 Task 2.1 的实现、测试、中文运行说明和 OpenSpec 任务描述一致；控制平面仍保持本地回环边界，没有提前实现 Task 2.2 之后的启动复用、持久化或编排能力。
+
+## 任务 2.2 控制平面启动/复用审计
+
+### 边界与执行方式
+
+- 边界：只实现控制平面启动器、独立服务入口、运行元数据原子写入、同项目复用和端口冲突阻塞；不实现交互账本、知识持久化、Worker 调度、UI 或部署。
+- 执行方式：记录了直接执行回退。启动器、子进程入口、运行元数据和端口探测共同构成一个生命周期单元，拆分并行会造成启动竞态和错误码漂移。
+
+### TDD 证据
+
+- RED：新增启动器测试时，`npm test --prefix product-delivery-workflow/references/control-plane` 中 4 个新测试因 `ensure-control-plane.mjs` 缺失失败，既有 5 个控制平面测试保持通过。
+- GREEN：补齐实现并修正原始 TCP 占用探测后，同一命令通过 9 个测试，覆盖自动启动、运行元数据、同项目复用、项目错绑、未知服务占用、健康、就绪、目录失效和错误配置。
+
+### 能力核对
+
+- [x] 服务未监听时由 `ensureControlPlane` 启动独立 Node 子进程，并等待 `/readyz` 与运行元数据就绪。
+- [x] 运行元数据原子写入 `runtime.json`，记录项目根目录、公共知识根目录、服务版本、PID、主机、端口、管理者和启动时间。
+- [x] 项目、版本、PID、端口绑定一致时返回 `reused`，不重复启动进程。
+- [x] 绑定其他项目时返回 `CONTROL_PLANE_PROJECT_MISMATCH`；未知 HTTP/TCP 服务占用端口时返回 `CONTROL_PLANE_PORT_CONFLICT`。
+- [x] 端口冲突路径不发送终止信号，不杀未知进程。
+- [x] 服务只允许回环地址；控制平面启动入口和复用入口没有新增外部依赖。
+
+### 领域规范核对
+
+- `code-review-spec`：通过稳定错误码、常量化超时、原子元数据写入、显式子进程边界和无堆栈输出审查；未发现直接日志泄漏或未知进程终止。
+- `backend-reliability-guidelines`：通过启动超时、就绪探测、项目绑定校验、TCP 占用兜底和信号清理审查。
+- `logging-boundaries`：本任务没有新增生产日志；子进程使用忽略的标准输出/错误，不输出路径、参数或秘密，后续运行日志需按 trace 规则补齐。
+- `rest-api-documentation`：仍只监听本机回环地址，启动/复用 API 是本地模块调用，不作为外部 REST API；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，门禁不适用。
+- `project-hygiene`：使用已有 `.gitignore` 的运行目录规则；运行元数据写入 `.product/control-plane/run/` 等被忽略目录，不进入版本库。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (9 passed, 0 failed)
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+```
+
+### 审计结论
+
+Task 2.2 的启动、复用、元数据和冲突行为与规格一致；未知端口占用不会被强制终止，服务未就绪会以稳定阻塞错误停止总控继续执行。

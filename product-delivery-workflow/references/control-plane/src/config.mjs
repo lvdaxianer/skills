@@ -55,6 +55,7 @@ export function getServiceMetadata(config) {
   return {
     service: SERVICE_NAME,
     serviceVersion: config.serviceVersion,
+    pid: process.pid,
     projectRoot: config.projectRoot,
     sharedKnowledgeRoot: config.sharedKnowledgeRoot
   };
