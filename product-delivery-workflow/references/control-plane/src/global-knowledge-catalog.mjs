@@ -161,7 +161,7 @@ export class GlobalKnowledgeCatalog {
       fromProjectId: current.owningProjectId,
       toProjectId: target.projectId ?? null
     }));
-    return { ...result, operationId };
+    return { ...result, item: this.requireProblem(itemId), operationId };
   }
 
   /**
@@ -344,7 +344,7 @@ export class GlobalKnowledgeCatalog {
     await this.appendHistory(itemId, createHistory({
       eventId: itemId, operationId, eventType, audit, to: patch.scope ?? current.scope
     }));
-    return { ...result, operationId };
+    return { ...result, item: this.requireProblem(itemId), operationId };
   }
 
   /**

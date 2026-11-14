@@ -119,3 +119,50 @@ openspec validate global-knowledge-console --strict                             
 ## 结论
 
 Task 3.1/3.2/3.3 per-task audit 通过，允许标记完成并提交。API 已为 Task 4 EJS 控制台提供全局治理、项目规则和差异能力。
+
+# Task 4 验证记录
+
+## 边界
+
+- 使用 EJS 服务端模板承载全局问题目录、筛选、创建、编辑、归属调整、软删除/恢复、公共发布和同步状态。
+- 使用浏览器脚本消费全局 API，保留列表刷新期间的现有 DOM，按稳定问题 ID 复用未变化卡片，并对写操作展示 busy、错误和恢复状态。
+- 新增项目有效规则和跨项目差异面板，覆盖 project、hybrid、common 关系和同步不完整提示；未引入独立 `index.html`。
+
+## TDD 证据
+
+- RED：新增 `global-console-ui.test.mjs` 时，EJS 区域、全局 API 调用和样式状态均不存在，3 个目标断言失败。
+- GREEN：补齐 EJS 页面、浏览器脚本、响应式样式和全局目录渲染后，UI focused tests 3 项通过。
+- 回归：控制面全量测试 54 项通过，包含旧知识库首页兼容断言。
+- 浏览器回归曾捕获异步表单事件的 `currentTarget` 生命周期缺陷；修复为保存表单引用后，重新完成新增和编辑操作，页面可观察到最新标题与审计字段。
+
+## 能力核对
+
+- [x] EJS 首屏包含全局问题列表、创建表单、项目规则、跨项目差异和 SQLite 同步状态区域。
+- [x] 写操作使用 `operationId` 对应的 API，保存/恢复/排除结果支持就地更新；删除/排除有明确确认，重复提交期间按钮 disabled。
+- [x] 列表刷新按稳定 `itemId` 复用未变化卡片，旧列表在新请求成功前保持可见；请求序号忽略过期响应。
+- [x] 错误状态、空状态、同步不完整状态、移动端单列布局和 reduced-motion 样式已覆盖。
+- [x] 项目规则和差异面板使用已记录的全局 API，规则文本经过 HTML 转义，项目/公共/hybrid 来源可观察。
+- [x] 服务端继续使用 EJS 模板，并在迁移期间兼容旧 `KnowledgeStore` 首屏数据。
+
+## 可靠性审计
+
+- `frontend-interaction-guidelines`：通过。覆盖 busy/disabled、错误恢复、显式排除确认、空状态、同步提示、稳定 ID 刷新复用、过期响应保护、响应式和 reduced-motion。
+- `code-review-spec`：通过。新增/修改代码使用中文 JSDoc，Node 与 UI 脚本语法通过，新增代码行长和 diff 检查通过。
+- `backend-reliability-guidelines`：通过。写操作仍按文件事实优先，API 结果补充最新问题快照，不改变 SQLite 可重建边界。
+- `verification-before-completion`：通过。单元、回归、语法、格式和浏览器可观察证据均有本任务新鲜结果。
+
+## 验证命令与浏览器证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (54 passed, 0 failed)
+node --check .../ui/app.js                                              PASS
+node --check .../src/ui-handler.mjs                                     PASS
+awk 行长检查 UI/handler 新增代码                                         PASS
+git diff --check                                                         PASS
+```
+
+浏览器证据：本地 `127.0.0.1:43827/` 可打开，标题为“全局知识治理控制台 · 知识归属管理”；截图可观察到全局问题目录、同步状态、筛选和新增表单，并滚动观察到“项目有效规则”和“跨项目差异”面板。随后在临时项目 `PROJECT-EVIDENCE` 中通过控制台完成新增与编辑，页面显示“浏览器验证问题-已编辑”、`active`、来源项目、操作者和原因；截图证明保存结果已回显。临时服务及数据位于 `/tmp/control-plane-ui.blXglX`，未触碰用户项目文件。
+
+## 结论
+
+Task 4.1/4.2 per-task audit 通过，允许标记完成并提交。EJS 控制台已与全局治理 API 对接，核心页面具备可观察的成功、空、错误和同步不完整状态。

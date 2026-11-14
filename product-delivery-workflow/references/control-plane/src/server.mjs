@@ -75,7 +75,7 @@ async function handleRequest(request, response, config, knowledgeStore, globalCa
     return;
   }
   if (pathname === '/' || pathname.startsWith('/assets/')) {
-    if (await serveControlPlaneUi({ pathname, response, store: knowledgeStore })) {
+    if (await serveControlPlaneUi({ pathname, response, store: knowledgeStore, globalCatalog })) {
       return;
     }
   }
