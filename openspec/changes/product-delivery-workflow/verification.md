@@ -42,3 +42,45 @@ git diff --check                                         PASS
 - broader check：`openspec validate product-delivery-workflow --strict` 通过；三份 Markdown 结构检查通过。
 - 适用规范：本任务只修改 Skill 参考文档，不写源代码、生产日志或对外 API；后端、前端、日志、REST API 和 `code-review-spec` 门禁不适用。
 - 结论：参考协议与主 Skill 契约及 5 个 capability spec 一致，没有超范围实现。
+
+## 任务 2.1 控制平面服务审计
+
+### 边界与执行方式
+
+- 边界：只实现 `product-delivery-workflow/references/control-plane/` 下的 Node 服务包、健康/就绪路由、项目与公共知识目录检查、测试和运行说明；不实现端口复用脚本、文件事实源、Worker 编排、知识管理 UI、证据采集或真实部署。
+- 执行方式：记录了直接执行回退。服务配置、HTTP 路由、就绪检查和测试属于同一小型核心单元，拆分并行会造成接口漂移；本任务不具备安全的独立写入范围。
+
+### TDD 证据
+
+- RED：服务实现尚不存在时，`npm test --prefix product-delivery-workflow/references/control-plane` 失败，4 个测试均报告 `ERR_MODULE_NOT_FOUND`，确认测试先行。
+- GREEN：补齐服务实现后，同一命令通过 5 个测试，覆盖健康、就绪成功、目录失效、未知路由和错误配置。
+
+### 能力核对
+
+- [x] `/healthz` 使用稳定 JSON 返回 `200` 和服务存活状态。
+- [x] `/readyz` 实时检查项目目录与公共知识目录，目录失效返回 `503` 和 `CONTROL_PLANE_NOT_READY`。
+- [x] 就绪响应包含服务版本、项目目录和公共知识目录绑定元数据。
+- [x] 服务只允许绑定 `127.0.0.1`、`::1` 或 `localhost`，不接受 `0.0.0.0` 等外部监听地址。
+- [x] 未知路径返回 `404` 和 `CONTROL_PLANE_ROUTE_NOT_FOUND`，不暴露堆栈。
+- [x] 响应、配置和就绪检查拆分为小模块，使用稳定常量；没有新增外部依赖。
+
+### 领域规范核对
+
+- `code-review-spec`：通过 JSDoc、常量化状态码/错误码、有限方法长度、显式错误边界和无空值返回审查；未发现直接打印敏感信息或堆栈泄露。
+- `backend-reliability-guidelines`：通过本地绑定约束、输入配置校验、生命周期由调用方管理、就绪依赖实时检查和稳定错误契约审查。
+- `logging-boundaries`：本任务没有新增生产日志写入，故无日志边界实现；后续控制平面运行日志必须沿用 trace 上下文和脱敏规则。
+- `rest-api-documentation`：服务只监听本机回环地址，不作为外部 REST API 暴露；门禁不适用，API 契约已记录在控制平面 README。
+- `frontend-interaction-guidelines`：本任务没有 UI 变更，门禁不适用。
+- `project-hygiene`：已同步 `.gitignore`、`.gitattributes`、`.editorconfig`；`node_modules`、运行目录和日志目录均有忽略规则。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (5 passed, 0 failed)
+node JSON.parse(package.json)                                       PASS
+awk line-length check                                               PASS
+```
+
+### 审计结论
+
+Task 2.1 的实现、测试、中文运行说明和 OpenSpec 任务描述一致；控制平面仍保持本地回环边界，没有提前实现 Task 2.2 之后的启动复用、持久化或编排能力。
