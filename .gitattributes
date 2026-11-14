@@ -4,4 +4,6 @@
 *.mjs text eol=lf
 *.json text eol=lf
 *.sh text eol=lf
+*.sqlite binary
+*.sqlite-* binary
 # <<< project-hygiene (managed) <<<

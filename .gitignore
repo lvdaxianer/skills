@@ -6,6 +6,8 @@
 /.product/control-plane/run/
 /.product/control-plane/logs/
 /.product/control-plane/cache/
+*.sqlite
+*.sqlite-*
 /.superpowers/
 node_modules/
 *.tsbuildinfo
