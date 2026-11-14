@@ -15,7 +15,7 @@
 
 - [x] 3.1 实现主 Worker、产品复检 Worker 和研发复检 Worker 的独立输入快照、双通过屏障和 PRD 版本回路；验证任一 `revise/block` 都不会进入 `PRD_VERIFIED`。
 - [x] 3.2 实现错误/近失误采集、fingerprint 聚合、后台分类建议和 common/project/hybrid 存储；验证新错误先为 `unknown`，分类失败不阻塞主流程。
-- [ ] 3.3 实现知识管理 API/UI 的归属编辑、Guardrail 发布、排除和审计版本；验证人工覆盖优先于自动建议，排除后不进入知识快照。
+- [x] 3.3 实现知识管理 API/UI 的归属编辑、Guardrail 发布、排除和审计版本；验证人工覆盖优先于自动建议，排除后不进入知识快照。
 
 ## 4. 验证证据与下游适配
 

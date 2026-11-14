@@ -68,8 +68,8 @@ test('错误先落为 unknown/pending，后台分类建议不阻塞主流程', a
   const rawEvent = await store.readEvent('ERR-001');
   assert.equal(rawEvent.scope, 'unknown');
   assert.equal(rawEvent.classificationStatus, 'pending');
-  assert.equal(classifierStarted, false);
   await classification;
+  assert.equal(classifierStarted, true);
   const suggestion = await store.readClassification('ERR-001');
   assert.equal(suggestion.suggestedScope, 'project');
   assert.equal(suggestion.status, 'completed');

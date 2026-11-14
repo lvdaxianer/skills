@@ -212,6 +212,19 @@ export class KnowledgeStore {
   }
 
   /**
+   * 返回控制台可管理的知识事件列表。
+   *
+   * @param {object} filters 查询过滤条件
+   * @returns {Promise<object[]>} 知识状态列表
+   * @author lvdaxianer@yeah.net
+   */
+  async listKnowledge(filters = {}) {
+    const events = await readJsonDirectory(this.projectPath('events'));
+    const states = await Promise.all(events.map((event) => this.resolveEvent(event.eventId)));
+    return states.filter((state) => matchesKnowledgeFilters(state, filters));
+  }
+
+  /**
    * 通过公共晋升门禁发布 Guardrail。
    *
    * @param {string} eventId 事件 ID
@@ -465,6 +478,9 @@ function validatePromotion(state, review, audit) {
   if (state.scope !== 'common') {
     throw new KnowledgeGovernanceError('KNOWLEDGE_SCOPE_INVALID', '只有 common 候选可发布');
   }
+  if (state.lifecycle !== 'active') {
+    throw new KnowledgeGovernanceError('KNOWLEDGE_PROMOTION_BLOCKED', '只有 active 知识可发布');
+  }
   if (!review?.sanitized || !review.portable) {
     throw new KnowledgeGovernanceError('KNOWLEDGE_PROMOTION_BLOCKED', '公共知识必须脱敏且可移植');
   }
@@ -510,6 +526,20 @@ function toSnapshotItem(item) {
     confidence: item.confidence,
     evidenceRefs: item.evidenceRefs ?? []
   };
+}
+
+/**
+ * 判断知识状态是否符合控制台过滤条件。
+ *
+ * @param {object} state 知识状态
+ * @param {object} filters 过滤条件
+ * @returns {boolean} 是否保留
+ * @author lvdaxianer@yeah.net
+ */
+function matchesKnowledgeFilters(state, filters) {
+  const scopeMatches = !filters.scope || state.scope === filters.scope;
+  const lifecycleMatches = !filters.lifecycle || state.lifecycle === filters.lifecycle;
+  return scopeMatches && lifecycleMatches;
 }
 
 /**

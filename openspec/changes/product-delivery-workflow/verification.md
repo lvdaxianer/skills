@@ -251,3 +251,49 @@ git diff --check                                                    PASS
 ### 审计结论
 
 Task 3.2 已实现从错误采集到人工归属和有限知识读取的闭环；自动分类只提出建议，公共知识不会因单个项目事件直接发布。
+
+## 任务 3.3 知识管理 API/UI 审计
+
+### 边界与执行方式
+
+- 边界：只实现本地 loopback 控制平面的知识列表、人工编辑、排除、恢复、公共发布 API、EJS 风格服务端模板、CSS 和浏览器渐进增强；不实现远程登录、云端协作或外部部署。
+- 执行方式：记录了直接执行回退。API、模板、静态资源和治理门禁共享同一数据契约，拆分并行会造成 UI 与后端字段不一致。
+
+### TDD/浏览器证据
+
+- RED：新增 API/UI 测试时，3 个场景因首页和 `/api/knowledge` 路由不存在返回 `404`，既有 23 个测试保持通过。
+- GREEN：接入知识 API、EJS 风格首屏渲染、浏览器增强脚本后，控制平面测试通过 26 个测试。
+- 浏览器核验：本地 `127.0.0.1` 临时服务加载“知识归属管理”页面，显示筛选器、记录卡片、编辑表单和“排除（保留证据）”；通过浏览器实际选择 `项目`、填写解决方案/操作者/原因并保存，页面刷新为“项目”归属。
+
+### 能力核对
+
+- [x] `/` 使用 `ui/index.ejs` 服务端渲染首屏，不再以独立 `index.html` 作为页面入口。
+- [x] 模板渲染器只支持转义插值和安全 HTML 插值，不执行任意模板代码。
+- [x] API 支持知识列表、人工编辑、排除/恢复和公共 Guardrail 发布，并使用稳定错误码和 64 KiB 请求体上限。
+- [x] 人工编辑必须提供操作者和原因；公共发布必须再次满足脱敏、可移植、复现/依据和两名独立复检人。
+- [x] 控制台支持 unknown/project/common/hybrid 筛选、严重级别、解决方案、排除和公共发布操作，错误会回显在状态区。
+- [x] 排除只写 `lifecycle=excluded` 和审计版本，原始事件、证据和审计链保留，后续快照不读取排除项。
+
+### 领域规范核对
+
+- `code-review-spec`：通过安全模板插值、字段白名单、稳定错误映射、请求体上限、无堆栈响应和人工审计字段审查。
+- `backend-reliability-guidelines`：通过 loopback 边界、请求体限制、可恢复状态、公共晋升复用和稳定 4xx/422 错误审查。
+- `frontend-interaction-guidelines`：通过清晰状态徽章、筛选器、表单标签、移动端媒体查询、错误状态和排除保留证据文案审查。
+- `logging-boundaries`：没有新增生产日志；API 不回传堆栈，模板不输出秘密。
+- `rest-api-documentation`：API 只监听本机回环地址，契约已记录在 README；外部 REST 文档门禁不适用。
+- `project-hygiene`：主页面使用 `.ejs` 模板和现有 CSS/JS 资源，不新增构建工具或 node_modules。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (26 passed, 0 failed)
+node --check ui/app.js                                             PASS
+node --check src/ui-handler.mjs                                    PASS
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+browser local UI load/edit                                         PASS
+```
+
+### 审计结论
+
+Task 3.3 已把人工知识归属落到 EJS 风格服务端模板和 loopback API；人工覆盖、排除、公共发布都经过后端治理门禁，控制台不能绕过证据和审计要求。
