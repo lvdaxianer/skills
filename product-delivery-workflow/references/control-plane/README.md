@@ -44,6 +44,12 @@
 
 `runPrdWorkflow()` 使用主 Worker 生成固定结构 PRD，再为 `product-review` 和 `engineering-review` 写入各自的不可变快照并并行执行。快照不包含另一个复检 Worker 的结果；只有两个结果均为 `status=succeeded`、`verdict=pass` 且不存在 `blocked` 假设时，才会写入 `prd-verified.json`、`tasks.json`、`handoff.json` 并进入 `DEVELOPMENT_READY`。
 
+## 错误与知识治理
+
+`KnowledgeStore` 在错误、近失误、测试失败或人工修订发生时立即写入项目 `.product/knowledge/events/`，初始状态固定为 `scope=unknown`、`classificationStatus=pending`。后台分类只写建议；人工决策写入版本和审计，并可归属 `project`、`common` 或 `hybrid`。
+
+公共 Guardrail 只能通过脱敏、可移植、复现/规范依据和两名独立复检人的晋升门禁，写入配置的共享根目录。Worker 通过 `createLessonSnapshot({ maxItems })` 读取有限条目和证据引用，不直接读取全部历史事件；`excluded` 和未晋升候选不会进入快照。
+
 ## 本地测试
 
 ```bash

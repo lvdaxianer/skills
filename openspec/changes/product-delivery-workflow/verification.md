@@ -209,3 +209,45 @@ git diff --check                                                    PASS
 ### 审计结论
 
 Task 3.1 已实现主 Worker 到双复检再到开发交接的可回放门禁；复检上下文互不可见，任何非双 PASS 结果都不会进入 `PRD_VERIFIED` 或 `DEVELOPMENT_READY`。
+
+## 任务 3.2 错误与知识归属审计
+
+### 边界与执行方式
+
+- 边界：只实现错误/近失误事件采集、unknown 初始状态、后台分类建议、人工归属覆盖、common/project/hybrid 文件边界、公共晋升门禁和有限知识快照；不实现知识管理 UI、远程调度或真实部署。
+- 执行方式：记录了直接执行回退。事件事实、分类优先级、公共晋升和快照预算共享同一治理协议，拆分并行会增加归属与存储边界漂移。
+
+### TDD 证据
+
+- RED：新增知识治理测试时，5 个测试因 `knowledge-governance.mjs` 缺失失败，既有 18 个测试保持通过。
+- GREEN：实现并补强分类异常、人工历史和未脱敏候选隔离后，同一命令通过 23 个测试，覆盖 unknown/pending、异步建议、project/common/hybrid、excluded 和快照预算。
+
+### 能力核对
+
+- [x] 错误与 near miss 立即写入项目事件事实源，保留 run、功能、验收和证据引用。
+- [x] 新事件固定为 `scope=unknown`、`classificationStatus=pending`；分类 Worker 异步写建议，失败转换为 `failed/unknown`，不阻塞主流程。
+- [x] 人工决策覆盖自动建议，保存版本、操作者、原因和审计历史；excluded/deprecated 不物理删除原始证据。
+- [x] project 写入项目 lessons，hybrid 额外写项目 adapter；common 候选先留在项目，只有晋升后才写共享 Guardrail，避免未脱敏事实污染公共库。
+- [x] 公共晋升要求脱敏、可移植、独立复现或规范依据及两名独立复检人。
+- [x] lesson snapshot 按预算截断，只返回有限摘要和证据引用；候选与排除项不进入 Worker 快照。
+
+### 领域规范核对
+
+- `code-review-spec`：通过 unknown 初始值、人工优先级、版本化审计、稳定错误码、原始事件不覆盖和公共晋升条件审查。
+- `backend-reliability-guidelines`：通过异步分类、失败降级、原子写入、目录边界、排除保留和有限读取审查。
+- `logging-boundaries`：没有新增生产日志；事件只保存可审计引用，不保存隐藏思维链、秘密或完整敏感日志。
+- `rest-api-documentation`：本任务新增本地知识模块，不新增外部 REST API；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，门禁不适用。
+- `project-hygiene`：项目知识继续写入 `.product/knowledge`，共享根目录仅接收通过公共晋升的 Guardrail；运行缓存与知识事实分离。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (23 passed, 0 failed)
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+```
+
+### 审计结论
+
+Task 3.2 已实现从错误采集到人工归属和有限知识读取的闭环；自动分类只提出建议，公共知识不会因单个项目事件直接发布。
