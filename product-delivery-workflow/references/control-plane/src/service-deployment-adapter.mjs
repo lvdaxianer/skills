@@ -83,6 +83,53 @@ export async function requestDeploymentDecision({
 }
 
 /**
+ * 记录用户明确选择不部署的最终决策。
+ *
+ * @param {object} options 决策配置
+ * @param {object} options.store 文件事实源
+ * @param {string} options.runId 运行 ID
+ * @param {string} options.decision 决策，必须是 not-deployed
+ * @param {string} options.operator 操作者
+ * @param {string} options.reason 决策原因
+ * @returns {Promise<object>} 最终决策结果
+ * @author lvdaxianer@yeah.net
+ */
+export async function recordDeploymentDecision({
+  store,
+  runId,
+  decision,
+  operator,
+  reason
+}) {
+  if (decision !== 'not-deployed') {
+    throw new DeploymentHandoffError('DEPLOYMENT_DECISION_INVALID', '只支持记录 not-deployed 决策');
+  }
+  validateAuthorization({ operator, reason });
+  const run = await store.readRun(runId);
+  if (run.status !== 'DEPLOYMENT_DECISION_REQUIRED') {
+    throw new DeploymentHandoffError('DEPLOYMENT_NOT_READY', '运行尚未等待部署决策');
+  }
+  const reportPath = join(store.projectRoot, '.product', 'runs', runId, DEPLOYMENT_DIRECTORY, 'dry-run.json');
+  const report = await readJson(reportPath);
+  const decidedAt = new Date().toISOString();
+  await writeJsonAtomically(reportPath, {
+    ...report,
+    decision,
+    decision_operator: operator,
+    decision_reason: reason,
+    decided_at: decidedAt
+  });
+  await store.updateRun(runId, { status: 'VERIFIED_NOT_DEPLOYED' });
+  await store.appendAudit(runId, {
+    event_id: `AUDIT-${runId}-VERIFIED-NOT-DEPLOYED`,
+    action: 'deployment_declined',
+    actor: operator,
+    reason
+  });
+  return { status: 'VERIFIED_NOT_DEPLOYED', reportPath, decidedAt };
+}
+
+/**
  * 在用户明确授权且参数完整后向 service-deployment 发送执行请求。
  *
  * @param {object} options 部署请求配置
@@ -317,4 +364,25 @@ async function writeJsonAtomically(path, value) {
     mode: 0o600
   });
   await rename(temporaryPath, path);
+}
+
+/**
+ * 读取部署决策报告。
+ *
+ * @param {string} path 报告路径
+ * @returns {Promise<object>} 报告对象
+ * @author lvdaxianer@yeah.net
+ */
+async function readJson(path) {
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      throw new DeploymentHandoffError('DEPLOYMENT_REPORT_NOT_FOUND', '部署 dry-run 报告不存在');
+    }
+    if (error instanceof SyntaxError) {
+      throw new DeploymentHandoffError('DEPLOYMENT_REPORT_INVALID', '部署 dry-run 报告损坏');
+    }
+    throw error;
+  }
 }
