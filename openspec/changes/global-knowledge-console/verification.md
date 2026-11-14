@@ -166,3 +166,45 @@ git diff --check                                                         PASS
 ## 结论
 
 Task 4.1/4.2 per-task audit 通过，允许标记完成并提交。EJS 控制台已与全局治理 API 对接，核心页面具备可观察的成功、空、错误和同步不完整状态。
+
+# Task 5 验证记录
+
+## 边界
+
+- 添加一个临时服务端到端场景，覆盖两个项目注册、全局规则写入、列表查询、跨项目差异、公共归属迁移、项目有效规则、SQLite 删除重建和 EJS 首页结果一致性。
+- 更新中文总 README、控制平面 README 和启动说明，明确 EJS 控制台能力、loopback 边界、SQLite 事实源原则、重建命令和故障排查。
+- 完成 change 级最终审计准备；真实部署仍遵循总控流程，只有用户明确选择部署后才交给 `service-deployment`。
+
+## TDD 证据
+
+- RED：端到端测试首轮真实执行到公共归属迁移后，因测试把领域返回的 `relation=inherited` 错误写成 `common` 而失败；修正断言为公共规则继承语义。
+- GREEN：端到端场景通过，随后控制面全量测试 55 项通过。
+
+## 能力核对
+
+- [x] 两个项目可注册并分别写入同一 `ruleKey` 的不同方案，差异接口返回两个项目结果。
+- [x] 归属移动返回最新问题快照和 `operationId`，项目规则视图能观察公共规则的 `inherited` 关系。
+- [x] 删除 `control-plane/catalog.sqlite` 后调用重建接口，返回 `replaced=true`、`status=synced`，列表仍保持 2 条且 `isComplete=true`。
+- [x] EJS 首页响应与全局规则 API 使用同一事实投影，页面包含全局控制台、项目规则和跨项目差异区域。
+- [x] 中文 README、控制平面 API 表、启动后的健康/就绪/同步核验和 SQLite 故障排查已更新。
+
+## 可靠性审计
+
+- `backend-reliability-guidelines`：通过。端到端覆盖文件事实写入、SQLite 删除重建、项目隔离和最终一致状态；测试只使用临时目录。
+- `code-review-spec`：通过。测试辅助函数使用中文 JSDoc，新增 Node 文件语法通过，`git diff --check` 通过。
+- `rest-api-documentation`：通过。README API 表与 `apis/global-knowledge.md` 的全局路由保持同步，未新增未记录路由。
+- `verification-before-completion`：通过。focused、full、syntax、diff 和 OpenSpec strict 均在本任务完成前新鲜执行。
+
+## 验证命令
+
+```text
+node --test .../test/global-knowledge-e2e.test.mjs                  PASS (1 passed, 0 failed)
+npm test --prefix product-delivery-workflow/references/control-plane PASS (55 passed, 0 failed)
+node --check 新增端到端测试和 control-plane Node 文件                 PASS
+git diff --check                                                    PASS
+openspec validate global-knowledge-console --strict                  PASS
+```
+
+## 结论
+
+Task 5.1/5.2/5.3 per-task audit 通过，所有计划任务已完成；下一步进入最终审计、OpenSpec 归档和 `master` 集成复核。

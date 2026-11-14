@@ -21,9 +21,18 @@
 | `/api/knowledge/:eventId` | `PATCH` | `200` | 保存人工归属、严重级别、解决方案和审计原因。 |
 | `/api/knowledge/:eventId/exclude` | `POST` | `200` | 排除问题但保留原始事件和证据。 |
 | `/api/knowledge/:eventId/publish` | `POST` | `200` 或 `422` | 通过公共晋升门禁后发布 Guardrail。 |
+| `/api/global/problems` | `GET/POST` | `200` 或 `201` | 查询或创建跨项目全局问题。 |
+| `/api/global/problems/:itemId` | `GET/PATCH/DELETE` | `200` 或 `404` | 查询、编辑或软删除问题。 |
+| `/api/global/problems/:itemId/move` | `POST` | `200` | 追加归属迁移事实。 |
+| `/api/global/problems/:itemId/reuse` | `POST` | `200` | 将公共规则复制为项目 hybrid 适配。 |
+| `/api/global/problems/:itemId/publish` | `POST` | `200` 或 `422` | 通过公共晋升复检后发布。 |
+| `/api/global/projects/:projectId/rules` | `GET` | `200` | 查询项目有效规则和继承关系。 |
+| `/api/global/rules/diff?projects=A,B` | `GET` | `200` | 比较多个项目的规则差异。 |
+| `/api/global/sync` | `GET` | `200` | 查询 checkpoint、漂移和最终一致状态。 |
+| `/api/global/sync/rebuild` | `POST` | `200` 或 `500` | 从文件事实源原子重建 SQLite。 |
 | 其他路径 | `GET` | `404` | 返回稳定错误码 `CONTROL_PLANE_ROUTE_NOT_FOUND`。 |
 
-本 API 只监听本机回环地址，不作为外部 REST API 暴露；外部 REST API 文档门禁在本任务中不适用。
+API 只监听本机回环地址，不作为外部 REST API 暴露。全局路由的请求体必须包含审计 `operator` 和 `reason`；响应会返回 `operationId`、投影摘要和同步状态。详细请求/响应示例见 [`apis/global-knowledge.md`](../../../apis/global-knowledge.md)。
 
 控制台主页面是 `ui/index.ejs`，由内置安全模板渲染器处理 `<%= key %>` 和 `<%- key %>` 插值，不执行模板任意 JavaScript；`app.js` 只负责筛选、编辑和渐进增强。
 
@@ -52,6 +61,8 @@
 全局问题目录使用共享知识根目录下的 `registry/projects/` 注册项目，使用 `control-plane/catalog.sqlite` 保存查询投影。SQLite 不是事实源，不能直接编辑；所有问题 CRUD、归属移动和规则复制必须先写项目/公共 JSON 事实事件，再由投影器更新 SQLite。
 
 SQLite 可以删除或损坏，控制平面应从已注册项目的 `.product/knowledge/` 和共享 `common/guardrails/` 重建。投影状态会记录 `synced`、`pending`、`error`、`conflict` 或 `rebuilding`，并保留 checkpoint、内容哈希和错误摘要。
+
+控制台首页展示同步状态和“结果可能滞后”提示；写操作完成后检查返回的 `operationId`，再通过全局列表或项目规则视图确认结果。如果 SQLite 被删除，先调用 `POST /api/global/sync/rebuild`，再调用 `GET /api/global/sync`，确认 `isComplete=true` 后继续治理。
 
 ## PRD 三 Worker 门禁
 

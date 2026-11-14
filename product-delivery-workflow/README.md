@@ -51,6 +51,25 @@ node src/start.mjs \
 
 知识控制台支持 `unknown/project/common/hybrid` 筛选、人工编辑、排除和公共发布。排除只改变生命周期，不删除原始错误、证据或审计链。
 
+## 全局知识治理控制台
+
+启动服务后访问 `http://127.0.0.1:43100/`，首页是 EJS 服务端模板控制台，提供：
+
+- 全局问题列表、筛选、新增、编辑、归属调整、排除/恢复和公共发布；每次写操作都要求操作者和原因。
+- 项目有效规则视图，以及 project、hybrid、common 规则的继承和覆盖关系。
+- 两个项目的规则差异比较，以及 `synced`、`pending`、`error`、`conflict` 等同步状态提示。
+
+全局 API 只监听回环地址，常用接口如下：
+
+```bash
+curl http://127.0.0.1:43100/api/global/problems
+curl http://127.0.0.1:43100/api/global/projects/PROJECT-A/rules
+curl 'http://127.0.0.1:43100/api/global/rules/diff?projects=PROJECT-A,PROJECT-B'
+curl -X POST http://127.0.0.1:43100/api/global/sync/rebuild
+```
+
+`sharedKnowledgeRoot/control-plane/catalog.sqlite` 只是 SQLite 查询投影。删除或损坏它不会删除事实；重建接口会从已注册项目的 `.product/knowledge/` 和共享 `common/guardrails/` 原子重建。发现 `conflict` 时先检查 checkpoint 和来源文件，再执行重建并确认 `/api/global/sync` 返回 `isComplete=true`。
+
 ## 故障排查
 
 | 现象 | 处理 |
@@ -63,6 +82,8 @@ node src/start.mjs \
 | `INCONCLUSIVE` | 补齐截图、URL、API 摘要、命令退出码或当前 commit/release 绑定，再重新评估。 |
 | `DEPLOYMENT_DECISION_REQUIRED` | 这是安全等待状态；用户未明确授权前不会执行部署。 |
 | `DEPLOYMENT_INPUT_REQUIRED` | 按 [部署交接协议](./references/service-deployment-adapter.md) 补齐部署根目录、服务名、artifact、配置、生命周期和迁移参数。 |
+| 全局列表显示结果可能滞后 | 读取 `/api/global/sync`；确认 checkpoint 无 `error/conflict`，必要时执行 `/api/global/sync/rebuild`。 |
+| SQLite 不存在或无法打开 | 不手工创建或编辑 SQLite，确认共享目录可写后由控制平面重建。 |
 
 ## 相关协议
 

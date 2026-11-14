@@ -27,6 +27,25 @@ node src/start.mjs \
 
 运行目录会写入 `runtime.json`。服务只监听本机回环地址，控制台通过 `http://127.0.0.1:43100/` 访问。
 
+## 启动后的全局治理核验
+
+```bash
+curl --fail http://127.0.0.1:43100/healthz
+curl --fail http://127.0.0.1:43100/readyz
+curl --fail http://127.0.0.1:43100/api/global/sync
+```
+
+首次使用全局控制台时，先通过 `POST /api/global/projects` 注册项目，再使用控制台或 `POST /api/global/problems` 写入问题。注册两个项目后可以使用规则差异接口确认公共继承、项目覆盖和 hybrid 适配。
+
+SQLite 不是事实源。`sharedKnowledgeRoot/control-plane/catalog.sqlite` 删除、损坏或检测到 `conflict` 时，执行：
+
+```bash
+curl --fail -X POST http://127.0.0.1:43100/api/global/sync/rebuild
+curl --fail http://127.0.0.1:43100/api/global/sync
+```
+
+只有重建响应为 `status=synced` 且同步接口返回 `isComplete=true`，才把全局查询结果当作最新；重建失败时保留旧投影并进入人工排查，不直接编辑 SQLite。
+
 ## 总控调用
 
 总控代码应传入固定端口和运行目录：
