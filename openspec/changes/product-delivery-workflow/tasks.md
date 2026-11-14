@@ -20,7 +20,7 @@
 ## 4. 验证证据与下游适配
 
 - [x] 4.1 实现功能点验收契约和 verification bundle，支持命令、API 和浏览器证据引用；验证缺少必要证据时只能得到 `FAILED` 或 `INCONCLUSIVE`。
-- [ ] 4.2 实现 `development-workflow` handoff 适配和 `DEVELOPMENT_READY` 门禁；验证 PRD、任务、验收和假设不完整时不会发送自动开发请求。
+- [x] 4.2 实现 `development-workflow` handoff 适配和 `DEVELOPMENT_READY` 门禁；验证 PRD、任务、验收和假设不完整时不会发送自动开发请求。
 - [ ] 4.3 实现可选 `service-deployment` 交接适配和最终部署询问；验证未得到明确授权时不调用真实部署，只生成发布或 dry-run 信息。
 
 ## 5. 集成验证与中文使用文档
