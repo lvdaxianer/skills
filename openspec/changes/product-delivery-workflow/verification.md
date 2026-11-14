@@ -168,3 +168,44 @@ git diff --check                                                    PASS
 ### 审计结论
 
 Task 2.3 的事实文件、交互账本、恢复快照和索引重建与规格一致；服务重启后可通过新事实源实例恢复运行上下文，缓存丢失不会损坏权威记录。
+
+## 任务 3.1 PRD 三 Worker 门禁审计
+
+### 边界与执行方式
+
+- 边界：只实现主 Worker 的默认 PRD 生成/修订、产品复检和研发复检的独立快照、双通过屏障、版本回路、任务拆分和开发交接包；不实现错误分类、知识归属 UI、验证证据采集或真实部署。
+- 执行方式：记录了直接执行回退。三 Worker 的快照、消息关联、屏障和 PRD 版本循环必须保持同一状态机，拆分并行会造成隔离和门禁漂移。
+
+### TDD 证据
+
+- RED：新增 PRD 编排测试时，4 个测试因 `prd-coordinator.mjs` 缺失失败，既有控制平面和事实源测试保持通过。
+- GREEN：实现并补强失败转换、轮次上限后，同一命令通过 18 个测试，覆盖简单输入补全、来源标记、隔离快照、交互账本、修订 v2、block、阻塞假设和复检异常。
+
+### 能力核对
+
+- [x] 主 Worker 按固定章节生成 PRD，并给目标、角色、用户故事、规则、验收标准、测试意图和假设写入稳定 ID 与来源类型。
+- [x] 产品复检和研发复检分别写入独立快照；快照只包含原始需求、项目事实、当前 PRD、规则和知识引用，不包含彼此评审结果。
+- [x] 两个复检以 `Promise.all` 并行执行，消息包含目标、动作、状态、结论、关联 ID、输入引用和输出引用，并追加到 `interaction.jsonl`。
+- [x] 两个 Worker 都是 `status=succeeded` 且 `verdict=pass`，并且没有阻塞假设时，才生成冻结 PRD、任务拆分和 `DEVELOPMENT_READY` handoff。
+- [x] `revise` 会生成下一版本并重新创建两个快照；`block`、复检异常和轮次上限不会写入 `PRD_VERIFIED`。
+
+### 领域规范核对
+
+- `code-review-spec`：通过稳定来源/状态集合、不可变快照、显式门禁、异常转阻塞、原子文件写入和有限方法拆分审查；未保存隐藏思维链。
+- `backend-reliability-guidelines`：通过输入 schema 校验、复检异常隔离、阻塞优先级、最大轮次和可回放文件引用审查。
+- `logging-boundaries`：无生产日志新增；Worker 只落结构化输入引用、结论、简短理由和证据路径，不写秘密或隐藏推理。
+- `rest-api-documentation`：本任务新增本地 Worker 编排模块，不新增外部 REST API；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，门禁不适用。
+- `project-hygiene`：PRD、快照、任务和 handoff 写入项目 `.product/runs` 事实源；运行缓存仍与事实文件分离。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (18 passed, 0 failed)
+awk line-length check                                               PASS
+git diff --check                                                    PASS
+```
+
+### 审计结论
+
+Task 3.1 已实现主 Worker 到双复检再到开发交接的可回放门禁；复检上下文互不可见，任何非双 PASS 结果都不会进入 `PRD_VERIFIED` 或 `DEVELOPMENT_READY`。
