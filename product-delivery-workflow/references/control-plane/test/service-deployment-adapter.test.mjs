@@ -65,6 +65,27 @@ test('最终审计后先生成部署 dry-run 并等待用户决策', async () =>
   assert.equal((await store.listPendingMessages('RUN-DEPLOY-001', 'service-deployment')).length, 0);
 });
 
+test('用户明确选择不部署时保留 dry-run 并标记 VERIFIED_NOT_DEPLOYED', async () => {
+  const store = await createFinalAuditRun('RUN-DEPLOY-004');
+  const {
+    requestDeploymentDecision,
+    recordDeploymentDecision
+  } = await import('../src/service-deployment-adapter.mjs');
+  await requestDeploymentDecision({ store, runId: 'RUN-DEPLOY-004' });
+
+  const result = await recordDeploymentDecision({
+    store,
+    runId: 'RUN-DEPLOY-004',
+    decision: 'not-deployed',
+    operator: 'operator-a',
+    reason: '本次只验收，不发布'
+  });
+
+  assert.equal(result.status, 'VERIFIED_NOT_DEPLOYED');
+  assert.equal((await store.readRun('RUN-DEPLOY-004')).status, 'VERIFIED_NOT_DEPLOYED');
+  assert.deepEqual(await store.listPendingMessages('RUN-DEPLOY-004', 'service-deployment'), []);
+});
+
 test('没有明确授权时不会发送真实部署请求', async () => {
   const store = await createFinalAuditRun('RUN-DEPLOY-002');
   const { dispatchServiceDeployment } = await import('../src/service-deployment-adapter.mjs');

@@ -35,6 +35,7 @@ to: service-deployment
 ## 失败和幂等
 
 - 未授权：只生成/更新 dry-run，不发送执行消息。
+- 用户明确选择不部署：记录 `VERIFIED_NOT_DEPLOYED`、操作者、原因和 dry-run 发布凭证。
 - 参数缺失：返回 `DEPLOYMENT_INPUT_REQUIRED`，不发送执行消息。
 - 参数非法：返回稳定错误码，不执行写操作之外的部署动作。
 - 相同 run 的部署请求使用固定 correlation ID，重复调用只返回已有请求，不重复发布。

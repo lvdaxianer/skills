@@ -400,6 +400,7 @@ openspec validate product-delivery-workflow --strict                   PASS
 - [x] 未明确 `approved: true` 时不发送 `service-deployment` 执行消息。
 - [x] 授权缺少操作者、原因或部署必需参数时不发送执行消息，不猜测路径、健康命令、迁移安全性或秘密。
 - [x] 参数完整合法且用户明确授权后，才追加目标为 `service-deployment`、`action=execute` 的待执行消息。
+- [x] 用户明确选择不部署时记录 `VERIFIED_NOT_DEPLOYED`、操作者、原因和 dry-run 发布凭证。
 - [x] 部署消息通过固定 correlation ID 幂等，运行状态变为 `DEPLOYMENT_REQUESTED`，并保留审计事件。
 - [x] dry-run 和消息参数摘要过滤密码、token、私钥、凭证和环境值字段；实际部署权威仍是 `service-deployment`。
 
@@ -483,3 +484,37 @@ openspec validate product-delivery-workflow --strict                    PASS
 ### 审计结论
 
 任务 5.2 已补齐中文启动、运行、证据、交接和故障排查入口；文档没有复制领域 Skill 的细则，只引用其权威边界。
+
+## 任务 5.3 最终一致性与领域规范审计
+
+### 完整性
+
+- OpenSpec 任务：15/15 已完成，未发现未勾选任务。
+- 规格：5 个 capability spec 均有实现与测试/协议证据；实现覆盖控制平面、入口分流、知识治理、PRD 三 Worker、验收证据和可选部署。
+- 交付物：主 Skill、中文参考协议、Node 控制平面、EJS 控制台、事实源、测试、开发/部署适配和运行文档均已进入 `master`。
+
+### 正确性
+
+- 全量 Node 测试：38 passed，0 failed。
+- 文档启动核验：按中文启动说明使用临时项目目录启动 Node 服务，回环 `/readyz` 返回 `ready`，`runtime.json` 写入项目绑定信息。
+- OpenSpec：`openspec validate product-delivery-workflow --strict` 通过；`openspec status` 显示 proposal/specs/design/tasks 全部 done。
+- 代码门禁：全部新增 Node 文件通过语法检查、行宽检查和 `git diff --check`。
+- 运行包没有独立 lint/build script；以 Node 语法检查、全量测试、配置 JSON 解析、OpenSpec 严格验证和本地启动核验作为等价构建前检查。
+
+### 一致性修正
+
+最终规格核对发现“用户选择不部署”场景原先只有等待状态，未落成 `VERIFIED_NOT_DEPLOYED`。已按 TDD 补齐 `recordDeploymentDecision`，保留 dry-run、操作者、原因和审计证据；新增场景已通过测试。
+
+### 领域规范结论
+
+- `development-workflow`：每个任务均经过独立 worktree、TDD、审计、提交和合并；主 Skill 不替代工程 Skill。
+- `code-review-spec`：新增代码有中文 JSDoc、稳定错误边界、原子写入和受限输入；未保存隐藏思维链或秘密。
+- `backend-reliability-guidelines`：控制平面只回环监听，状态门禁失败安全，消息和部署请求幂等，未知进程不被终止。
+- `frontend-interaction-guidelines`：控制台具备 EJS 首屏、筛选/编辑/排除/发布操作、错误反馈和移动端样式；浏览器操作保留截图/断言等证据字段。
+- `logging-boundaries`：未新增生产日志；事实源和审计仅保存可回放元数据，未写入秘密。
+- `rest-api-documentation`：新增 API 仅为本地 loopback 控制面，已记录 README，不属于外部 REST Controller。
+- `project-hygiene`：运行目录、缓存和临时状态边界已遵守基线规则，未引入未声明依赖或新二进制产物。
+
+### 最终结论
+
+所有计划任务、规格、实现、测试、证据和审计记录一致；变更满足归档条件。

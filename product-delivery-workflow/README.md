@@ -37,7 +37,7 @@ node src/start.mjs \
 3. 双复检通过后生成 `prd-verified.json`、`tasks.json` 和 `handoff.md`，向 `development-workflow` 写入 `action=execute` 请求。
 4. 每条验收标准生成契约，保存命令/API/浏览器/冒烟证据；缺少必要证据只能得到 `FAILED` 或 `INCONCLUSIVE`。
 5. 所有任务和验收完成、最终审计通过后生成部署 dry-run，并询问用户是否部署。
-6. 没有明确授权时保持 `DEPLOYMENT_DECISION_REQUIRED`；明确授权并提供完整参数后，才向 `service-deployment` 写入执行请求。
+6. 用户选择不部署时记录 `VERIFIED_NOT_DEPLOYED`；没有明确授权时保持 `DEPLOYMENT_DECISION_REQUIRED`；明确授权并提供完整参数后，才向 `service-deployment` 写入执行请求。
 
 ## 运行与事实源
 
