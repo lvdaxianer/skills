@@ -3,7 +3,7 @@
 ## 1. 总控 Skill 契约与入口分流
 
 - [x] 1.1 创建中文 `product-delivery-workflow/SKILL.md`，定义入口、档位路由、状态机、领域 Skill 调度边界和控制平面预检；验证 Skill frontmatter、必需引用和中文流程章节均存在。
-- [ ] 1.2 创建 `references/intake-routing.md`、`references/worker-protocol.md` 和 `references/knowledge-model.md`，定义 quick/content/bugfix/feature/high-risk、三 Worker 隔离、消息字段和公共/项目知识目录；验证文档中的状态与 OpenSpec 规格一致。
+- [x] 1.2 创建 `references/intake-routing.md`、`references/worker-protocol.md` 和 `references/knowledge-model.md`，定义 quick/content/bugfix/feature/high-risk、三 Worker 隔离、消息字段和公共/项目知识目录；验证文档中的状态与 OpenSpec 规格一致。
 
 ## 2. Node 控制平面与持久化
 

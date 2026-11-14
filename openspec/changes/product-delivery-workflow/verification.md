@@ -33,3 +33,12 @@ git diff --check                                         PASS
 ## 审计结论
 
 任务边界、OpenSpec 规格、主 Skill 内容和验证证据一致；没有发现超范围实现或未记录的实现漂移。
+
+## 任务 1.2 参考协议审计
+
+- 边界：只新增 `references/intake-routing.md`、`references/worker-protocol.md` 和 `references/knowledge-model.md`。
+- 回退理由：三个文档共同定义主 Skill 的协议，必须保持中文术语、状态和消息字段一致，不适合并行委派。
+- focused check：路由档位、复检 Worker、`action=execute`、公共知识根目录和 `lesson-snapshot` 均存在。
+- broader check：`openspec validate product-delivery-workflow --strict` 通过；三份 Markdown 结构检查通过。
+- 适用规范：本任务只修改 Skill 参考文档，不写源代码、生产日志或对外 API；后端、前端、日志、REST API 和 `code-review-spec` 门禁不适用。
+- 结论：参考协议与主 Skill 契约及 5 个 capability spec 一致，没有超范围实现。
