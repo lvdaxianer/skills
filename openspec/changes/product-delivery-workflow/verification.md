@@ -454,3 +454,32 @@ openspec validate product-delivery-workflow --strict                       PASS
 ### 审计结论
 
 任务 5.1 证明从需求到开发、验收和部署决策的关键状态可以在同一事实源中回放；集成测试不会把未授权或缺少证据的流程伪装成完成。
+
+## 任务 5.2 中文运行文档审计
+
+### 边界与执行方式
+
+- 边界：只新增总控 Skill README、配置示例、控制平面启动说明、验收证据说明和故障排查，不改变运行逻辑。
+- 执行方式：记录了直接执行回退。文档、示例和已实现协议需要保持术语与命令一致，拆分并行会增加入口文档漂移。
+
+### 能力核对
+
+- [x] 文档说明 quick/content/bugfix/feature/high-risk 分流和简单输入的 PRD 补全规则。
+- [x] 文档给出 Node 服务手动启动命令、`ensureControlPlane` 调用示例、端口复用边界和服务恢复说明。
+- [x] 文档明确 EJS 控制台入口为 `ui/index.ejs`，并说明浏览器证据和 verification bundle 字段。
+- [x] 文档明确开发交接、最终部署询问、dry-run、明确授权和 `service-deployment` 权威边界。
+- [x] 文档列出事实源目录、公共/项目知识边界和常见稳定错误码处理。
+
+### 验证证据
+
+```text
+test -f product-delivery-workflow/README.md                             PASS
+test -f product-delivery-workflow/examples/config.example.json          PASS
+test -f product-delivery-workflow/references/control-plane-startup.md   PASS
+test -f product-delivery-workflow/references/verification-evidence.md   PASS
+openspec validate product-delivery-workflow --strict                    PASS
+```
+
+### 审计结论
+
+任务 5.2 已补齐中文启动、运行、证据、交接和故障排查入口；文档没有复制领域 Skill 的细则，只引用其权威边界。

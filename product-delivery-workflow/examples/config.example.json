@@ -1,0 +1,13 @@
+{
+  "host": "127.0.0.1",
+  "port": 43100,
+  "projectRoot": "/absolute/path/to/project",
+  "sharedKnowledgeRoot": "/absolute/path/to/shared-knowledge",
+  "runtimeRoot": "/absolute/path/to/project/.product/control-plane/run",
+  "serviceVersion": "0.1.0",
+  "deployment": {
+    "decision": "required-after-final-audit",
+    "target": "service-deployment",
+    "realDeployment": "requires-explicit-user-authorization"
+  }
+}
