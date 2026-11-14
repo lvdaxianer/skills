@@ -8,7 +8,7 @@
 ## 2. Node 控制平面与持久化
 
 - [x] 2.1 在 `product-delivery-workflow/references/control-plane/` 创建本地 Node 服务包和 `/healthz`、`/readyz`、项目绑定检查；验证 Node 单元测试覆盖健康、就绪和错误配置。
-- [ ] 2.2 实现 `ensure-control-plane` 启动/复用脚本和运行元数据，保证端口冲突不杀未知进程；验证服务未监听时可启动、匹配实例可复用、错误绑定会阻断。
+- [x] 2.2 实现 `ensure-control-plane` 启动/复用脚本和运行元数据，保证端口冲突不杀未知进程；验证服务未监听时可启动、匹配实例可复用、错误绑定会阻断。
 - [ ] 2.3 实现文件事实源、追加式 `interaction.jsonl`、run 恢复和可重建索引；验证服务重启后能恢复 run、未消费消息和审计记录。
 
 ## 3. PRD Worker 编排与知识管理
