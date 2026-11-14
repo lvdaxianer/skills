@@ -12,6 +12,9 @@ import {
   writeReadyResponse
 } from './response.mjs';
 import { isReady } from './readiness.mjs';
+import { KnowledgeStore } from './knowledge-governance.mjs';
+import { handleKnowledgeRequest } from './knowledge-api.mjs';
+import { serveControlPlaneUi } from './ui-handler.mjs';
 
 /**
  * 创建本地产品交付控制平面 HTTP 服务。
@@ -22,8 +25,9 @@ import { isReady } from './readiness.mjs';
  */
 export function createControlPlaneServer(options) {
   const config = normalizeConfig(options);
+  const knowledgeStore = new KnowledgeStore(config);
   return createServer((request, response) => {
-    handleRequest(request, response, config).catch(() => writeNotReadyResponse(response));
+    handleRequest(request, response, config, knowledgeStore).catch(() => writeNotReadyResponse(response));
   });
 }
 
@@ -33,11 +37,16 @@ export function createControlPlaneServer(options) {
  * @param {import('node:http').IncomingMessage} request HTTP 请求
  * @param {import('node:http').ServerResponse} response HTTP 响应
  * @param {Readonly<object>} config 控制平面配置
+ * @param {KnowledgeStore} knowledgeStore 知识库
  * @returns {Promise<void>} 请求处理完成
  * @author lvdaxianer@yeah.net
  */
-async function handleRequest(request, response, config) {
+async function handleRequest(request, response, config, knowledgeStore) {
   const pathname = getPathname(request.url);
+  if (pathname.startsWith('/api/knowledge')) {
+    await handleKnowledgeRequest({ request, response, pathname, store: knowledgeStore });
+    return;
+  }
   if (request.method !== 'GET') {
     writeNotFoundResponse(response);
     return;
@@ -49,6 +58,11 @@ async function handleRequest(request, response, config) {
   if (pathname === '/readyz') {
     await writeReadinessResponse(response, config);
     return;
+  }
+  if (pathname === '/' || pathname.startsWith('/assets/')) {
+    if (await serveControlPlaneUi({ pathname, response, store: knowledgeStore })) {
+      return;
+    }
   }
   writeNotFoundResponse(response);
 }

@@ -1,6 +1,6 @@
 # 控制平面服务
 
-这是 `product-delivery-workflow` 的本地 Node 控制平面。当前实现只提供健康检查、就绪检查和项目绑定元数据，不承担 Worker 编排或知识归属写入。
+这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API 和人工管理控制台。
 
 ## 运行约束
 
@@ -16,9 +16,16 @@
 | --- | --- | --- | --- |
 | `/healthz` | `GET` | `200` | 返回服务存活状态。 |
 | `/readyz` | `GET` | `200` 或 `503` | 返回目录依赖和项目绑定是否就绪。 |
+| `/` | `GET` | `200` | 服务端渲染的 EJS 风格知识归属控制台。 |
+| `/api/knowledge` | `GET` | `200` | 返回可人工管理的知识事件。 |
+| `/api/knowledge/:eventId` | `PATCH` | `200` | 保存人工归属、严重级别、解决方案和审计原因。 |
+| `/api/knowledge/:eventId/exclude` | `POST` | `200` | 排除问题但保留原始事件和证据。 |
+| `/api/knowledge/:eventId/publish` | `POST` | `200` 或 `422` | 通过公共晋升门禁后发布 Guardrail。 |
 | 其他路径 | `GET` | `404` | 返回稳定错误码 `CONTROL_PLANE_ROUTE_NOT_FOUND`。 |
 
 本 API 只监听本机回环地址，不作为外部 REST API 暴露；外部 REST API 文档门禁在本任务中不适用。
+
+控制台主页面是 `ui/index.ejs`，由内置安全模板渲染器处理 `<%= key %>` 和 `<%- key %>` 插值，不执行模板任意 JavaScript；`app.js` 只负责筛选、编辑和渐进增强。
 
 ## 启动与复用
 

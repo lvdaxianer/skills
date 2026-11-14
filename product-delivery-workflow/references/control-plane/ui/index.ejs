@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= pageTitle %></title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">PRODUCT DELIVERY WORKFLOW</p>
+          <h1><%= pageTitle %></h1>
+          <p class="subtitle">人工确认公共、项目与 hybrid 问题；排除只改变状态，不删除原始证据。</p>
+        </div>
+        <button id="refresh-button" class="button secondary" type="button">刷新列表</button>
+      </header>
+
+      <section class="toolbar" aria-label="知识筛选">
+        <label>归属
+          <select id="scope-filter">
+            <option value="">全部</option>
+            <option value="unknown">待判断</option>
+            <option value="project">项目</option>
+            <option value="common">公共候选</option>
+            <option value="hybrid">混合</option>
+          </select>
+        </label>
+        <label>状态
+          <select id="lifecycle-filter">
+            <option value="">全部</option>
+            <option value="active">有效</option>
+            <option value="excluded">已排除</option>
+          </select>
+        </label>
+        <span id="status-message" class="status" role="status"><%= initialStatus %></span>
+      </section>
+
+      <section id="knowledge-list" class="knowledge-list" aria-live="polite"><%- knowledgeCards %></section>
+    </main>
+    <template id="knowledge-card-template">
+      <article class="knowledge-card">
+        <div class="card-header">
+          <div>
+            <span class="badge scope-badge"></span>
+            <h2 class="knowledge-title"></h2>
+          </div>
+          <span class="badge lifecycle-badge"></span>
+        </div>
+        <p class="knowledge-description"></p>
+        <form class="knowledge-form">
+          <label>归属
+            <select name="scope">
+              <option value="unknown">待判断</option>
+              <option value="project">项目</option>
+              <option value="common">公共候选</option>
+              <option value="hybrid">混合</option>
+            </select>
+          </label>
+          <label>严重级别
+            <select name="severity">
+              <option value="critical">critical</option>
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+              <option value="info">info</option>
+            </select>
+          </label>
+          <label class="wide">解决方案
+            <textarea name="solution" rows="2" placeholder="填写可验证的解决方案"></textarea>
+          </label>
+          <label>操作者
+            <input name="operator" required placeholder="姓名或账号">
+          </label>
+          <label>原因
+            <input name="reason" required placeholder="为什么这样归属">
+          </label>
+          <div class="actions wide">
+            <button class="button primary save-button" type="submit">保存人工决定</button>
+            <button class="button danger exclude-button" type="button">排除（保留证据）</button>
+            <button class="button secondary publish-button" type="button" hidden>发布公共 Guardrail</button>
+          </div>
+        </form>
+      </article>
+    </template>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>
