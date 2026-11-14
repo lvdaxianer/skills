@@ -338,3 +338,46 @@ git diff --check                                                    PASS
 ### 审计结论
 
 任务 4.1 已把“功能点完成”收紧为可回放的证据门禁；缺少截图、URL、API 摘要、命令退出码或版本绑定时不会标记 `VERIFIED`。
+
+## 任务 4.2 development-workflow 交接审计
+
+### 边界与执行方式
+
+- 边界：只实现 `DEVELOPMENT_READY` 交接校验、中文 `handoff.md`、开发请求账本消息和运行状态迁移；不替代 `development-workflow` 的分支、OpenSpec、TDD、审计、提交和合并职责。
+- 执行方式：记录了直接执行回退。适配器必须原子地复核同一组 PRD/任务/验收/复检事实并发消息，拆分并行会产生门禁与消息竞态。
+
+### TDD 证据
+
+- RED：新增交接测试时，2 个场景因 `development-workflow-adapter.mjs` 缺失失败，既有 30 个测试保持通过。
+- GREEN：补齐交接校验、幂等请求、状态迁移和审计后，同一命令通过 32 个测试。
+
+### 能力核对
+
+- [x] 只有 `run.status=DEVELOPMENT_READY`、handoff 状态正确、PRD 版本一致时才继续。
+- [x] 任务非空且每条任务都有稳定 ID、验收关联和验证计划；每条验收标准都有任务覆盖和交接引用。
+- [x] 双复检引用必须存在，`blockedAssumptions` 为空，PRD 结构重新校验通过。
+- [x] 通过门禁后生成中文 `handoff.md`，追加目标为 `development-workflow` 且 `action=execute` 的待执行消息，并更新为 `DEVELOPMENT_RUNNING`。
+- [x] 重复调用按 correlation ID 幂等，不重复发送开发请求；阻塞路径不写执行消息。
+
+### 领域规范核对
+
+- `code-review-spec`：通过稳定错误码、输入事实复核、幂等 correlation ID、有限消息引用、原子文档写入和无隐藏推理审查。
+- `backend-reliability-guidelines`：通过状态机门禁、失败前置、重复调用幂等、文件事实源恢复和审计追加审查。
+- `logging-boundaries`：本任务没有新增生产日志；交互账本只保存请求元数据和引用，不写入秘密或隐藏思维链。
+- `rest-api-documentation`：本任务新增本地 Worker 消息适配，不新增外部 REST 路由；门禁不适用。
+- `frontend-interaction-guidelines`：无 UI 变更，门禁不适用。
+- `project-hygiene`：仅新增中文协议文档、Node 模块和测试，未新增外部依赖或运行产物类型。
+
+### 验证证据
+
+```text
+npm test --prefix product-delivery-workflow/references/control-plane  PASS (32 passed, 0 failed)
+node --check development-workflow-adapter.mjs                         PASS
+awk line-length check                                                   PASS
+git diff --check                                                        PASS
+openspec validate product-delivery-workflow --strict                   PASS
+```
+
+### 审计结论
+
+任务 4.2 已把产品总控到工程 Skill 的边界落为可恢复消息协议；不完整的 PRD、任务、验收、复检或假设不会自动进入开发执行。
