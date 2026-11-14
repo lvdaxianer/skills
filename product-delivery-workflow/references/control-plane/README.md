@@ -1,6 +1,6 @@
 # 控制平面服务
 
-这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API 和人工管理控制台。
+这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API、全局 SQLite 查询目录和人工管理控制台。
 
 ## 运行约束
 
@@ -46,6 +46,12 @@
 - `audit.jsonl`：人工和系统审计事件。
 
 `control-plane/cache/index.json` 只保存可重建索引，删除后可通过 `rebuildIndex()` 从 `run.json` 重新生成。服务重启或新 Worker 上下文建立时，应从这些文件恢复运行和目标 Worker 的待执行消息。
+
+## 全局目录与 SQLite 投影
+
+全局问题目录使用共享知识根目录下的 `registry/projects/` 注册项目，使用 `control-plane/catalog.sqlite` 保存查询投影。SQLite 不是事实源，不能直接编辑；所有问题 CRUD、归属移动和规则复制必须先写项目/公共 JSON 事实事件，再由投影器更新 SQLite。
+
+SQLite 可以删除或损坏，控制平面应从已注册项目的 `.product/knowledge/` 和共享 `common/guardrails/` 重建。投影状态会记录 `synced`、`pending`、`error`、`conflict` 或 `rebuilding`，并保留 checkpoint、内容哈希和错误摘要。
 
 ## PRD 三 Worker 门禁
 
