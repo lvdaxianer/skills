@@ -3,4 +3,9 @@
 /.claude/
 /.codex/
 /.Codex/worktrees/
+/.product/control-plane/run/
+/.product/control-plane/logs/
+/.superpowers/
+node_modules/
+*.tsbuildinfo
 # <<< project-hygiene (managed) <<<

@@ -1,0 +1,7 @@
+# >>> project-hygiene (managed, do not edit by hand) >>>
+* text=auto eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.sh text eol=lf
+# <<< project-hygiene (managed) <<<
