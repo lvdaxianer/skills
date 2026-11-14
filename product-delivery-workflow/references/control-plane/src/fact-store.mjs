@@ -102,6 +102,21 @@ export class FileFactStore {
   }
 
   /**
+   * 原子更新运行状态快照，历史消息仍由 JSONL 保留。
+   *
+   * @param {string} runId 运行 ID
+   * @param {object} patch 要更新的字段
+   * @returns {Promise<object>} 更新后的运行记录
+   * @author lvdaxianer@yeah.net
+   */
+  async updateRun(runId, patch) {
+    const current = await this.readRun(runId);
+    const updated = { ...current, ...patch, updatedAt: new Date().toISOString() };
+    await writeJsonAtomically(join(this.getRunDirectory(runId), 'run.json'), updated);
+    return updated;
+  }
+
+  /**
    * 追加一条 Worker 交互消息。
    *
    * @param {string} runId 运行 ID

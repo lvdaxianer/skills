@@ -40,6 +40,10 @@
 
 `control-plane/cache/index.json` 只保存可重建索引，删除后可通过 `rebuildIndex()` 从 `run.json` 重新生成。服务重启或新 Worker 上下文建立时，应从这些文件恢复运行和目标 Worker 的待执行消息。
 
+## PRD 三 Worker 门禁
+
+`runPrdWorkflow()` 使用主 Worker 生成固定结构 PRD，再为 `product-review` 和 `engineering-review` 写入各自的不可变快照并并行执行。快照不包含另一个复检 Worker 的结果；只有两个结果均为 `status=succeeded`、`verdict=pass` 且不存在 `blocked` 假设时，才会写入 `prd-verified.json`、`tasks.json`、`handoff.json` 并进入 `DEVELOPMENT_READY`。
+
 ## 本地测试
 
 ```bash
