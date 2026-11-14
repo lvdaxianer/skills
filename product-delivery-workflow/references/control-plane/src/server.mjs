@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { URL } from 'node:url';
+import { join } from 'node:path';
 import { normalizeConfig, getServiceMetadata } from './config.mjs';
 import {
   DEFAULT_HOST,
@@ -14,6 +15,11 @@ import {
 import { isReady } from './readiness.mjs';
 import { KnowledgeStore } from './knowledge-governance.mjs';
 import { handleKnowledgeRequest } from './knowledge-api.mjs';
+import { handleGlobalKnowledgeRequest } from './global-knowledge-api.mjs';
+import { GlobalKnowledgeCatalog } from './global-knowledge-catalog.mjs';
+import { ProjectRegistry } from './project-registry.mjs';
+import { KnowledgeProjector } from './knowledge-projector.mjs';
+import { SqliteCatalog } from './sqlite-catalog.mjs';
 import { serveControlPlaneUi } from './ui-handler.mjs';
 
 /**
@@ -26,9 +32,13 @@ import { serveControlPlaneUi } from './ui-handler.mjs';
 export function createControlPlaneServer(options) {
   const config = normalizeConfig(options);
   const knowledgeStore = new KnowledgeStore(config);
-  return createServer((request, response) => {
-    handleRequest(request, response, config, knowledgeStore).catch(() => writeNotReadyResponse(response));
+  const globalCatalog = createGlobalCatalog(config);
+  const server = createServer((request, response) => {
+    handleRequest(request, response, config, knowledgeStore, globalCatalog)
+      .catch(() => writeNotReadyResponse(response));
   });
+  server.on('close', () => globalCatalog.close());
+  return server;
 }
 
 /**
@@ -38,11 +48,16 @@ export function createControlPlaneServer(options) {
  * @param {import('node:http').ServerResponse} response HTTP 响应
  * @param {Readonly<object>} config 控制平面配置
  * @param {KnowledgeStore} knowledgeStore 知识库
+ * @param {GlobalKnowledgeCatalog} globalCatalog 全局知识目录
  * @returns {Promise<void>} 请求处理完成
  * @author lvdaxianer@yeah.net
  */
-async function handleRequest(request, response, config, knowledgeStore) {
+async function handleRequest(request, response, config, knowledgeStore, globalCatalog) {
   const pathname = getPathname(request.url);
+  if (pathname.startsWith('/api/global')) {
+    await handleGlobalKnowledgeRequest({ request, response, pathname, catalog: globalCatalog });
+    return;
+  }
   if (pathname.startsWith('/api/knowledge')) {
     await handleKnowledgeRequest({ request, response, pathname, store: knowledgeStore });
     return;
@@ -65,6 +80,25 @@ async function handleRequest(request, response, config, knowledgeStore) {
     }
   }
   writeNotFoundResponse(response);
+}
+
+/**
+ * 创建跨项目知识目录及其单向投影依赖。
+ *
+ * @param {Readonly<object>} config 控制平面配置
+ * @returns {GlobalKnowledgeCatalog} 全局知识目录
+ * @author lvdaxianer@yeah.net
+ */
+function createGlobalCatalog(config) {
+  const registry = new ProjectRegistry({ sharedRoot: config.sharedKnowledgeRoot });
+  const catalog = new SqliteCatalog({ dbPath: join(config.sharedKnowledgeRoot, 'control-plane', 'catalog.sqlite') });
+  const projector = new KnowledgeProjector({ sharedRoot: config.sharedKnowledgeRoot, registry, catalog });
+  return new GlobalKnowledgeCatalog({
+    sharedRoot: config.sharedKnowledgeRoot,
+    registry,
+    catalog,
+    projector
+  });
 }
 
 /**

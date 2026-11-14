@@ -357,7 +357,9 @@ function toKnowledgeItem({
 }) {
   const state = { ...event, ...(decision ?? {}) };
   const scope = state.scope ?? fallbackScope ?? 'unknown';
-  const owningProjectId = scope === 'common' ? null : projectId;
+  const owningProjectId = scope === 'common'
+    ? null
+    : state.owningProjectId ?? projectId;
   return {
     itemId: state.eventId ?? fallbackEventId,
     sourceProjectId: projectId,
