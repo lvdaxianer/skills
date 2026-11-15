@@ -45,6 +45,7 @@
           </select>
         </label>
         <span id="status-message" class="status" role="status"><%= initialStatus %></span>
+        <button id="retry-button" class="button secondary" type="button" hidden>重试加载</button>
       </section>
 
       <section class="workspace">
@@ -65,6 +66,11 @@
             <button class="button primary" type="submit">新增问题</button>
           </form>
           <div id="global-problem-list" class="knowledge-list" aria-live="polite"><%- knowledgeCards %></div>
+          <div id="problem-pagination" class="pagination" hidden>
+            <button id="prev-page" class="button secondary" type="button">上一页</button>
+            <span id="page-indicator" class="helper" aria-live="polite"></span>
+            <button id="next-page" class="button secondary" type="button">下一页</button>
+          </div>
         </section>
 
         <aside class="side-column">
@@ -97,6 +103,19 @@
         </aside>
       </section>
     </main>
+
+    <dialog id="action-dialog" class="action-dialog" aria-labelledby="action-dialog-title">
+      <form id="action-dialog-form">
+        <h2 id="action-dialog-title"></h2>
+        <p id="action-dialog-description" class="dialog-description"></p>
+        <div id="action-dialog-fields" class="dialog-fields"></div>
+        <p id="action-dialog-error" class="dialog-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button id="action-dialog-cancel" class="button secondary" type="button">取消</button>
+          <button id="action-dialog-confirm" class="button primary" type="submit">确认</button>
+        </div>
+      </form>
+    </dialog>
 
     <template id="problem-card-template">
       <article class="knowledge-card">

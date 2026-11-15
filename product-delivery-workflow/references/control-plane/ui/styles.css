@@ -73,6 +73,28 @@ textarea { resize: vertical; }
 .empty-state { padding: 48px 20px; text-align: center; color: #667085; background: #fafbff; border-radius: 14px; }
 .error { color: #a63232 !important; }
 
+.action-dialog {
+  border: 0; border-radius: 16px; padding: 24px; width: min(460px, calc(100vw - 32px));
+  color: #172033; box-shadow: 0 24px 60px rgb(23 32 51 / 22%);
+}
+.action-dialog::backdrop { background: rgb(23 32 51 / 45%); }
+.action-dialog h2 { font-size: 18px; letter-spacing: -.01em; }
+.dialog-description { color: #667085; font-size: 13px; line-height: 1.6; margin: 10px 0 0; }
+.dialog-fields { display: grid; gap: 10px; margin-top: 14px; }
+.dialog-fields input[type="checkbox"] { width: auto; justify-self: start; }
+.dialog-error { color: #a63232; font-size: 13px; line-height: 1.5; margin: 12px 0 0; }
+.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+.stale-notice {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 10px;
+  background: #fff6df; color: #916b1b; font-size: 12px; line-height: 1.5;
+}
+.stale-notice .discard-button { padding: 6px 10px; font-size: 12px; }
+
+.pagination { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.pagination .helper { margin: 0; }
+
 @media (max-width: 1080px) {
   .create-form { grid-template-columns: repeat(3, 1fr); }
   .create-form .button { grid-column: 1 / -1; }
