@@ -4,6 +4,7 @@ import { renderTemplate } from './template-renderer.mjs';
 
 const UI_ROOT = fileURLToPath(new URL('../ui/', import.meta.url));
 const TEMPLATE_PATH = fileURLToPath(new URL('../ui/index.ejs', import.meta.url));
+const SSR_PAGE_LIMIT = 20;
 const UI_FILES = new Map([
   ['/assets/app.js', ['app.js', 'text/javascript; charset=utf-8']],
   ['/assets/styles.css', ['styles.css', 'text/css; charset=utf-8']]
@@ -43,11 +44,15 @@ export async function serveControlPlaneUi({ pathname, response, store, globalCat
  * @author lvdaxianer@yeah.net
  */
 async function serveRenderedPage(response, catalog, fallbackCatalog) {
-  const [template, primaryItems, sync] = await Promise.all([
+  const [template, firstPage, sync] = await Promise.all([
     readFile(TEMPLATE_PATH, 'utf8'),
-    catalog.listProblems ? catalog.listProblems() : catalog.listKnowledge(),
+    catalog.queryProblems
+      ? catalog.queryProblems({ limit: SSR_PAGE_LIMIT, offset: 0 })
+      : Promise.resolve(null),
     catalog.getSyncStatus ? catalog.getSyncStatus() : Promise.resolve({ status: 'synced' })
   ]);
+  const primaryItems = firstPage?.items
+    ?? (catalog.listProblems ? await catalog.listProblems() : await catalog.listKnowledge());
   const fallbackItems = fallbackCatalog && fallbackCatalog !== catalog
     ? await fallbackCatalog.listKnowledge()
     : [];
@@ -56,7 +61,9 @@ async function serveRenderedPage(response, catalog, fallbackCatalog) {
     : fallbackItems;
   const html = renderTemplate(template, {
     pageTitle: '全局知识治理控制台 · 知识归属管理',
-    initialStatus: `已加载 ${items.length} 条记录`,
+    initialStatus: firstPage && items === primaryItems
+      ? `已加载 ${items.length} 条，共 ${firstPage.total} 条记录`
+      : `已加载 ${items.length} 条记录`,
     initialSyncStatus: sync.status,
     knowledgeCards: renderKnowledgeCards(items)
   });

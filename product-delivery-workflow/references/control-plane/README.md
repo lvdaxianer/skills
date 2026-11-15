@@ -21,7 +21,7 @@
 | `/api/knowledge/:eventId` | `PATCH` | `200` | 保存人工归属、严重级别、解决方案和审计原因。 |
 | `/api/knowledge/:eventId/exclude` | `POST` | `200` | 排除问题但保留原始事件和证据。 |
 | `/api/knowledge/:eventId/publish` | `POST` | `200` 或 `422` | 通过公共晋升门禁后发布 Guardrail。 |
-| `/api/global/problems` | `GET/POST` | `200` 或 `201` | 查询或创建跨项目全局问题。 |
+| `/api/global/problems` | `GET/POST` | `200` 或 `201` | 查询或创建跨项目全局问题；`GET` 支持 `limit`/`offset` 分页并返回 `total`。 |
 | `/api/global/problems/:itemId` | `GET/PATCH/DELETE` | `200` 或 `404` | 查询、编辑或软删除问题。 |
 | `/api/global/problems/:itemId/move` | `POST` | `200` | 追加归属迁移事实。 |
 | `/api/global/problems/:itemId/reuse` | `POST` | `200` | 将公共规则复制为项目 hybrid 适配。 |

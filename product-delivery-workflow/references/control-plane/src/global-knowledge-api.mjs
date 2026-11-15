@@ -106,16 +106,18 @@ async function routeProblemAction({ request, response, catalog, segments }) {
 
 async function listProblems(request, response, catalog) {
   const url = new URL(request.url, 'http://127.0.0.1');
-  const items = await catalog.listProblems({
+  const result = await catalog.queryProblems({
     itemId: url.searchParams.get('itemId') ?? undefined,
     projectId: url.searchParams.get('projectId') ?? undefined,
     scope: url.searchParams.get('scope') ?? undefined,
     lifecycle: url.searchParams.get('lifecycle') ?? undefined,
-    severity: url.searchParams.get('severity') ?? undefined
+    severity: url.searchParams.get('severity') ?? undefined,
+    limit: url.searchParams.get('limit') ?? undefined,
+    offset: url.searchParams.get('offset') ?? undefined
   });
   const syncStatus = await catalog.getSyncStatus();
   writeJson(response, 200, {
-    items,
+    ...result,
     syncStatus: syncStatus.status,
     checkpoint: syncStatus.checkpoint,
     isComplete: syncStatus.isComplete

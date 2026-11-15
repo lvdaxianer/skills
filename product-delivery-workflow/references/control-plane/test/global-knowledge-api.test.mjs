@@ -86,6 +86,37 @@ test('全局问题支持文件优先 CRUD、软删除恢复和操作追踪', asy
   globalCatalog.close();
 });
 
+test('queryProblems 返回筛选后总数和分页切片', async () => {
+  const { projectA, globalCatalog } = await createFixture();
+  for (let index = 1; index <= 3; index += 1) {
+    await writeProjectEvent(projectA, {
+      eventId: `EVENT-PAGE-${index}`,
+      title: `分页问题 ${index}`,
+      solution: '分页方案'
+    });
+  }
+  await globalCatalog.sync();
+
+  const firstPage = await globalCatalog.queryProblems({ limit: 2, offset: 0 });
+  assert.equal(firstPage.items.length, 2);
+  assert.equal(firstPage.total, 3);
+  assert.equal(firstPage.limit, 2);
+  assert.equal(firstPage.offset, 0);
+
+  const secondPage = await globalCatalog.queryProblems({ limit: 2, offset: 2 });
+  assert.equal(secondPage.items.length, 1);
+  assert.equal(secondPage.items[0].itemId, 'EVENT-PAGE-3');
+
+  const filtered = await globalCatalog.queryProblems({ itemId: 'EVENT-PAGE-2' });
+  assert.equal(filtered.total, 1);
+  assert.equal(filtered.items[0].itemId, 'EVENT-PAGE-2');
+
+  const unbounded = await globalCatalog.queryProblems();
+  assert.equal(unbounded.total, 3);
+  assert.equal(unbounded.items.length, 3);
+  globalCatalog.close();
+});
+
 test('归属移动和规则复制分别落 ownership_changed 与 rule_reused 事实', async () => {
   const { sharedRoot, projectA, projectB, globalCatalog } = await createFixture();
   await writeProjectEvent(projectA, {

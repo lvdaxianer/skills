@@ -73,6 +73,21 @@ export class GlobalKnowledgeCatalog {
   }
 
   /**
+   * 分页查询全局问题，返回当前页数据和筛选后总数。
+   *
+   * @param {object} filters 查询条件，额外支持 limit 和 offset
+   * @returns {Promise<object>} 分页结果
+   * @author lvdaxianer@yeah.net
+   */
+  async queryProblems(filters = {}) {
+    const all = await this.listProblems(filters);
+    const offset = toPageNumber(filters.offset, 0);
+    const limit = toPageLimit(filters.limit);
+    const items = limit === undefined ? all : all.slice(offset, offset + limit);
+    return { items, total: all.length, limit: limit ?? null, offset };
+  }
+
+  /**
    * 执行项目和公共事实的增量同步。
    *
    * @returns {Promise<object>} 同步结果
@@ -513,6 +528,34 @@ function matchesFilters(item, filters) {
 
 function isEffectiveCandidate(item) {
   return item.lifecycle === 'active' && VALID_SCOPES.has(item.scope);
+}
+
+const MAX_PAGE_LIMIT = 100;
+
+/**
+ * 把分页偏移解析为非负整数。
+ *
+ * @param {unknown} value 原始偏移
+ * @param {number} fallback 解析失败时的回退值
+ * @returns {number} 非负整数偏移
+ * @author lvdaxianer@yeah.net
+ */
+function toPageNumber(value, fallback) {
+  const number = Number.parseInt(value, 10);
+  return Number.isFinite(number) && number > 0 ? number : fallback;
+}
+
+/**
+ * 把分页大小解析为正整数，并限制单次查询上限。
+ *
+ * @param {unknown} value 原始分页大小
+ * @returns {number|undefined} 合法分页大小，缺省或非法时返回 undefined
+ * @author lvdaxianer@yeah.net
+ */
+function toPageLimit(value) {
+  const number = Number.parseInt(value, 10);
+  if (!Number.isFinite(number) || number < 1) return undefined;
+  return Math.min(number, MAX_PAGE_LIMIT);
 }
 
 function selectRules(rows, projectId) {
