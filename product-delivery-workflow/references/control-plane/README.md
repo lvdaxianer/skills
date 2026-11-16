@@ -1,6 +1,6 @@
 # 控制平面服务
 
-这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API、全局 SQLite 查询目录和人工管理控制台。
+这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API、全局 SQLite 查询目录、RSI 快照/Provider Adapter 和人工管理控制台。
 
 ## 运行约束
 
@@ -73,6 +73,8 @@ SQLite 可以删除或损坏，控制平面应从已注册项目的 `.product/kn
 `KnowledgeStore` 在错误、近失误、测试失败或人工修订发生时立即写入项目 `.product/knowledge/events/`，初始状态固定为 `scope=unknown`、`classificationStatus=pending`。后台分类只写建议；人工决策写入版本和审计，并可归属 `project`、`common` 或 `hybrid`。
 
 公共 Guardrail 只能通过脱敏、可移植、复现/规范依据和两名独立复检人的晋升门禁，写入配置的共享根目录。Worker 通过 `createLessonSnapshot({ maxItems })` 读取有限条目和证据引用，不直接读取全部历史事件；`excluded` 和未晋升候选不会进入快照。
+
+RSI 快照写入项目 `.product/rsi/`。文件 Adapter 和 Prompt Adapter 由 `src/rsi-provider-adapter.mjs` 提供；只读 MCP stdio Server 由 `src/rsi-mcp-server.mjs` 提供，查询 `rsi_get_context`、`rsi_get_evidence` 和 `rsi_get_manifest`。两者都只消费带 `snapshotId`、`sourceHash` 和 `contentHash` 的快照，不覆盖 `CLAUDE.md` 或 `AGENTS.md`。
 
 ## 验收证据门禁
 
