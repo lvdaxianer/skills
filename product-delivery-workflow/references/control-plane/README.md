@@ -30,9 +30,12 @@
 | `/api/global/rules/diff?projects=A,B` | `GET` | `200` | 比较多个项目的规则差异。 |
 | `/api/global/sync` | `GET` | `200` | 查询 checkpoint、漂移和最终一致状态。 |
 | `/api/global/sync/rebuild` | `POST` | `200` 或 `500` | 从文件事实源原子重建 SQLite。 |
+| `/api/rsi/snapshots` | `POST` | `201` 或 `409` | 准备三层 RSI 快照并返回 manifest。 |
+| `/api/rsi/snapshots/:snapshotId` | `GET` | `200` 或 `404` | 恢复已落盘 RSI 快照。 |
+| `/api/rsi/feedback` | `POST` | `201`、`200` 或 `409` | 将运行反馈幂等写入项目知识事实源。 |
 | 其他路径 | `GET` | `404` | 返回稳定错误码 `CONTROL_PLANE_ROUTE_NOT_FOUND`。 |
 
-API 只监听本机回环地址，不作为外部 REST API 暴露。全局路由的请求体必须包含审计 `operator` 和 `reason`；响应会返回 `operationId`、投影摘要和同步状态。详细请求/响应示例见 [`apis/global-knowledge.md`](../../../apis/global-knowledge.md)。
+API 只监听本机回环地址，不作为外部 REST API 暴露。全局路由的请求体必须包含审计 `operator` 和 `reason`；响应会返回 `operationId`、投影摘要和同步状态。详细请求/响应示例见 [`apis/global-knowledge.md`](../../../apis/global-knowledge.md) 和 [`apis/rsi-context.md`](../../../apis/rsi-context.md)。
 
 控制台主页面是 `ui/index.ejs`，由内置安全模板渲染器处理 `<%= key %>` 和 `<%- key %>` 插值，不执行模板任意 JavaScript；`app.js` 只负责筛选、编辑和渐进增强。
 

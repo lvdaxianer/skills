@@ -10,6 +10,7 @@
 4. 未监听时调用 `ensureControlPlane` 启动受控 Node 子进程。
 5. 已绑定同一项目时复用；绑定其他项目或被未知进程占用时阻塞，不发送终止信号。
 6. `/readyz` 通过后，才创建 run 和 `interaction.jsonl`。
+7. 创建 run 后准备第一份 RSI 快照；把 `snapshotId`、`sourceHash` 和 `contentHash` 写入运行审计，供后续 Worker 恢复。
 
 ## 手动启动
 
@@ -64,3 +65,10 @@ const result = await ensureControlPlane({
 ```
 
 返回 `started` 表示新启动，返回 `reused` 表示安全复用。未知端口占用、项目错绑、启动超时和目录不可用都必须保留稳定错误码并停止当前总控运行。
+
+## RSI 注入时机
+
+- 会话启动或新 run 创建：调用 `POST /api/rsi/snapshots`，生成 global、project、current 三层初始快照。
+- 任务开始和 Worker 创建：沿用同一个快照；需要当前任务事实时重新准备快照，并把新 ID 写入对应交互消息。
+- 开发、测试和重试：没有新事实时使用 `GET /api/rsi/snapshots/:snapshotId` 恢复；出现失败、near miss、人工修订或新证据时先调用 `POST /api/rsi/feedback`，再准备增量快照。
+- 运行结束：反馈必须落项目事实源，公共晋升仍由知识治理和人工复检门禁负责；不会把未确认候选直接注入下一次默认上下文。
