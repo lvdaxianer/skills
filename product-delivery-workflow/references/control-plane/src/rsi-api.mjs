@@ -1,10 +1,12 @@
 import { KnowledgeGovernanceError } from './knowledge-governance.mjs';
 import { RsiContextError } from './rsi-context.mjs';
+import { RsiProviderAdapterError } from './rsi-provider-adapter.mjs';
 import { writeJson } from './response.mjs';
 
 const RSI_PATH_PREFIX = '/api/rsi';
 const SNAPSHOT_PATH = '/api/rsi/snapshots';
 const FEEDBACK_PATH = '/api/rsi/feedback';
+const INJECT_SEGMENT = 'inject';
 const MAX_REQUEST_BYTES = 128 * 1024;
 const CREATED_STATUS = 201;
 const OK_STATUS = 200;
@@ -45,17 +47,17 @@ export class RsiApiError extends Error {
  * @returns {Promise<boolean>} 是否命中 RSI 路由
  * @author lvdaxianer@yeah.net
  */
-export async function handleRsiRequest({ request, response, pathname, builder, knowledgeStore, projectId }) {
+export async function handleRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId }) {
   if (!pathname.startsWith(RSI_PATH_PREFIX)) return false;
   try {
-    await routeRsiRequest({ request, response, pathname, builder, knowledgeStore, projectId });
+    await routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId });
   } catch (error) {
     writeRsiError(response, error);
   }
   return true;
 }
 
-async function routeRsiRequest({ request, response, pathname, builder, knowledgeStore, projectId }) {
+async function routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId }) {
   const segments = pathname.split('/').filter(Boolean);
   if (pathname === SNAPSHOT_PATH && request.method === 'POST') {
     await prepareSnapshot(request, response, builder, projectId);
@@ -65,11 +67,30 @@ async function routeRsiRequest({ request, response, pathname, builder, knowledge
     await readSnapshot(response, builder, decodeSegment(segments[3], '快照 ID'));
     return;
   }
+  if (segments.length === 6 && segments[1] === 'rsi' && segments[2] === 'snapshots'
+    && segments[4] === INJECT_SEGMENT && request.method === 'POST') {
+    await injectSnapshot(request, response, adapters, decodeSegment(segments[3], '快照 ID'), decodeSegment(segments[5], 'Provider'));
+    return;
+  }
   if (pathname === FEEDBACK_PATH && request.method === 'POST') {
     await writeFeedback(request, response, builder, knowledgeStore);
     return;
   }
   throw new RsiApiError(NOT_FOUND_STATUS, 'CONTROL_PLANE_ROUTE_NOT_FOUND', 'RSI 路由不存在');
+}
+
+async function injectSnapshot(request, response, adapters, snapshotId, provider) {
+  if (!adapters || typeof adapters.inject !== 'function') {
+    throw new RsiApiError(SERVER_STATUS, 'RSI_ADAPTER_UNAVAILABLE', 'Provider Adapter 不可用');
+  }
+  const body = await readJsonBody(request);
+  const result = await adapters.inject({
+    provider,
+    snapshotId,
+    mode: body.mode ?? 'file',
+    maxPromptBytes: body.maxPromptBytes
+  });
+  writeJson(response, OK_STATUS, result);
 }
 
 async function prepareSnapshot(request, response, builder, configuredProjectId) {
@@ -199,6 +220,10 @@ function writeRsiError(response, error) {
 function normalizeRsiError(error) {
   if (error instanceof RsiApiError) return error;
   if (error instanceof RsiContextError) {
+    const status = error.code === 'RSI_SNAPSHOT_NOT_FOUND' ? NOT_FOUND_STATUS : INPUT_STATUS;
+    return new RsiApiError(status, error.code, error.message);
+  }
+  if (error instanceof RsiProviderAdapterError) {
     const status = error.code === 'RSI_SNAPSHOT_NOT_FOUND' ? NOT_FOUND_STATUS : INPUT_STATUS;
     return new RsiApiError(status, error.code, error.message);
   }

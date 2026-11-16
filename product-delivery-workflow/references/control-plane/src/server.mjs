@@ -22,6 +22,7 @@ import { KnowledgeProjector } from './knowledge-projector.mjs';
 import { SqliteCatalog } from './sqlite-catalog.mjs';
 import { serveControlPlaneUi } from './ui-handler.mjs';
 import { RsiContextBuilder } from './rsi-context.mjs';
+import { RsiProviderAdapterRegistry } from './rsi-provider-adapter.mjs';
 import { handleRsiRequest } from './rsi-api.mjs';
 
 /**
@@ -41,8 +42,13 @@ export function createControlPlaneServer(options) {
     globalCatalog,
     knowledgeStore
   });
+  const rsiAdapters = new RsiProviderAdapterRegistry({
+    projectRoot: config.projectRoot,
+    sharedKnowledgeRoot: config.sharedKnowledgeRoot,
+    builder: rsiBuilder
+  });
   const server = createServer((request, response) => {
-    handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder)
+    handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters)
       .catch(() => writeNotReadyResponse(response));
   });
   server.on('close', () => globalCatalog.close());
@@ -60,7 +66,7 @@ export function createControlPlaneServer(options) {
  * @returns {Promise<void>} 请求处理完成
  * @author lvdaxianer@yeah.net
  */
-async function handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder) {
+async function handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters) {
   const pathname = getPathname(request.url);
   if (pathname.startsWith('/api/global')) {
     await handleGlobalKnowledgeRequest({ request, response, pathname, catalog: globalCatalog });
@@ -76,6 +82,7 @@ async function handleRequest(request, response, config, knowledgeStore, globalCa
       response,
       pathname,
       builder: rsiBuilder,
+      adapters: rsiAdapters,
       knowledgeStore
     });
     return;

@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, rename, writeFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { appendFile, mkdir, rename, writeFile } from 'node:fs/promises';
+import { dirname, join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const ADAPTER_SCHEMA_VERSION = 1;
 const DEFAULT_PROMPT_MAX_BYTES = 16 * 1024;
@@ -47,7 +48,7 @@ export class RsiProviderAdapterRegistry {
    * @param {object} options.builder RSI 快照构建器
    * @author lvdaxianer@yeah.net
    */
-  constructor({ projectRoot, builder }) {
+  constructor({ projectRoot, sharedKnowledgeRoot, builder, auditPath }) {
     if (typeof projectRoot !== 'string' || !projectRoot) {
       throw new RsiProviderAdapterError('RSI_ADAPTER_PATH_INVALID', '项目根目录不能为空');
     }
@@ -55,7 +56,9 @@ export class RsiProviderAdapterRegistry {
       throw new RsiProviderAdapterError('RSI_ADAPTER_BUILDER_INVALID', 'RSI 快照构建器不可用');
     }
     this.projectRoot = projectRoot;
+    this.sharedKnowledgeRoot = sharedKnowledgeRoot ?? join(projectRoot, '.product', 'shared-knowledge');
     this.builder = builder;
+    this.auditPath = auditPath ?? join(projectRoot, '.product', 'rsi', 'audit.jsonl');
   }
 
   /**
@@ -66,13 +69,86 @@ export class RsiProviderAdapterRegistry {
    * @author lvdaxianer@yeah.net
    */
   async inject(options = {}) {
-    const input = normalizeInjectionOptions(options);
-    const snapshot = await resolveSnapshot(this.builder, input);
-    const profile = resolveProfile(input.provider);
-    const base = createResultBase(input.provider, profile, snapshot);
-    if (input.mode === 'file') return this.injectFile(base, snapshot, profile);
-    if (input.mode === 'prompt') return this.createPrompt(base, snapshot, input.maxPromptBytes);
-    return this.createFallback(base, snapshot, input.maxPromptBytes, input.mode);
+    let input;
+    let snapshot;
+    try {
+      input = normalizeInjectionOptions(options);
+      snapshot = await resolveSnapshot(this.builder, input);
+      const profile = resolveProfile(input.provider);
+      const base = createResultBase(input.provider, profile, snapshot);
+      let result;
+      if (input.mode === 'file') result = await this.injectFile(base, snapshot, profile);
+      else if (input.mode === 'prompt') result = this.createPrompt(base, snapshot, input.maxPromptBytes);
+      else if (input.mode === 'mcp') result = this.createMcp(base, snapshot);
+      else result = this.createFallback(base, snapshot, input.maxPromptBytes, input.mode);
+      await this.appendAudit({ input, snapshot, result });
+      return result;
+    } catch (error) {
+      await this.appendAudit({
+        input,
+        snapshot,
+        status: 'failed',
+        injectionMethod: input?.mode ?? options.mode ?? 'unknown',
+        error
+      }).catch(() => {});
+      throw error;
+    }
+  }
+
+  /**
+   * 返回 MCP 启动配置，不冒充已经替第三方客户端完成注册。
+   *
+   * @param {object} base 结果基础信息
+   * @param {object} snapshot RSI 快照
+   * @returns {object} MCP 可用配置
+   * @author lvdaxianer@yeah.net
+   */
+  createMcp(base, snapshot) {
+    const launcher = join(dirname(fileURLToPath(import.meta.url)), 'mcp-start.mjs');
+    return {
+      ...base,
+      status: 'available',
+      injectionMethod: 'mcp',
+      mcp: {
+        command: process.execPath,
+        args: [
+          launcher,
+          '--projectRoot',
+          this.projectRoot,
+          '--sharedKnowledgeRoot',
+          this.sharedKnowledgeRoot,
+          '--snapshotId',
+          snapshot.snapshotId
+        ]
+      },
+      manifest: { ...base.manifest, injectionMethod: 'mcp' }
+    };
+  }
+
+  /**
+   * 追加一次注入运行证据。
+   *
+   * @param {object} input 审计输入
+   * @returns {Promise<void>} 写入完成
+   * @author lvdaxianer@yeah.net
+   */
+  async appendAudit({ input, snapshot, result, status, injectionMethod, error }) {
+    const record = {
+      eventId: randomUUID(),
+      eventType: 'rsi_injection',
+      recordedAt: new Date().toISOString(),
+      projectId: snapshot?.projectId ?? 'unknown',
+      runId: snapshot?.runId ?? 'unknown',
+      provider: input?.provider ?? 'unknown',
+      snapshotId: snapshot?.snapshotId ?? input?.snapshotId ?? null,
+      injectionMethod: result?.injectionMethod ?? injectionMethod ?? input?.mode ?? 'unknown',
+      status: result?.status ?? status ?? 'failed'
+    };
+    if (snapshot?.contentHash) record.contentHash = snapshot.contentHash;
+    if (error?.code) record.errorCode = error.code;
+    if (error?.message) record.errorMessage = error.message;
+    await mkdir(dirname(this.auditPath), { recursive: true });
+    await appendFile(this.auditPath, `${JSON.stringify(record)}\n`, { encoding: 'utf8', mode: 0o600 });
   }
 
   /**
@@ -191,6 +267,8 @@ function createResultBase(provider, profile, snapshot) {
       provider,
       adapter: profile.name,
       snapshotId: snapshot.snapshotId,
+      projectId: snapshot.projectId,
+      runId: snapshot.runId,
       contentHash: snapshot.contentHash,
       sourceHash: snapshot.sourceHash
     }
