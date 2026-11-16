@@ -13,7 +13,9 @@ RSI 的事实源仍然是公共知识和项目知识文件，SQLite 只做查询
 ├── current.manifest.json
 ├── snapshots/<snapshotId>.json
 ├── snapshots/<snapshotId>.md
-└── providers/<provider>/current.md
+├── providers/<provider>/current.md
+├── providers/<provider>/current.manifest.json
+└── audit.jsonl
 ```
 
 `CLAUDE.md`、`AGENTS.md`、项目规则文件属于用户维护范围。Adapter 只返回导入片段或 Prompt prelude，绝不覆盖这些文件。
@@ -58,6 +60,31 @@ MCP Server 使用 stdio JSON-RPC，不通过控制平面的 HTTP 端口暴露：
 5. 结束与反馈：将成功前近失误、失败、修订和证据交给控制平面写回项目事实源，下一次运行再经过治理门禁进入上下文。
 
 文件适合启动时的稳定导入，Prompt 适合一次性任务，MCP 适合运行中按需查看证据。三者可以同时启用，但必须展示相同的 `snapshotId` 和 `contentHash`。
+
+## 控制平面调用
+
+快照准备完成后，由控制平面显式执行注入：
+
+```bash
+curl --request POST \
+  'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUID>/inject/claude' \
+  --header 'Content-Type: application/json' \
+  --data '{"mode":"file"}'
+```
+
+请求体的 `mode` 可取 `file`、`prompt`、`mcp`。返回值必须检查 `status`：`injected` 表示文件或 Prompt 已准备好，`available` 表示 MCP 启动配置可用，`fallback` 表示发生降级。失败时 HTTP 响应返回稳定错误码，审计记录为 `failed`。
+
+每次调用都会向 `.product/rsi/audit.jsonl` 追加 JSON 记录。这个文件只保存运行证据，不会被作为知识上下文读取；公共或项目知识仍然只能通过治理门禁进入下一份 RSI 快照。
+
+## 独立 MCP 命令
+
+```bash
+npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+  --projectRoot /absolute/path/to/project \
+  --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
+```
+
+MCP 客户端通过 stdin/stdout 使用 JSON-RPC。stdout 不混入日志，启动错误写 stderr；客户端关闭 stdin 后进程正常退出。MCP 只读快照，不会自动写入反馈或知识事实。
 
 ## 使用边界
 

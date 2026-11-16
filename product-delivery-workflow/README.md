@@ -39,6 +39,8 @@ node src/start.mjs \
 5. 所有任务和验收完成、最终审计通过后生成部署 dry-run，并询问用户是否部署。
 6. 用户选择不部署时记录 `VERIFIED_NOT_DEPLOYED`；没有明确授权时保持 `DEPLOYMENT_DECISION_REQUIRED`；明确授权并提供完整参数后，才向 `service-deployment` 写入执行请求。
 
+RSI 注入不是通过覆盖 `CLAUDE.md` 或 `AGENTS.md` 完成：快照准备后调用控制平面 Provider Adapter，或按返回的 `mcp.command`/`mcp.args` 启动独立 MCP。每次注入都必须检查 `status` 并保留 `.product/rsi/audit.jsonl` 证据。
+
 ## 运行与事实源
 
 权威事实源位于项目 `.product/`：

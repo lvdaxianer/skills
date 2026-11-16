@@ -16,6 +16,7 @@
 | --- | --- | --- | --- |
 | `rsi-api.mjs` | `POST /api/rsi/snapshots` | [准备快照](#21-准备快照) | 已覆盖 |
 | `rsi-api.mjs` | `GET /api/rsi/snapshots/{snapshotId}` | [恢复快照](#31-恢复快照) | 已覆盖 |
+| `rsi-api.mjs` | `POST /api/rsi/snapshots/{snapshotId}/inject/{provider}` | [执行 Provider 注入](#41-执行-provider-注入) | 已覆盖 |
 | `rsi-api.mjs` | `POST /api/rsi/feedback` | [写入反馈](#51-写入反馈) | 已覆盖 |
 
 ## 2. 准备快照
@@ -200,9 +201,65 @@ curl --request GET 'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUID
   --header 'Accept: application/json'
 ```
 
-## 4. 写入反馈
+## 4. 执行 Provider 注入
 
 ### 4.1 接口概览
+
+| 项目 | 内容 |
+| --- | --- |
+| 接口名称 | 将已落盘 RSI 快照注入指定 Provider |
+| 接口用途 | 通过文件、Prompt 或 MCP 方式提供真实可验证的运行时入口 |
+| 业务场景 | 快照生成后、Worker/开发/测试启动前 |
+| 权限要求 | 仅本机控制平面调用 |
+| 幂等性 | 文件方式覆盖同一 Provider 的 current 文件；每次尝试都追加注入审计 |
+
+### 4.2 请求定义
+
+```http
+POST http://127.0.0.1:<port>/api/rsi/snapshots/{snapshotId}/inject/{provider}
+```
+
+```json
+{"mode":"file","maxPromptBytes":16384}
+```
+
+`mode` 可取 `file`、`prompt`、`mcp`，缺省为 `file`。未知方式返回 `status=fallback` 并明确选择 `prompt`。文件方式只写 `.product/rsi/providers/<provider>/current.md` 和 manifest，不覆盖 `CLAUDE.md`、`AGENTS.md`。
+
+### 4.3 成功响应
+
+```json
+{
+  "status": "injected",
+  "injectionMethod": "file",
+  "provider": "claude",
+  "snapshotId": "RSI-SNAPSHOT-<UUID>",
+  "paths": {"markdown": "/absolute/project/.product/rsi/providers/claude/current.md"}
+}
+```
+
+MCP 模式返回 `status=available`、`injectionMethod=mcp` 和 `mcp.command`/`mcp.args`。这表示启动配置可用，不表示已经替第三方客户端自动注册。每次尝试追加到 `.product/rsi/audit.jsonl`，记录项目、运行、Provider、快照、方式、状态和错误码（如有）。
+
+### 4.4 Complete example
+
+```bash
+curl --request POST 'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUID>/inject/claude' \
+  --header 'Content-Type: application/json' \
+  --data '{"mode":"file"}'
+```
+
+独立 MCP 进程：
+
+```bash
+npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+  --projectRoot /absolute/path/to/project \
+  --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
+```
+
+stdout 只输出 JSON-RPC 响应；启动错误写 stderr 并以非零状态退出。
+
+## 5. 写入反馈
+
+### 5.1 接口概览
 
 | 项目 | 内容 |
 | --- | --- |
@@ -213,7 +270,7 @@ curl --request GET 'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUID
 | 幂等性 | `eventId` 是幂等键；相同内容重复返回 `200`，不同内容返回 `409` |
 | 版本 | 项目知识事实协议 |
 
-### 4.2 请求定义
+### 5.2 请求定义
 
 ```http
 POST http://127.0.0.1:<port>/api/rsi/feedback
@@ -249,7 +306,7 @@ Path、Query、Form parameters：不适用。Request Header 与 Cookie 约定同
 | `phase` | string | 是 | 1-256 字符 | 发生阶段 |
 | `evidenceRefs` | array<string> | 是 | 可为空数组 | 证据引用 |
 
-### 4.3 响应定义
+### 5.3 响应定义
 
 | HTTP 状态码 | 业务含义 | 调用方处理 |
 | --- | --- | --- |
@@ -276,7 +333,7 @@ Path、Query、Form parameters：不适用。Request Header 与 Cookie 约定同
 }
 ```
 
-### 4.4 Complete example
+### 5.4 Complete example
 
 ```bash
 curl --request POST 'http://127.0.0.1:<port>/api/rsi/feedback' \
