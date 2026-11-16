@@ -28,6 +28,18 @@ node src/start.mjs \
 
 运行目录会写入 `runtime.json`。服务只监听本机回环地址，控制台通过 `http://127.0.0.1:43100/` 访问。
 
+## 独立 MCP 启动
+
+MCP 不占用 HTTP 端口，也不需要覆盖 `CLAUDE.md` 或 `AGENTS.md`。需要 MCP 的客户端启动独立 stdio 进程：
+
+```bash
+npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+  --projectRoot /absolute/path/to/project \
+  --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
+```
+
+客户端通过 stdin 发送 JSON-RPC，stdout 只包含 JSON-RPC 响应。控制平面注入接口返回的 `mcp.command` 和 `mcp.args` 可以直接作为客户端配置；`status=available` 只代表配置可用，注册动作仍由客户端完成。
+
 ## 启动后的全局治理核验
 
 ```bash

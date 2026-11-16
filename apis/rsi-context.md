@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | `rsi-api.mjs` | `POST /api/rsi/snapshots` | [准备快照](#21-准备快照) | 已覆盖 |
 | `rsi-api.mjs` | `GET /api/rsi/snapshots/{snapshotId}` | [恢复快照](#31-恢复快照) | 已覆盖 |
-| `rsi-api.mjs` | `POST /api/rsi/feedback` | [写入反馈](#41-写入反馈) | 已覆盖 |
+| `rsi-api.mjs` | `POST /api/rsi/feedback` | [写入反馈](#51-写入反馈) | 已覆盖 |
 
 ## 2. 准备快照
 
