@@ -11,4 +11,4 @@
 
 ## 3. 最终集成审计
 
-- [ ] 3.1 在 master 上运行 strict OpenSpec、完整测试、Node 静态检查和真实链路核验，归档 change 并清理 worktree
+- [x] 3.1 在 master 上运行 strict OpenSpec、完整测试、Node 静态检查和真实链路核验，归档 change 并清理 worktree
