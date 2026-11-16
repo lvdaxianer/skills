@@ -92,6 +92,7 @@ curl -X POST http://127.0.0.1:43100/api/global/sync/rebuild
 - [三 Worker 协议](./references/worker-protocol.md)
 - [知识模型](./references/knowledge-model.md)
 - [RSI 上下文注入与 Provider Adapter](./references/rsi-provider-adapters.md)
+- [RSI 上下文控制 API](../apis/rsi-context.md)
 - [开发交接](./references/development-workflow-adapter.md)
 - [部署交接](./references/service-deployment-adapter.md)
 - [控制平面 README](./references/control-plane/README.md)

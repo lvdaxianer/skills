@@ -117,7 +117,7 @@ output_refs: []
 
 所有 Worker 失败、测试失败、验收失败、部署失败、人工修订、重试和近失误都要立即追加为错误事件。后台分类 Worker 再提出 `common`、`project` 或 `hybrid` 建议；人工覆盖优先于自动建议。
 
-公共知识和项目知识的读取边界、晋升条件和目录约定，以 `references/knowledge-model.md` 为准。Worker 每次只读取有限大小的已发布 `lesson-snapshot`，不把全部历史日志塞进上下文。
+公共知识和项目知识的读取边界、晋升条件和目录约定，以 `references/knowledge-model.md` 为准。Worker 每次只读取有限大小的已发布 `lesson-snapshot`，不把全部历史日志塞进上下文。会话、任务、Worker、开发、测试、重试和结束时机，以 `references/control-plane-startup.md` 与 `references/rsi-provider-adapters.md` 为准。
 
 RSI 上下文注入的事实源、文件/Prompt/MCP 三种 Adapter、注入时机和不覆盖用户规则文件的边界，以 `references/rsi-provider-adapters.md` 为准。
 

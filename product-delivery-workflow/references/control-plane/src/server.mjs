@@ -21,6 +21,8 @@ import { ProjectRegistry } from './project-registry.mjs';
 import { KnowledgeProjector } from './knowledge-projector.mjs';
 import { SqliteCatalog } from './sqlite-catalog.mjs';
 import { serveControlPlaneUi } from './ui-handler.mjs';
+import { RsiContextBuilder } from './rsi-context.mjs';
+import { handleRsiRequest } from './rsi-api.mjs';
 
 /**
  * 创建本地产品交付控制平面 HTTP 服务。
@@ -33,8 +35,14 @@ export function createControlPlaneServer(options) {
   const config = normalizeConfig(options);
   const knowledgeStore = new KnowledgeStore(config);
   const globalCatalog = createGlobalCatalog(config);
+  const rsiBuilder = new RsiContextBuilder({
+    projectRoot: config.projectRoot,
+    sharedKnowledgeRoot: config.sharedKnowledgeRoot,
+    globalCatalog,
+    knowledgeStore
+  });
   const server = createServer((request, response) => {
-    handleRequest(request, response, config, knowledgeStore, globalCatalog)
+    handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder)
       .catch(() => writeNotReadyResponse(response));
   });
   server.on('close', () => globalCatalog.close());
@@ -52,7 +60,7 @@ export function createControlPlaneServer(options) {
  * @returns {Promise<void>} 请求处理完成
  * @author lvdaxianer@yeah.net
  */
-async function handleRequest(request, response, config, knowledgeStore, globalCatalog) {
+async function handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder) {
   const pathname = getPathname(request.url);
   if (pathname.startsWith('/api/global')) {
     await handleGlobalKnowledgeRequest({ request, response, pathname, catalog: globalCatalog });
@@ -60,6 +68,16 @@ async function handleRequest(request, response, config, knowledgeStore, globalCa
   }
   if (pathname.startsWith('/api/knowledge')) {
     await handleKnowledgeRequest({ request, response, pathname, store: knowledgeStore });
+    return;
+  }
+  if (pathname.startsWith('/api/rsi')) {
+    await handleRsiRequest({
+      request,
+      response,
+      pathname,
+      builder: rsiBuilder,
+      knowledgeStore
+    });
     return;
   }
   if (request.method !== 'GET') {
