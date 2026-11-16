@@ -8,6 +8,16 @@
 - `verification/evidence/*.json`：命令、API、浏览器或冒烟证据；
 - `verification/verification-bundle.json`：最终门禁结果、证据引用、版本绑定和哈希。
 
+涉及 RSI 上下文的 run 还必须在 `contracts.json` 或对应证据中保存：
+
+- `snapshotId`：本次 Worker、开发或测试实际读取的快照；
+- `sourceHash`、`contentHash`：确认全局/项目/current 来源与注入内容没有漂移；
+- `provider` 和 `injectionMethod`：文件、Prompt 或 MCP；
+- `manifest` 引用：用于恢复同一快照和核对条目证据；
+- 反馈事件的 `eventId`：用于把失败、near miss、人工反馈与项目事实源关联。
+
+缺少 snapshotId、hash 或 manifest 的 RSI 注入只能标记为 `INCONCLUSIVE`，不能声称“上下文已成功注入”。Provider Adapter 返回 `fallback` 时，也必须把 fallback 原因和实际采用的方式写入证据。
+
 ## 必要字段
 
 | 类型 | 必须保存 |

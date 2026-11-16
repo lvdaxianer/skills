@@ -20,8 +20,8 @@
 
 ## 4. 集成、文档与最终审计
 
-- [ ] 4.1 更新中文 README、知识模型、验证证据和 Provider Adapter 配置示例，验证新用户能够生成快照并接入至少一种文件方式和 MCP 方式。
-- [ ] 4.2 执行全量测试、全部 Node 语法检查、OpenSpec strict、快照/MCP 烟囱验证和最终代码审计；补充 verification.md 并归档 change。
+- [x] 4.1 更新中文 README、知识模型、验证证据和 Provider Adapter 配置示例，验证新用户能够生成快照并接入至少一种文件方式和 MCP 方式。
+- [x] 4.2 执行全量测试、全部 Node 语法检查、OpenSpec strict、快照/MCP 烟囱验证和最终代码审计；补充 verification.md 并归档 change。
 
 ## Workflow follow-up
 
