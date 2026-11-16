@@ -47,6 +47,7 @@ node src/start.mjs \
 - `.product/runs/<runId>/interaction.jsonl`：Worker/Skill 追加式交互账本；
 - `.product/runs/<runId>/audit.jsonl`：人工和系统审计；
 - `.product/knowledge/`：项目知识和错误回流；
+- `.product/rsi/`：三层 RSI 快照、Provider 导入文件和 manifest；
 - 共享知识根目录：只接收通过脱敏、可移植、依据和独立复检门禁的公共 Guardrail。
 
 知识控制台支持 `unknown/project/common/hybrid` 筛选、人工编辑、排除和公共发布。排除只改变生命周期，不删除原始错误、证据或审计链。
@@ -90,6 +91,7 @@ curl -X POST http://127.0.0.1:43100/api/global/sync/rebuild
 - [入口分流](./references/intake-routing.md)
 - [三 Worker 协议](./references/worker-protocol.md)
 - [知识模型](./references/knowledge-model.md)
+- [RSI 上下文注入与 Provider Adapter](./references/rsi-provider-adapters.md)
 - [开发交接](./references/development-workflow-adapter.md)
 - [部署交接](./references/service-deployment-adapter.md)
 - [控制平面 README](./references/control-plane/README.md)

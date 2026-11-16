@@ -119,6 +119,8 @@ output_refs: []
 
 公共知识和项目知识的读取边界、晋升条件和目录约定，以 `references/knowledge-model.md` 为准。Worker 每次只读取有限大小的已发布 `lesson-snapshot`，不把全部历史日志塞进上下文。
 
+RSI 上下文注入的事实源、文件/Prompt/MCP 三种 Adapter、注入时机和不覆盖用户规则文件的边界，以 `references/rsi-provider-adapters.md` 为准。
+
 ## 验证与成功证据
 
 每个验收标准必须绑定验证方式、预期结果、实际结果和证据引用。涉及页面时，验证必须优先使用浏览器自动化，保存操作、断言、URL、截图、trace、console/network 摘要和下载 checksum；后端还要保存 API、业务状态和健康/冒烟证据。
@@ -140,6 +142,7 @@ output_refs: []
 - `references/worker-protocol.md`
 - `references/control-plane-startup.md`
 - `references/knowledge-model.md`
+- `references/rsi-provider-adapters.md`
 - `references/verification-evidence.md`
 - `references/development-workflow-adapter.md`
 - `references/service-deployment-adapter.md`

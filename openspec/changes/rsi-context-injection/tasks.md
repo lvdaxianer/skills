@@ -8,9 +8,9 @@
 
 ## 2. Provider Adapter 与 MCP 查询
 
-- [ ] 2.1 定义 Provider Adapter 注册协议，支持文件导入片段、Prompt prelude、manifest 和 fallback 状态；验证不覆盖已有 `CLAUDE.md`/`AGENTS.md`。
-- [ ] 2.2 实现 stdio MCP server 的 initialize、tools/list、tools/call 和 RSI 查询工具；验证预算、snapshotId、工具错误和无事实写入边界。
-- [ ] 2.3 为 Claude/Codex/Kimi 通用文件与 Prompt 输出补齐中文接入说明和 focused tests，完成领域审计后提交合并。
+- [x] 2.1 定义 Provider Adapter 注册协议，支持文件导入片段、Prompt prelude、manifest 和 fallback 状态；验证不覆盖已有 `CLAUDE.md`/`AGENTS.md`。
+- [x] 2.2 实现 stdio MCP server 的 initialize、tools/list、tools/call 和 RSI 查询工具；验证预算、snapshotId、工具错误和无事实写入边界。
+- [x] 2.3 为 Claude/Codex/Kimi 通用文件与 Prompt 输出补齐中文接入说明和 focused tests，完成领域审计后提交合并。
 
 ## 3. 控制平面接入与反馈写回
 
