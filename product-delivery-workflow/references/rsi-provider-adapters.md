@@ -72,7 +72,7 @@ curl --request POST \
   --data '{"mode":"file"}'
 ```
 
-请求体的 `mode` 可取 `file`、`prompt`、`mcp`。返回值必须检查 `status`：`injected` 表示文件或 Prompt 已准备好，`available` 表示 MCP 启动配置可用，`fallback` 表示发生降级，`failed` 只会出现在审计记录中并伴随 HTTP 错误响应。
+请求体的 `mode` 可取 `file`、`prompt`、`mcp`。返回值必须检查 `status`：`injected` 表示文件或 Prompt 已准备好，`available` 表示 MCP 启动配置可用，`fallback` 表示发生降级。失败时 HTTP 响应返回稳定错误码，审计记录为 `failed`。
 
 每次调用都会向 `.product/rsi/audit.jsonl` 追加 JSON 记录。这个文件只保存运行证据，不会被作为知识上下文读取；公共或项目知识仍然只能通过治理门禁进入下一份 RSI 快照。
 

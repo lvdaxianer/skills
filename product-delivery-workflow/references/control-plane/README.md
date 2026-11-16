@@ -32,6 +32,7 @@
 | `/api/global/sync/rebuild` | `POST` | `200` 或 `500` | 从文件事实源原子重建 SQLite。 |
 | `/api/rsi/snapshots` | `POST` | `201` 或 `409` | 准备三层 RSI 快照并返回 manifest。 |
 | `/api/rsi/snapshots/:snapshotId` | `GET` | `200` 或 `404` | 恢复已落盘 RSI 快照。 |
+| `/api/rsi/snapshots/:snapshotId/inject/:provider` | `POST` | `200`、`400` 或 `404` | 通过 Provider Adapter 执行文件、Prompt 或 MCP 注入，并返回 manifest/审计状态。 |
 | `/api/rsi/feedback` | `POST` | `201`、`200` 或 `409` | 将运行反馈幂等写入项目知识事实源。 |
 | 其他路径 | `GET` | `404` | 返回稳定错误码 `CONTROL_PLANE_ROUTE_NOT_FOUND`。 |
 
@@ -77,7 +78,7 @@ SQLite 可以删除或损坏，控制平面应从已注册项目的 `.product/kn
 
 公共 Guardrail 只能通过脱敏、可移植、复现/规范依据和两名独立复检人的晋升门禁，写入配置的共享根目录。Worker 通过 `createLessonSnapshot({ maxItems })` 读取有限条目和证据引用，不直接读取全部历史事件；`excluded` 和未晋升候选不会进入快照。
 
-RSI 快照写入项目 `.product/rsi/`。文件 Adapter 和 Prompt Adapter 由 `src/rsi-provider-adapter.mjs` 提供；只读 MCP stdio Server 由 `src/rsi-mcp-server.mjs` 提供，查询 `rsi_get_context`、`rsi_get_evidence` 和 `rsi_get_manifest`。两者都只消费带 `snapshotId`、`sourceHash` 和 `contentHash` 的快照，不覆盖 `CLAUDE.md` 或 `AGENTS.md`。
+RSI 快照写入项目 `.product/rsi/`。文件、Prompt 和 MCP Adapter 由 `src/rsi-provider-adapter.mjs` 提供，控制平面通过 `/api/rsi/snapshots/:snapshotId/inject/:provider` 显式触发；每次触发追加 `.product/rsi/audit.jsonl`。只读 MCP stdio Server 由 `src/rsi-mcp-server.mjs` 提供，独立入口是 `npm run mcp -- --projectRoot <项目目录> --sharedKnowledgeRoot <公共知识目录>`，查询 `rsi_get_context`、`rsi_get_evidence` 和 `rsi_get_manifest`。两者都只消费带 `snapshotId`、`sourceHash` 和 `contentHash` 的快照，不覆盖 `CLAUDE.md` 或 `AGENTS.md`。
 
 ## 验收证据门禁
 
