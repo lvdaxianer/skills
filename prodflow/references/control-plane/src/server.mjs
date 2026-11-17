@@ -24,6 +24,7 @@ import { serveControlPlaneUi } from './ui-handler.mjs';
 import { RsiContextBuilder } from './rsi-context.mjs';
 import { RsiProviderAdapterRegistry } from './rsi-provider-adapter.mjs';
 import { handleRsiRequest } from './rsi-api.mjs';
+import { RsiUsageStore } from './rsi-usage-store.mjs';
 
 /**
  * 创建本地产品交付控制平面 HTTP 服务。
@@ -47,11 +48,15 @@ export function createControlPlaneServer(options) {
     sharedKnowledgeRoot: config.sharedKnowledgeRoot,
     builder: rsiBuilder
   });
+  const rsiUsageStore = new RsiUsageStore({ projectRoot: config.projectRoot });
   const server = createServer((request, response) => {
-    handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters)
+    handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters, rsiUsageStore)
       .catch(() => writeNotReadyResponse(response));
   });
-  server.on('close', () => globalCatalog.close());
+  server.on('close', () => {
+    rsiUsageStore.close();
+    globalCatalog.close();
+  });
   return server;
 }
 
@@ -66,7 +71,7 @@ export function createControlPlaneServer(options) {
  * @returns {Promise<void>} 请求处理完成
  * @author lvdaxianer@yeah.net
  */
-async function handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters) {
+async function handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters, rsiUsageStore) {
   const pathname = getPathname(request.url);
   if (pathname.startsWith('/api/global')) {
     await handleGlobalKnowledgeRequest({ request, response, pathname, catalog: globalCatalog });
@@ -83,7 +88,8 @@ async function handleRequest(request, response, config, knowledgeStore, globalCa
       pathname,
       builder: rsiBuilder,
       adapters: rsiAdapters,
-      knowledgeStore
+      knowledgeStore,
+      usageStore: rsiUsageStore
     });
     return;
   }

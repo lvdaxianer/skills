@@ -1,11 +1,13 @@
 import { KnowledgeGovernanceError } from './knowledge-governance.mjs';
 import { RsiContextError } from './rsi-context.mjs';
 import { RsiProviderAdapterError } from './rsi-provider-adapter.mjs';
+import { RsiUsageError } from './rsi-usage-store.mjs';
 import { writeJson } from './response.mjs';
 
 const RSI_PATH_PREFIX = '/api/rsi';
 const SNAPSHOT_PATH = '/api/rsi/snapshots';
 const FEEDBACK_PATH = '/api/rsi/feedback';
+const WORKER_RESULT_SEGMENT = 'worker-result';
 const INJECT_SEGMENT = 'inject';
 const MAX_REQUEST_BYTES = 128 * 1024;
 const CREATED_STATUS = 201;
@@ -47,17 +49,17 @@ export class RsiApiError extends Error {
  * @returns {Promise<boolean>} 是否命中 RSI 路由
  * @author lvdaxianer@yeah.net
  */
-export async function handleRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId }) {
+export async function handleRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, usageStore, projectId }) {
   if (!pathname.startsWith(RSI_PATH_PREFIX)) return false;
   try {
-    await routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId });
+    await routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, usageStore, projectId });
   } catch (error) {
     writeRsiError(response, error);
   }
   return true;
 }
 
-async function routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, projectId }) {
+async function routeRsiRequest({ request, response, pathname, builder, adapters, knowledgeStore, usageStore, projectId }) {
   const segments = pathname.split('/').filter(Boolean);
   if (pathname === SNAPSHOT_PATH && request.method === 'POST') {
     await prepareSnapshot(request, response, builder, projectId);
@@ -72,11 +74,34 @@ async function routeRsiRequest({ request, response, pathname, builder, adapters,
     await injectSnapshot(request, response, adapters, decodeSegment(segments[3], '快照 ID'), decodeSegment(segments[5], 'Provider'));
     return;
   }
+  if (segments.length === 5 && segments[1] === 'rsi' && segments[2] === 'runs'
+    && segments[4] === WORKER_RESULT_SEGMENT && request.method === 'POST') {
+    await receiveWorkerResult(request, response, builder, usageStore, decodeSegment(segments[3], '运行 ID'));
+    return;
+  }
   if (pathname === FEEDBACK_PATH && request.method === 'POST') {
     await writeFeedback(request, response, builder, knowledgeStore);
     return;
   }
   throw new RsiApiError(NOT_FOUND_STATUS, 'CONTROL_PLANE_ROUTE_NOT_FOUND', 'RSI 路由不存在');
+}
+
+async function receiveWorkerResult(request, response, builder, usageStore, runId) {
+  if (!usageStore || typeof usageStore.recordWorkerResult !== 'function') {
+    throw new RsiApiError(SERVER_STATUS, 'RSI_USAGE_STORE_UNAVAILABLE', 'RSI 使用回传存储不可用');
+  }
+  const body = await readJsonBody(request);
+  validateWorkerResult(body);
+  const snapshot = await builder.read(body.snapshotId);
+  if (snapshot.runId !== runId) {
+    throw new RsiApiError(CONFLICT_STATUS, 'RSI_RUN_MISMATCH', '运行 ID 与快照不匹配');
+  }
+  const result = await usageStore.recordWorkerResult({
+    snapshot,
+    workerId: body.workerId,
+    result: body
+  });
+  writeJson(response, CREATED_STATUS, result);
 }
 
 async function injectSnapshot(request, response, adapters, snapshotId, provider) {
@@ -170,6 +195,16 @@ function validateFeedback(body) {
   }
 }
 
+function validateWorkerResult(body) {
+  ['snapshotId', 'workerId'].forEach((field) => assertText(body[field], field));
+  if (!Array.isArray(body.rsiUsage) || body.rsiUsage.length > 500) {
+    throw new RsiApiError(INPUT_STATUS, 'RSI_USAGE_INPUT_INVALID', 'rsiUsage 必须是 0 到 500 项的数组');
+  }
+  if (body.complete !== undefined && typeof body.complete !== 'boolean') {
+    throw new RsiApiError(INPUT_STATUS, 'RSI_USAGE_INPUT_INVALID', 'complete 必须是布尔值');
+  }
+}
+
 async function readJsonBody(request) {
   const chunks = [];
   let totalBytes = 0;
@@ -225,6 +260,11 @@ function normalizeRsiError(error) {
   }
   if (error instanceof RsiProviderAdapterError) {
     const status = error.code === 'RSI_SNAPSHOT_NOT_FOUND' ? NOT_FOUND_STATUS : INPUT_STATUS;
+    return new RsiApiError(status, error.code, error.message);
+  }
+  if (error instanceof RsiUsageError) {
+    const status = ['RSI_ITEM_NOT_FOUND', 'RSI_RUN_MISMATCH'].includes(error.code)
+      ? CONFLICT_STATUS : INPUT_STATUS;
     return new RsiApiError(status, error.code, error.message);
   }
   if (error instanceof KnowledgeGovernanceError) {

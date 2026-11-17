@@ -18,7 +18,7 @@
 | `rsi-api.mjs` | `GET /api/rsi/snapshots/{snapshotId}` | [恢复快照](#31-恢复快照) | 已覆盖 |
 | `rsi-api.mjs` | `POST /api/rsi/snapshots/{snapshotId}/inject/{provider}` | [执行 Provider 注入](#41-执行-provider-注入) | 已覆盖 |
 | `rsi-api.mjs` | `POST /api/rsi/feedback` | [写入反馈](#51-写入反馈) | 已覆盖 |
-| `rsi-api.mjs` | `POST /api/rsi/feedback` | [写入反馈](#51-写入反馈) | 已覆盖 |
+| `rsi-api.mjs` | `POST /api/rsi/runs/{runId}/worker-result` | [接收 Worker 结果](#61-接收-worker-结果) | 已覆盖 |
 
 ## 2. 准备快照
 
@@ -351,3 +351,90 @@ curl --request POST 'http://127.0.0.1:<port>/api/rsi/feedback' \
 ```
 
 响应 Cookie：不适用。错误响应结构统一为 `{"errorCode":"...","message":"..."}`，不返回堆栈、内部路径或原始异常。
+
+## 6. 接收 Worker 结果
+
+### 6.1 接口概览
+
+| 项目 | 内容 |
+| --- | --- |
+| 接口名称 | 接收 Worker 的 RSI 使用回报 |
+| 接口用途 | 收集 `consulted`、`applied` 和运行结束状态，结算未回报条目为 `unknown` |
+| 业务场景 | Claude、Codex、Kimi 等工具无法直接由 Runner 接管时，通过 MCP 或文件/HTTP 结果回传 |
+| 权限要求 | 仅本机控制平面调用；认证、Cookie 和跨租户访问不适用 |
+| 幂等性 | `runId + workerId + snapshotId + itemId + stage` 去重；重复结果不重复计数 |
+| 版本 | 当前 Worker 结果协议 |
+
+### 6.2 请求定义
+
+```http
+POST http://127.0.0.1:<port>/api/rsi/runs/{runId}/worker-result
+```
+
+Path parameters：`runId` 必填，必须与请求体快照中的 `runId` 一致。Query、Form parameters 和 Cookie：不适用。Request Header：`Content-Type: application/json` 必填，`Accept` 可选，`Authorization` 不适用。
+
+```json
+{
+  "workerId": "product-review-worker",
+  "snapshotId": "RSI-SNAPSHOT-<UUID>",
+  "complete": true,
+  "rsiUsage": [
+    {
+      "itemId": "COMMON-001",
+      "stage": "applied",
+      "evidenceRefs": ["test://acceptance-001"]
+    }
+  ]
+}
+```
+
+| 字段路径 | 类型 | 必填 | 默认值 | 格式/范围/枚举 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `runId` | path string | 是 | 无 | 1-256 字符 | 当前运行标识 |
+| `workerId` | string | 是 | 无 | 1-256 字符 | 独立 Worker 标识 |
+| `snapshotId` | string | 是 | 无 | 已存在快照 | 绑定冻结 RSI 上下文 |
+| `complete` | boolean | 否 | `false` | `true` / `false` | `true` 才结算未回报条目 |
+| `rsiUsage` | array<object> | 是 | `[]` | 最多 500 项 | 使用回报集合 |
+| `rsiUsage[].itemId` | string | 是 | 无 | 必须存在于快照 | RSI 条目标识 |
+| `rsiUsage[].stage` | string | 是 | 无 | `consulted` / `applied` / `unknown` | 使用阶段 |
+| `rsiUsage[].evidenceRefs` | array<string> | 否 | `[]` | 最多 20 条，每条最多 256 字符 | 应用或参考证据引用 |
+
+Worker 未回报不等于未使用。只有 `complete=true` 后，已记录为 `injected` 且没有 `consulted`、`applied` 或 `unknown` 的条目才会追加 `unknown`。
+
+### 6.3 响应定义
+
+| HTTP 状态码 | 业务含义 | 调用方处理 |
+| --- | --- | --- |
+| `201 Created` | 结果已接收或幂等处理 | 保存 `accepted`、`results` 和结算摘要 |
+| `400 Bad Request` | 请求体、阶段或证据引用非法 | 修正结果后重试 |
+| `404 Not Found` | `snapshotId` 不存在 | 使用有效快照重新提交 |
+| `409 Conflict` | `runId` 与快照不匹配，或条目不属于快照 | 停止自动重试并检查运行身份 |
+| `500 Internal Server Error` | 使用事实或投影暂时不可用 | 保留结果文件，待控制平面恢复后重试 |
+
+成功响应示例：
+
+```json
+{
+  "accepted": 1,
+  "finalized": true,
+  "results": [{"eventKey":"RUN-001:worker-a:RSI-SNAPSHOT-<UUID>:COMMON-001:applied","idempotent":false}],
+  "finalization": {"finalized":true,"unknownItemIds":[]}
+}
+```
+
+错误响应示例：
+
+```json
+{"errorCode":"RSI_RUN_MISMATCH","message":"运行 ID 与快照不匹配"}
+```
+
+### 6.4 Complete example
+
+```bash
+curl --request POST 'http://127.0.0.1:<port>/api/rsi/runs/RUN-001/worker-result' \
+  --header 'Content-Type: application/json' \
+  --header 'Accept: application/json' \
+  --data '{"workerId":"product-review-worker","snapshotId":"RSI-SNAPSHOT-<UUID>","complete":true,"rsiUsage":[{"itemId":"COMMON-001","stage":"applied","evidenceRefs":["test://acceptance-001"]}]}'
+```
+
+响应 Cookie：不适用。统计事实追加到 `.product/runs/<runId>/rsi-usage.jsonl`；SQLite 仅保存可重建投影。

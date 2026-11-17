@@ -7,9 +7,9 @@
 
 ## 2. MCP 与 Worker 结果回传
 
-- [ ] 2.1 扩展 RSI MCP 工具清单，新增 `rsi_report_usage` 和 `rsi_finalize_run`；先写 MCP JSON-RPC 失败测试，再实现身份校验、幂等响应和 unknown 结算。
-- [ ] 2.2 增加 `worker-result.json` 导入和对应 HTTP 入口，复用 `RsiUsageStore`，并用测试验证 MCP 与文件入口生成相同事实和统计。
-- [ ] 2.3 扩展独立 MCP 启动参数和集成测试，验证 MCP 进程能够加载项目运行事实、接收回报并保持 stdout 只有 JSON-RPC 响应。
+- [x] 2.1 扩展 RSI MCP 工具清单，新增 `rsi_report_usage` 和 `rsi_finalize_run`；先写 MCP JSON-RPC 失败测试，再实现身份校验、幂等响应和 unknown 结算。
+- [x] 2.2 增加 `worker-result.json` 导入和对应 HTTP 入口，复用 `RsiUsageStore`，并用测试验证 MCP 与文件入口生成相同事实和统计。
+- [x] 2.3 扩展独立 MCP 启动参数和集成测试，验证 MCP 进程能够加载项目运行事实、接收回报并保持 stdout 只有 JSON-RPC 响应。
 
 ## 3. 注入与读取事件闭环
 

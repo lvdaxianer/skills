@@ -122,3 +122,31 @@ test('反馈引用不存在快照时返回稳定错误', async () => {
   assert.equal(response.status, 404);
   assert.equal(body.errorCode, 'RSI_SNAPSHOT_NOT_FOUND');
 });
+
+test('Worker 结果 API 接收 RSI 使用回报并支持重复提交', async () => {
+  const prepared = await request('/api/rsi/snapshots', {
+    method: 'POST',
+    body: JSON.stringify({ projectId: 'demo-project', runId: 'RUN-RESULT-001', task: '验证回传' })
+  });
+  const snapshot = await prepared.json();
+  const result = {
+    workerId: 'worker-a',
+    snapshotId: snapshot.snapshotId,
+    complete: true,
+    rsiUsage: [{ itemId: 'CURRENT-TASK', stage: 'consulted', evidenceRefs: ['run://evidence'] }]
+  };
+  const first = await request('/api/rsi/runs/RUN-RESULT-001/worker-result', {
+    method: 'POST', body: JSON.stringify(result)
+  });
+  const second = await request('/api/rsi/runs/RUN-RESULT-001/worker-result', {
+    method: 'POST', body: JSON.stringify(result)
+  });
+  const firstBody = await first.json();
+  const secondBody = await second.json();
+
+  assert.equal(first.status, 201);
+  assert.equal(firstBody.accepted, 1);
+  assert.equal(firstBody.finalized, true);
+  assert.equal(second.status, 201);
+  assert.equal(secondBody.results[0].idempotent, true);
+});

@@ -104,14 +104,28 @@ export class RsiUsageStore {
     const normalized = validateWorkerIdentity(snapshot, workerId);
     const path = resultPath ?? join(this.runRoot(normalized.runId), 'worker-result.json');
     const result = await readWorkerResult(path);
+    return this.recordWorkerResult({ snapshot: normalized, workerId: normalized.workerId, result });
+  }
+
+  /**
+   * 接收已经解析的 Worker 结果。
+   *
+   * @param {object} input Worker 结果参数
+   * @returns {Promise<object>} 导入结果
+   * @author lvdaxianer@yeah.net
+   */
+  async recordWorkerResult({ snapshot, workerId, result }) {
+    const normalized = validateWorkerIdentity(snapshot, workerId);
+    const payload = validateWorkerResult(result);
     const batch = await this.recordBatch({
       snapshot: normalized,
       workerId: normalized.workerId,
-      usages: result.rsiUsage ?? [],
+      usages: payload.rsiUsage,
       source: 'file-import'
     });
-    if (result.complete !== true) return batch;
-    return { ...batch, finalized: await this.finalize({ snapshot: normalized, workerId: normalized.workerId }) };
+    if (payload.complete !== true) return batch;
+    const finalization = await this.finalize({ snapshot: normalized, workerId: normalized.workerId });
+    return { ...batch, finalized: true, finalization };
   }
 
   /**
@@ -333,6 +347,19 @@ function normalizeEvidenceRefs(refs = []) {
     throw new RsiUsageError('RSI_EVIDENCE_INVALID', 'evidenceRefs 数量无效');
   }
   return refs.map((ref) => assertText(ref, 'evidenceRef'));
+}
+
+function validateWorkerResult(result) {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    throw new RsiUsageError('RSI_WORKER_RESULT_INVALID', 'Worker 结果必须是对象');
+  }
+  if (result.rsiUsage !== undefined && !Array.isArray(result.rsiUsage)) {
+    throw new RsiUsageError('RSI_USAGE_INPUT_INVALID', 'rsiUsage 必须是数组');
+  }
+  if (result.complete !== undefined && typeof result.complete !== 'boolean') {
+    throw new RsiUsageError('RSI_USAGE_INPUT_INVALID', 'complete 必须是布尔值');
+  }
+  return { ...result, rsiUsage: result.rsiUsage ?? [] };
 }
 
 function assertEnum(value, allowed, label) {

@@ -14,7 +14,8 @@ const TOOLS = Object.freeze([
       required: ['snapshotId'],
       properties: {
         snapshotId: { type: 'string' },
-        layer: { type: 'string', enum: ['global', 'project', 'current'] }
+        layer: { type: 'string', enum: ['global', 'project', 'current'] },
+        workerId: { type: 'string' }
       }
     }
   },
@@ -34,6 +35,40 @@ const TOOLS = Object.freeze([
       type: 'object',
       required: ['snapshotId'],
       properties: { snapshotId: { type: 'string' } }
+    }
+  },
+  {
+    name: 'rsi_report_usage',
+    description: '回报 Worker 对 RSI 条目的参考或应用情况。',
+    inputSchema: {
+      type: 'object',
+      required: ['runId', 'workerId', 'snapshotId', 'usages'],
+      properties: {
+        runId: { type: 'string' },
+        workerId: { type: 'string' },
+        snapshotId: { type: 'string' },
+        usages: { type: 'array', items: {
+          type: 'object', required: ['itemId', 'stage'],
+          properties: {
+            itemId: { type: 'string' },
+            stage: { type: 'string', enum: ['consulted', 'applied', 'unknown'] },
+            evidenceRefs: { type: 'array', items: { type: 'string' } }
+          }
+        } }
+      }
+    }
+  },
+  {
+    name: 'rsi_finalize_run',
+    description: '显式结束 Worker 运行，并将未回报的已注入条目标记为 unknown。',
+    inputSchema: {
+      type: 'object',
+      required: ['runId', 'workerId', 'snapshotId'],
+      properties: {
+        runId: { type: 'string' },
+        workerId: { type: 'string' },
+        snapshotId: { type: 'string' }
+      }
     }
   }
 ]);
@@ -66,11 +101,11 @@ export class RsiMcpError extends Error {
  * @returns {{handleMessage: Function, run: Function}} MCP Server
  * @author lvdaxianer@yeah.net
  */
-export function createRsiMcpServer({ builder }) {
+export function createRsiMcpServer({ builder, usageStore }) {
   assertBuilder(builder);
   return {
-    handleMessage: (message) => handleMessage(builder, message),
-    run: (options = {}) => runRsiMcpServer({ builder, ...options })
+    handleMessage: (message) => handleMessage(builder, usageStore, message),
+    run: (options = {}) => runRsiMcpServer({ builder, usageStore, ...options })
   };
 }
 
@@ -84,8 +119,8 @@ export function createRsiMcpServer({ builder }) {
  * @returns {Promise<void>} 读取结束
  * @author lvdaxianer@yeah.net
  */
-export async function runRsiMcpServer({ builder, input = process.stdin, output = process.stdout }) {
-  const server = createRsiMcpServer({ builder });
+export async function runRsiMcpServer({ builder, usageStore, input = process.stdin, output = process.stdout }) {
+  const server = createRsiMcpServer({ builder, usageStore });
   const lines = createInterface({ input, crlfDelay: Infinity });
   for await (const line of lines) {
     const response = await parseAndHandle(server, line);
@@ -101,18 +136,18 @@ async function parseAndHandle(server, line) {
   }
 }
 
-async function handleMessage(builder, message) {
+async function handleMessage(builder, usageStore, message) {
   if (!isRequest(message)) return createRpcError(null, -32600, 'MCP 请求结构无效');
   if (message.method === 'notifications/initialized') return undefined;
   if (message.method === 'initialize') return initializeResponse(message.id);
   if (message.method === 'tools/list') return toolsListResponse(message.id);
-  if (message.method === 'tools/call') return callToolResponse(builder, message);
+  if (message.method === 'tools/call') return callToolResponse(builder, usageStore, message);
   return createRpcError(message.id, -32601, 'MCP 方法不存在');
 }
 
-async function callToolResponse(builder, message) {
+async function callToolResponse(builder, usageStore, message) {
   try {
-    const result = await executeTool(builder, message.params);
+    const result = await executeTool(builder, usageStore, message.params);
     return { jsonrpc: '2.0', id: message.id, result: toolResult(result, false) };
   } catch (error) {
     const code = error.code ?? 'RSI_MCP_INTERNAL_ERROR';
@@ -121,19 +156,67 @@ async function callToolResponse(builder, message) {
   }
 }
 
-async function executeTool(builder, params = {}) {
+async function executeTool(builder, usageStore, params = {}) {
   const name = params.name;
   const args = params.arguments ?? {};
-  if (name === 'rsi_get_context') return getContext(builder, args);
+  if (name === 'rsi_get_context') return getContext(builder, usageStore, args);
   if (name === 'rsi_get_evidence') return getEvidence(builder, args);
   if (name === 'rsi_get_manifest') return getManifest(builder, args);
+  if (name === 'rsi_report_usage') return reportUsage(builder, usageStore, args);
+  if (name === 'rsi_finalize_run') return finalizeRun(builder, usageStore, args);
   throw new RsiMcpError('RSI_TOOL_NOT_FOUND', 'RSI MCP 工具不存在');
 }
 
-async function getContext(builder, args) {
+async function getContext(builder, usageStore, args) {
   const snapshot = await readSnapshot(builder, args.snapshotId);
   const layers = filterLayers(snapshot.layers, args.layer);
-  return { snapshotId: snapshot.snapshotId, contentHash: snapshot.contentHash, layers };
+  await recordLoaded(usageStore, snapshot, args.workerId, layers);
+  return {
+    snapshotId: snapshot.snapshotId,
+    runId: snapshot.runId,
+    contentHash: snapshot.contentHash,
+    layers,
+    usageProtocol: createUsageProtocol(snapshot, args.workerId)
+  };
+}
+
+async function reportUsage(builder, usageStore, args) {
+  const snapshot = await readSnapshot(builder, args.snapshotId);
+  assertUsageStore(usageStore);
+  assertRunMatch(snapshot, args.runId);
+  const result = await usageStore.recordBatch({
+    snapshot,
+    workerId: args.workerId,
+    usages: args.usages,
+    source: 'worker-report',
+    confidence: 'declared'
+  });
+  return { ...result, runId: snapshot.runId, snapshotId: snapshot.snapshotId };
+}
+
+async function finalizeRun(builder, usageStore, args) {
+  const snapshot = await readSnapshot(builder, args.snapshotId);
+  assertUsageStore(usageStore);
+  assertRunMatch(snapshot, args.runId);
+  return usageStore.finalize({ snapshot, workerId: args.workerId });
+}
+
+async function recordLoaded(usageStore, snapshot, workerId, layers) {
+  if (!workerId) return;
+  assertUsageStore(usageStore);
+  const usages = layers.flatMap((layer) => layer.items.map((item) => ({ itemId: item.itemId, stage: 'loaded' })));
+  await usageStore.recordBatch({ snapshot, workerId, usages, source: 'mcp-context', confidence: 'observed' });
+}
+
+function createUsageProtocol(snapshot, workerId) {
+  return {
+    runId: snapshot.runId,
+    snapshotId: snapshot.snapshotId,
+    workerId: workerId ?? null,
+    reportTool: 'rsi_report_usage',
+    finalizeTool: 'rsi_finalize_run',
+    finalizeRequired: Boolean(workerId)
+  };
 }
 
 async function getEvidence(builder, args) {
@@ -195,6 +278,17 @@ function assertBuilder(builder) {
   if (!builder || typeof builder.read !== 'function') {
     throw new RsiMcpError('RSI_MCP_BUILDER_INVALID', 'RSI 快照构建器不可用');
   }
+}
+
+function assertUsageStore(usageStore) {
+  if (!usageStore || typeof usageStore.recordBatch !== 'function' || typeof usageStore.finalize !== 'function') {
+    throw new RsiMcpError('RSI_USAGE_STORE_UNAVAILABLE', 'RSI 使用回传存储不可用');
+  }
+}
+
+function assertRunMatch(snapshot, runId) {
+  assertText(runId, 'runId');
+  if (snapshot.runId !== runId) throw new RsiMcpError('RSI_RUN_MISMATCH', '运行 ID 与快照不匹配');
 }
 
 function assertText(value, label) {

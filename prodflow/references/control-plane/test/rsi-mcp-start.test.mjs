@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+
+import { RsiContextBuilder } from '../src/rsi-context.mjs';
 
 const controlPlaneRoot = fileURLToPath(new URL('..', import.meta.url));
 
@@ -25,10 +27,46 @@ test('独立 MCP 进程可通过 stdio 初始化并发现 RSI 工具', async () 
   assert.equal(result.stderr, '');
   assert.equal(result.responses[0].result.serverInfo.name, 'product-delivery-workflow-rsi');
   assert.deepEqual(result.responses[1].result.tools.map((tool) => tool.name), [
-    'rsi_get_context',
-    'rsi_get_evidence',
-    'rsi_get_manifest'
+    'rsi_get_context', 'rsi_get_evidence', 'rsi_get_manifest',
+    'rsi_report_usage', 'rsi_finalize_run'
   ]);
+});
+
+test('独立 MCP 进程可以接收使用回报并完成运行结算', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'rsi-mcp-report-'));
+  const projectRoot = join(root, 'project');
+  const sharedKnowledgeRoot = join(root, 'shared');
+  await Promise.all([mkdir(projectRoot), mkdir(sharedKnowledgeRoot)]);
+  const builder = new RsiContextBuilder({
+    projectRoot,
+    sharedKnowledgeRoot,
+    globalCatalog: { async listProblems() { return []; } },
+    knowledgeStore: { async listKnowledge() { return []; } }
+  });
+  const snapshot = await builder.build({ projectId: 'demo-project', runId: 'RUN-MCP-002', task: '进程回传' });
+  const result = await runMcpProcess([
+    'src/mcp-start.mjs', '--projectRoot', projectRoot,
+    '--sharedKnowledgeRoot', sharedKnowledgeRoot, '--snapshotId', snapshot.snapshotId
+  ], [
+    { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+    { jsonrpc: '2.0', id: 2, method: 'tools/call', params: {
+      name: 'rsi_report_usage', arguments: {
+        runId: snapshot.runId, workerId: 'worker-process', snapshotId: snapshot.snapshotId,
+        usages: [{ itemId: 'CURRENT-TASK', stage: 'consulted' }]
+      }
+    } },
+    { jsonrpc: '2.0', id: 3, method: 'tools/call', params: {
+      name: 'rsi_finalize_run', arguments: {
+        runId: snapshot.runId, workerId: 'worker-process', snapshotId: snapshot.snapshotId
+      }
+    } }
+  ]);
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stderr, '');
+  assert.equal(result.responses[1].result.isError, false);
+  assert.equal(result.responses[2].result.isError, false);
+  await rm(root, { recursive: true, force: true });
 });
 
 function runMcpProcess(args, messages) {

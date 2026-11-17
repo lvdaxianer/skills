@@ -8,6 +8,7 @@ import { KnowledgeStore } from './knowledge-governance.mjs';
 import { ProjectRegistry } from './project-registry.mjs';
 import { RsiContextBuilder } from './rsi-context.mjs';
 import { runRsiMcpServer } from './rsi-mcp-server.mjs';
+import { RsiUsageStore } from './rsi-usage-store.mjs';
 import { SqliteCatalog } from './sqlite-catalog.mjs';
 
 const ARGUMENT_OPTIONS = {
@@ -41,10 +42,12 @@ export async function main() {
     globalCatalog,
     knowledgeStore
   });
+  const usageStore = new RsiUsageStore({ projectRoot });
   try {
     if (options.snapshotId) await builder.read(options.snapshotId);
-    await runRsiMcpServer({ builder });
+    await runRsiMcpServer({ builder, usageStore });
   } finally {
+    usageStore.close();
     globalCatalog.close();
   }
 }

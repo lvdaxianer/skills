@@ -105,9 +105,8 @@ test('MCP 支持 initialize、tools/list 和只读 RSI 查询', async () => {
 
   assert.equal(initialize.result.serverInfo.name, 'product-delivery-workflow-rsi');
   assert.deepEqual(listed.result.tools.map((tool) => tool.name), [
-    'rsi_get_context',
-    'rsi_get_evidence',
-    'rsi_get_manifest'
+    'rsi_get_context', 'rsi_get_evidence', 'rsi_get_manifest',
+    'rsi_report_usage', 'rsi_finalize_run'
   ]);
   assert.equal(context.result.isError, false);
   const payload = JSON.parse(context.result.content[0].text);
