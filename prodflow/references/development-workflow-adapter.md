@@ -19,7 +19,7 @@
 kind: request
 action: execute
 status: pending
-from: product-delivery-workflow
+from: prodflow
 to: development-workflow
 input_refs:
   - .product/runs/<runId>/handoff.md

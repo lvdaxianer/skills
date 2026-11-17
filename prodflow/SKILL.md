@@ -1,9 +1,9 @@
 ---
-name: product-delivery-workflow
+name: prodflow
 description: "中文产品到交付总控流程：按任务复杂度分流，必要时生成并双 Worker 复检 PRD，调度开发、验证、知识回流和可选部署。"
 ---
 
-# Product Delivery Workflow
+# prodflow
 
 这是产品需求到工程交付的总控 Skill。它负责判断任务应走多重流程、维护可恢复的运行状态、调度其他 Skill 和 Worker，并要求每个成功结论都有可回放证据。
 

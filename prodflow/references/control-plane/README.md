@@ -1,6 +1,6 @@
 # 控制平面服务
 
-这是 `product-delivery-workflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API、全局 SQLite 查询目录、RSI 快照/Provider Adapter 和人工管理控制台。
+这是 `prodflow` 的本地 Node 控制平面，提供健康检查、运行绑定、文件事实源、PRD Worker 编排、知识治理 API、全局 SQLite 查询目录、RSI 快照/Provider Adapter 和人工管理控制台。
 
 ## 运行约束
 
@@ -89,5 +89,5 @@ RSI 快照写入项目 `.product/rsi/`。文件、Prompt 和 MCP Adapter 由 `sr
 ## 本地测试
 
 ```bash
-npm test --prefix product-delivery-workflow/references/control-plane
+npm test --prefix prodflow/references/control-plane
 ```

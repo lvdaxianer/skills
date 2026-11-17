@@ -229,7 +229,7 @@ async function createReviewSnapshot(input) {
     prdVersion: prd.version,
     worker: worker.id,
     sourceRefs: [prdPath],
-    ruleRefs: ['product-delivery-workflow/references/worker-protocol.md'],
+    ruleRefs: ['prodflow/references/worker-protocol.md'],
     lessonRefs: [],
     input: { intake, projectFacts, prd },
     snapshotPath

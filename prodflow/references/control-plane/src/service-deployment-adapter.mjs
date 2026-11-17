@@ -70,7 +70,7 @@ export async function requestDeploymentDecision({
     await store.appendAudit(runId, {
       event_id: `AUDIT-${runId}-DEPLOYMENT-DECISION`,
       action: 'deployment_decision_required',
-      actor: 'product-delivery-workflow',
+      actor: 'prodflow',
       reason: '开发、验证和最终审计完成，等待用户明确部署选择'
     });
   }
@@ -181,7 +181,7 @@ export async function dispatchServiceDeployment({
     message_id: `MSG-${runId}-DEPLOYMENT`,
     run_id: runId,
     round: 1,
-    from: 'product-delivery-workflow',
+    from: 'prodflow',
     to: SERVICE_DEPLOYMENT,
     kind: 'request',
     action: 'execute',
