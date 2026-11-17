@@ -52,7 +52,7 @@ export async function dispatchDevelopmentWorkflow({ store, runId }) {
     message_id: `MSG-${runId}-DEVELOPMENT`,
     run_id: runId,
     round: 1,
-    from: 'product-delivery-workflow',
+    from: 'prodflow',
     to: DEVELOPMENT_WORKFLOW,
     kind: 'request',
     action: 'execute',
@@ -76,7 +76,7 @@ export async function dispatchDevelopmentWorkflow({ store, runId }) {
   await store.appendAudit(runId, {
     event_id: `AUDIT-${runId}-DEVELOPMENT-DISPATCHED`,
     action: 'development_dispatched',
-    actor: 'product-delivery-workflow',
+    actor: 'prodflow',
     reason: 'DEVELOPMENT_READY 交接门禁通过，已发送 development-workflow 执行请求'
   });
   return { status: 'DEVELOPMENT_DISPATCHED', request, handoffPath: validated.handoffPath };

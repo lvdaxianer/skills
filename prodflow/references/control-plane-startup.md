@@ -2,7 +2,7 @@
 
 ## 每次运行的预检
 
-`product-delivery-workflow` 每次开始前都要确保本地控制平面可用，顺序固定：
+`prodflow` 每次开始前都要确保本地控制平面可用，顺序固定：
 
 1. 确定项目根目录和公共知识根目录。
 2. 使用固定回环地址和端口检查 `/healthz`、`/readyz`。
@@ -33,7 +33,7 @@ node src/start.mjs \
 MCP 不占用 HTTP 端口，也不需要覆盖 `CLAUDE.md` 或 `AGENTS.md`。需要 MCP 的客户端启动独立 stdio 进程：
 
 ```bash
-npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+npm run mcp --prefix prodflow/references/control-plane -- \
   --projectRoot /absolute/path/to/project \
   --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
 ```

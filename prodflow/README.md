@@ -1,4 +1,4 @@
-# product-delivery-workflow
+# prodflow
 
 这是产品需求到工程交付的中文总控 Skill。它负责分流需求、在需要时生成并复检 PRD、维护三 Worker 交互事实源、交给 `development-workflow` 开发、收集可回放验收证据，并在最终阶段询问是否交给 `service-deployment` 部署。
 
@@ -17,7 +17,7 @@
 先读 [控制平面启动说明](./references/control-plane-startup.md)，再执行：
 
 ```bash
-cd product-delivery-workflow/references/control-plane
+cd prodflow/references/control-plane
 npm test
 node src/start.mjs \
   --host 127.0.0.1 \

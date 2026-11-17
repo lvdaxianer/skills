@@ -79,7 +79,7 @@ curl --request POST \
 ## 独立 MCP 命令
 
 ```bash
-npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+npm run mcp --prefix prodflow/references/control-plane -- \
   --projectRoot /absolute/path/to/project \
   --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
 ```

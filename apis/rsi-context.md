@@ -28,7 +28,7 @@
 | --- | --- |
 | 接口名称 | 准备 RSI 上下文快照 |
 | 接口用途 | 从全局、项目和当前任务事实生成统一快照并原子落盘 |
-| 业务场景 | 会话或任务开始时由 `product-delivery-workflow` 调用 |
+| 业务场景 | 会话或任务开始时由 `prodflow` 调用 |
 | 权限要求 | 仅本机控制平面调用；外部网络访问不适用 |
 | 幂等性 | 不保证重复请求复用同一 `snapshotId`；调用方应保存返回的 ID，重试时使用恢复接口或重新准备 |
 | 版本 | `schemaVersion=1` |
@@ -258,7 +258,7 @@ curl --request POST 'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUI
 独立 MCP 进程也可以直接启动：
 
 ```bash
-npm run mcp --prefix product-delivery-workflow/references/control-plane -- \
+npm run mcp --prefix prodflow/references/control-plane -- \
   --projectRoot /absolute/path/to/project \
   --sharedKnowledgeRoot /absolute/path/to/shared-knowledge
 ```

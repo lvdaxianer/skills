@@ -64,7 +64,7 @@ function createRuntimeMetadata(config, address) {
     host: address.address,
     port: address.port,
     pid: process.pid,
-    managedBy: 'product-delivery-workflow',
+    managedBy: 'prodflow',
     startedAt: new Date().toISOString()
   };
 }

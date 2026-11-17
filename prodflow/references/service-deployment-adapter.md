@@ -26,7 +26,7 @@ dry-run 报告必须标记 `dry_run: true`，列出缺失的必需输入和已�
 kind: request
 action: execute
 status: pending
-from: product-delivery-workflow
+from: prodflow
 to: service-deployment
 ```
 
