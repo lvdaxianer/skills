@@ -33,6 +33,7 @@
 | `/api/rsi/snapshots` | `POST` | `201` 或 `409` | 准备三层 RSI 快照并返回 manifest。 |
 | `/api/rsi/snapshots/:snapshotId` | `GET` | `200` 或 `404` | 恢复已落盘 RSI 快照。 |
 | `/api/rsi/snapshots/:snapshotId/inject/:provider` | `POST` | `200`、`400` 或 `404` | 通过 Provider Adapter 执行文件、Prompt 或 MCP 注入，并返回 manifest/审计状态。 |
+| `/api/rsi/runs/:runId/worker-result` | `POST` | `200`、`400`、`404` 或 `409` | 接收无 MCP Worker 的结构化 RSI 使用回传，并写入运行事实。 |
 | `/api/rsi/feedback` | `POST` | `201`、`200` 或 `409` | 将运行反馈幂等写入项目知识事实源。 |
 | 其他路径 | `GET` | `404` | 返回稳定错误码 `CONTROL_PLANE_ROUTE_NOT_FOUND`。 |
 
@@ -57,6 +58,9 @@ API 只监听本机回环地址，不作为外部 REST API 暴露。全局路由
 - `run.json`：运行快照和入口档位。
 - `interaction.jsonl`：追加式 Worker 消息账本，状态变化追加新事件，不覆盖历史。
 - `audit.jsonl`：人工和系统审计事件。
+- `rsi-usage.jsonl`：RSI item 的注入、加载、显式使用和 finalize 事实。
+- `worker-result.json`：没有 MCP 时可导入的结构化 Worker 回传。
+- `../rsi-usage.sqlite`：按 item/阶段聚合的可重建查询投影，不是权威事实源。
 
 `control-plane/cache/index.json` 只保存可重建索引，删除后可通过 `rebuildIndex()` 从 `run.json` 重新生成。服务重启或新 Worker 上下文建立时，应从这些文件恢复运行和目标 Worker 的待执行消息。
 
@@ -78,7 +82,9 @@ SQLite 可以删除或损坏，控制平面应从已注册项目的 `.product/kn
 
 公共 Guardrail 只能通过脱敏、可移植、复现/规范依据和两名独立复检人的晋升门禁，写入配置的共享根目录。Worker 通过 `createLessonSnapshot({ maxItems })` 读取有限条目和证据引用，不直接读取全部历史事件；`excluded` 和未晋升候选不会进入快照。
 
-RSI 快照写入项目 `.product/rsi/`。文件、Prompt 和 MCP Adapter 由 `src/rsi-provider-adapter.mjs` 提供，控制平面通过 `/api/rsi/snapshots/:snapshotId/inject/:provider` 显式触发；每次触发追加 `.product/rsi/audit.jsonl`。只读 MCP stdio Server 由 `src/rsi-mcp-server.mjs` 提供，独立入口是 `npm run mcp -- --projectRoot <项目目录> --sharedKnowledgeRoot <公共知识目录>`，查询 `rsi_get_context`、`rsi_get_evidence` 和 `rsi_get_manifest`。两者都只消费带 `snapshotId`、`sourceHash` 和 `contentHash` 的快照，不覆盖 `CLAUDE.md` 或 `AGENTS.md`。
+RSI 快照写入项目 `.product/rsi/`。文件、Prompt 和 MCP Adapter 由 `src/rsi-provider-adapter.mjs` 提供，控制平面通过 `/api/rsi/snapshots/:snapshotId/inject/:provider` 显式触发；每次触发追加 `.product/rsi/audit.jsonl`。只读 MCP stdio Server 由 `src/rsi-mcp-server.mjs` 提供，独立入口是 `npm run mcp -- --projectRoot <项目目录> --sharedKnowledgeRoot <公共知识目录> --workerId <workerId>`，查询 `rsi_get_context`、`rsi_get_evidence`、`rsi_get_manifest`，并通过 `rsi_report_usage`、`rsi_finalize_run` 回传使用声明。无 MCP 时可通过 `POST /api/rsi/runs/:runId/worker-result` 或 `worker-result.json` 回传。两者都只消费带 `snapshotId`、`sourceHash` 和 `contentHash` 的快照，不覆盖 `CLAUDE.md` 或 `AGENTS.md`。
+
+使用阶段统一为 `injected`、`loaded`、`consulted`、`applied`、`unknown`：`loaded` 只证明 MCP 返回，`consulted`/`applied` 需要 Worker 显式声明；直接聊天没有 MCP 或结构化回传时无法自动判断使用情况，不能把缺少回传当作未使用。`.product/runs/<runId>/rsi-usage.jsonl` 是事实源，`.product/runs/rsi-usage.sqlite` 是可由事实重建的统计投影。
 
 ## 验收证据门禁
 

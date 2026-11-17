@@ -410,7 +410,33 @@ MCP 使用 stdio JSON-RPC：
 - `rsi_get_context` 读取层内容。
 - `rsi_get_evidence` 读取证据引用。
 - `rsi_get_manifest` 读取来源和哈希。
+- `rsi_report_usage` 回传 Worker 对 item 的 `consulted` 或 `applied` 声明。
+- `rsi_finalize_run` 完成回传并将未解决 item 标记为 `unknown`。
 - 不存在的快照、层或条目返回稳定错误，不伪装成功。
+
+### 11.4 RSI 使用回传与次数统计
+
+注入 RSI 后，系统还要区分“已准备”“已读取”和“实际使用”。每个 item 的阶段如下：
+
+| 阶段 | 事实 | 统计含义 |
+| --- | --- | --- |
+| `injected` | Adapter 已准备文件、Prompt 或 MCP 配置 | 只证明已注入 |
+| `loaded` | MCP 返回了该 item | 只证明工具返回，不证明模型采用 |
+| `consulted` | Worker 显式声明参考过 | 计入显式使用 |
+| `applied` | Worker 显式声明应用到结果，并给出证据引用 | 计入应用使用，等待验收证据确认 |
+| `unknown` | finalize 后仍无使用声明 | 未知，不是未使用 |
+
+控制平面接收回传并写入两个位置：`.product/runs/<runId>/rsi-usage.jsonl` 是追加式权威事实，`.product/runs/rsi-usage.sqlite` 是可删除、可重建的查询投影。重复回传按 `runId + workerId + snapshotId + itemId + stage` 幂等，不会重复增加次数。
+
+### 11.5 直接聊天与 Worker Runner 的边界
+
+如果 Claude、Codex、Kimi 等直接聊天没有接入 Worker Runner，系统不会自动拿到模型返回，也不能从聊天内容可靠推断 RSI 是否被使用。可选回传路径是：
+
+1. MCP：调用 `rsi_get_context`，再调用 `rsi_report_usage`，最后调用 `rsi_finalize_run`。
+2. HTTP：调用 `POST /api/rsi/runs/{runId}/worker-result`。
+3. 文件：保存 `.product/runs/<runId>/worker-result.json`，再由控制平面导入。
+
+三种路径的字段和统计规则相同。没有任何回传时，运行保持未完成；显式 finalize 后 unresolved item 才进入 `unknown`。因此“没有回报”不等于“没有使用”。
 
 ## 十二、RSI 注入的成功证据
 

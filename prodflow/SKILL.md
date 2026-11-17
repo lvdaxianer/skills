@@ -121,6 +121,12 @@ output_refs: []
 
 RSI 上下文注入的事实源、文件/Prompt/MCP 三种 Adapter、注入时机和不覆盖用户规则文件的边界，以 `references/rsi-provider-adapters.md` 为准。
 
+## RSI 使用回传协议
+
+拿到 RSI snapshot 的每个 Worker 都必须保留 `runId`、`snapshotId`、`workerId` 和 itemId，不得凭自然语言重新命名 item。若 MCP 可用，Worker 必须按顺序读取 `rsi_get_context`、按实际情况调用 `rsi_report_usage`，完成后调用 `rsi_finalize_run`。`loaded` 只表示 MCP 返回成功；只有 Worker 显式回传 `consulted` 或 `applied` 才计入使用统计。
+
+没有 MCP 时，Worker Runner 应调用 `/api/rsi/runs/:runId/worker-result`，或落盘 `.product/runs/<runId>/worker-result.json` 后由控制平面导入。普通 Claude、Codex、Kimi 等直接聊天如果没有 MCP、HTTP 或结构化文件回传，系统不能自动接收模型返回，也不能可靠判断 item 是否被使用；此时保持未完成，显式 finalize 后未解决 item 才标记为 `unknown`，绝不把缺少回传解释为“未使用”。
+
 ## 验证与成功证据
 
 每个验收标准必须绑定验证方式、预期结果、实际结果和证据引用。涉及页面时，验证必须优先使用浏览器自动化，保存操作、断言、URL、截图、trace、console/network 摘要和下载 checksum；后端还要保存 API、业务状态和健康/冒烟证据。
