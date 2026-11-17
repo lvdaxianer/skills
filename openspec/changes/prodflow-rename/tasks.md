@@ -12,4 +12,4 @@
 
 ## 3. 最终集成与归档
 
-- [ ] 3.1 在 master 上运行 strict OpenSpec、Skill 校验、全量测试和旧引用审计，归档 change、清理 worktree 并完成最终报告
+- [x] 3.1 在 master 上运行 strict OpenSpec、Skill 校验、全量测试和旧引用审计，归档 change、清理 worktree 并完成最终报告
