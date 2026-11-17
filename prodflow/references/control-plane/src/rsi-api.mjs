@@ -112,6 +112,7 @@ async function injectSnapshot(request, response, adapters, snapshotId, provider)
   const result = await adapters.inject({
     provider,
     snapshotId,
+    workerId: body.workerId,
     mode: body.mode ?? 'file',
     maxPromptBytes: body.maxPromptBytes
   });

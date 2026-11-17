@@ -59,7 +59,7 @@ test('控制平面通过 Provider Adapter 执行文件注入并留下审计证�
 
   const response = await request(`/api/rsi/snapshots/${snapshot.snapshotId}/inject/claude`, {
     method: 'POST',
-    body: JSON.stringify({ mode: 'file' })
+    body: JSON.stringify({ mode: 'file', workerId: 'worker-runtime' })
   });
   const body = await response.json();
 
@@ -67,6 +67,7 @@ test('控制平面通过 Provider Adapter 执行文件注入并留下审计证�
   assert.equal(body.status, 'injected');
   assert.equal(body.injectionMethod, 'file');
   assert.equal(body.snapshotId, snapshot.snapshotId);
+  assert.equal(body.manifest.workerId, 'worker-runtime');
   assert.equal(await readFile(claudePath, 'utf8'), '用户维护的 Claude 规则');
   assert.equal(await readFile(agentsPath, 'utf8'), '用户维护的 Codex 规则');
   const auditLines = (await readFile(join(projectRoot, '.product', 'rsi', 'audit.jsonl'), 'utf8'))
@@ -76,6 +77,7 @@ test('控制平面通过 Provider Adapter 执行文件注入并留下审计证�
   assert.equal(auditLines[0].runId, 'RUN-RUNTIME-001');
   assert.equal(auditLines[0].provider, 'claude');
   assert.equal(auditLines[0].snapshotId, snapshot.snapshotId);
+  assert.equal(auditLines[0].workerId, 'worker-runtime');
   assert.equal(auditLines[0].status, 'injected');
 });
 
@@ -100,6 +102,7 @@ test('控制平面返回 Prompt 与 MCP 注入结果，并区分 fallback', asyn
   assert.equal(mcp.status, 'available');
   assert.equal(mcp.injectionMethod, 'mcp');
   assert.ok(Array.isArray(mcp.mcp.args));
+  assert.equal(mcp.manifest.workerId, 'kimi-worker');
 
   const fallbackResponse = await request(`/api/rsi/snapshots/${snapshot.snapshotId}/inject/codex`, {
     method: 'POST',

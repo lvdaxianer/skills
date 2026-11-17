@@ -15,6 +15,7 @@ const ARGUMENT_OPTIONS = {
   projectRoot: { type: 'string' },
   sharedKnowledgeRoot: { type: 'string' },
   snapshotId: { type: 'string' },
+  workerId: { type: 'string' },
   help: { type: 'boolean', short: 'h' }
 };
 
@@ -45,7 +46,7 @@ export async function main() {
   const usageStore = new RsiUsageStore({ projectRoot });
   try {
     if (options.snapshotId) await builder.read(options.snapshotId);
-    await runRsiMcpServer({ builder, usageStore });
+    await runRsiMcpServer({ builder, usageStore, defaultWorkerId: options.workerId });
   } finally {
     usageStore.close();
     globalCatalog.close();

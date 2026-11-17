@@ -223,11 +223,12 @@ POST http://127.0.0.1:<port>/api/rsi/snapshots/{snapshotId}/inject/{provider}
 ```json
 {
   "mode": "file",
-  "maxPromptBytes": 16384
+  "maxPromptBytes": 16384,
+  "workerId": "product-review-worker"
 }
 ```
 
-`mode` 可取 `file`、`prompt`、`mcp`。缺省为 `file`；未知方式不会伪装成功，而是返回 `status=fallback` 并明确选择 `prompt`。文件方式只写 `.product/rsi/providers/<provider>/current.md` 和 manifest，不覆盖 `CLAUDE.md`、`AGENTS.md`。
+`mode` 可取 `file`、`prompt`、`mcp`。缺省为 `file`；未知方式不会伪装成功，而是返回 `status=fallback` 并明确选择 `prompt`。`workerId` 可选，缺省为 `<provider>-worker`，用于把注入、读取和 Worker 回报关联到同一执行者。文件方式只写 `.product/rsi/providers/<provider>/current.md` 和 manifest，不覆盖 `CLAUDE.md`、`AGENTS.md`。
 
 ### 4.3 成功响应
 
@@ -239,7 +240,7 @@ POST http://127.0.0.1:<port>/api/rsi/snapshots/{snapshotId}/inject/{provider}
   "provider": "claude",
   "snapshotId": "RSI-SNAPSHOT-<UUID>",
   "paths": {"markdown": "/absolute/project/.product/rsi/providers/claude/current.md"},
-  "manifest": {"schemaVersion": 1, "provider": "claude", "snapshotId": "RSI-SNAPSHOT-<UUID>"}
+  "manifest": {"schemaVersion": 1, "provider": "claude", "workerId":"product-review-worker", "snapshotId": "RSI-SNAPSHOT-<UUID>"}
 }
 ```
 
@@ -252,7 +253,7 @@ MCP 示例返回 `status=available`、`injectionMethod=mcp` 和 `{ "mcp": { "com
 ```bash
 curl --request POST 'http://127.0.0.1:<port>/api/rsi/snapshots/RSI-SNAPSHOT-<UUID>/inject/claude' \
   --header 'Content-Type: application/json' \
-  --data '{"mode":"file"}'
+  --data '{"mode":"file","workerId":"product-review-worker"}'
 ```
 
 独立 MCP 进程也可以直接启动：

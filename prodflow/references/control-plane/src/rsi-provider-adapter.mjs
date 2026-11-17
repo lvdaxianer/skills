@@ -48,7 +48,7 @@ export class RsiProviderAdapterRegistry {
    * @param {object} options.builder RSI 快照构建器
    * @author lvdaxianer@yeah.net
    */
-  constructor({ projectRoot, sharedKnowledgeRoot, builder, auditPath }) {
+  constructor({ projectRoot, sharedKnowledgeRoot, builder, auditPath, usageStore }) {
     if (typeof projectRoot !== 'string' || !projectRoot) {
       throw new RsiProviderAdapterError('RSI_ADAPTER_PATH_INVALID', '项目根目录不能为空');
     }
@@ -58,6 +58,7 @@ export class RsiProviderAdapterRegistry {
     this.projectRoot = projectRoot;
     this.sharedKnowledgeRoot = sharedKnowledgeRoot ?? join(projectRoot, '.product', 'shared-knowledge');
     this.builder = builder;
+    this.usageStore = usageStore;
     this.auditPath = auditPath ?? join(projectRoot, '.product', 'rsi', 'audit.jsonl');
   }
 
@@ -75,13 +76,14 @@ export class RsiProviderAdapterRegistry {
       input = normalizeInjectionOptions(options);
       snapshot = await resolveSnapshot(this.builder, input);
       const profile = resolveProfile(input.provider);
-      const base = createResultBase(input.provider, profile, snapshot);
+      const base = createResultBase(input.provider, profile, snapshot, input.workerId);
       let result;
       if (input.mode === 'file') result = await this.injectFile(base, snapshot, profile);
       else if (input.mode === 'prompt') result = this.createPrompt(base, snapshot, input.maxPromptBytes);
       else if (input.mode === 'mcp') result = this.createMcp(base, snapshot);
       else result = this.createFallback(base, snapshot, input.maxPromptBytes, input.mode);
       await this.appendAudit({ input, snapshot, result });
+      await this.recordInjectionUsage(input, snapshot, result);
       return result;
     } catch (error) {
       await this.appendAudit({
@@ -118,7 +120,9 @@ export class RsiProviderAdapterRegistry {
           '--sharedKnowledgeRoot',
           this.sharedKnowledgeRoot,
           '--snapshotId',
-          snapshot.snapshotId
+          snapshot.snapshotId,
+          '--workerId',
+          base.manifest.workerId
         ]
       },
       manifest: { ...base.manifest, injectionMethod: 'mcp' }
@@ -141,6 +145,7 @@ export class RsiProviderAdapterRegistry {
       runId: snapshot?.runId ?? 'unknown',
       provider: input?.provider ?? 'unknown',
       snapshotId: snapshot?.snapshotId ?? input?.snapshotId ?? null,
+      workerId: input?.workerId ?? 'unknown',
       injectionMethod: result?.injectionMethod ?? injectionMethod ?? input?.mode ?? 'unknown',
       status: result?.status ?? status ?? 'failed'
     };
@@ -149,6 +154,30 @@ export class RsiProviderAdapterRegistry {
     if (error?.message) record.errorMessage = error.message;
     await mkdir(dirname(this.auditPath), { recursive: true });
     await appendFile(this.auditPath, `${JSON.stringify(record)}\n`, { encoding: 'utf8', mode: 0o600 });
+  }
+
+  /**
+   * 将成功的文件或 Prompt 注入转换为条目级 injected 事实。
+   *
+   * @param {object} input 注入参数
+   * @param {object} snapshot RSI 快照
+   * @param {object} result 注入结果
+   * @returns {Promise<void>}
+   * @author lvdaxianer@yeah.net
+   */
+  async recordInjectionUsage(input, snapshot, result) {
+    if (!this.usageStore || result.status !== 'injected') return;
+    const usages = snapshot.layers.flatMap((layer) => layer.items.map((item) => ({
+      itemId: item.itemId,
+      stage: 'injected'
+    })));
+    await this.usageStore.recordBatch({
+      snapshot,
+      workerId: input.workerId,
+      usages,
+      source: 'provider-adapter',
+      confidence: 'observed'
+    });
   }
 
   /**
@@ -236,6 +265,7 @@ function normalizeInjectionOptions(options) {
   }
   return {
     provider: provider.toLowerCase(),
+    workerId: normalizeWorkerId(options.workerId, provider),
     snapshot: options.snapshot,
     snapshotId: options.snapshotId,
     mode: options.mode ?? 'file',
@@ -256,7 +286,7 @@ async function resolveSnapshot(builder, input) {
   throw new RsiProviderAdapterError('RSI_SNAPSHOT_REQUIRED', '必须提供 snapshot 或 snapshotId');
 }
 
-function createResultBase(provider, profile, snapshot) {
+function createResultBase(provider, profile, snapshot, workerId) {
   return {
     provider,
     adapter: profile.name,
@@ -265,6 +295,7 @@ function createResultBase(provider, profile, snapshot) {
     manifest: {
       schemaVersion: ADAPTER_SCHEMA_VERSION,
       provider,
+      workerId,
       adapter: profile.name,
       snapshotId: snapshot.snapshotId,
       projectId: snapshot.projectId,
@@ -273,6 +304,14 @@ function createResultBase(provider, profile, snapshot) {
       sourceHash: snapshot.sourceHash
     }
   };
+}
+
+function normalizeWorkerId(workerId, provider) {
+  const value = workerId ?? `${provider}-worker`;
+  if (typeof value !== 'string' || !PROVIDER_PATTERN.test(value)) {
+    throw new RsiProviderAdapterError('RSI_WORKER_INVALID', 'Worker 标识无效');
+  }
+  return value;
 }
 
 function createProviderPaths(providerRoot) {
