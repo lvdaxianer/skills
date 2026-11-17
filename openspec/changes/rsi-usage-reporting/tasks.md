@@ -18,8 +18,8 @@
 
 ## 4. 文档与集成验证
 
-- [ ] 4.1 更新中文 RSI Adapter 文档、`prodflow/README.md` 和控制平面 README，说明直接聊天的 MCP/文件/人工回传边界、统计含义和 unknown 规则；运行文档命令与链接检查。
-- [ ] 4.2 运行控制平面全量测试、prodflow 专项测试和 `openspec validate --all --strict`，完成计划一致性审计后记录本变更的最终验证结果。
+- [x] 4.1 更新中文 RSI Adapter 文档、`prodflow/README.md` 和控制平面 README，说明直接聊天的 MCP/文件/人工回传边界、统计含义和 unknown 规则；运行文档命令与链接检查。
+- [x] 4.2 运行控制平面全量测试、prodflow 专项测试和 `openspec validate --all --strict`，完成计划一致性审计后记录本变更的最终验证结果。
 
 ## Workflow follow-up
 
