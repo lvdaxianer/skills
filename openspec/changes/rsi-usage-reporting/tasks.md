@@ -13,8 +13,8 @@
 
 ## 3. 注入与读取事件闭环
 
-- [ ] 3.1 让 Provider Adapter 在成功注入时记录每个选中条目的 `injected` 事件，让 `rsi_get_context` 成功返回时记录 `loaded` 事件；用已有 Adapter/MCP 测试补充阶段计数断言。
-- [ ] 3.2 让快照和 MCP 返回内容带有 Worker 使用协议所需的 `runId`、`snapshotId`、`itemId` 和结算提示，并验证截断、文件、Prompt、MCP 三种入口保持身份一致。
+- [x] 3.1 让 Provider Adapter 在成功注入时记录每个选中条目的 `injected` 事件，让 `rsi_get_context` 成功返回时记录 `loaded` 事件；用已有 Adapter/MCP 测试补充阶段计数断言。
+- [x] 3.2 让快照和 MCP 返回内容带有 Worker 使用协议所需的 `runId`、`snapshotId`、`itemId` 和结算提示，并验证截断、文件、Prompt、MCP 三种入口保持身份一致。
 
 ## 4. 文档与集成验证
 

@@ -43,12 +43,13 @@ export function createControlPlaneServer(options) {
     globalCatalog,
     knowledgeStore
   });
+  const rsiUsageStore = new RsiUsageStore({ projectRoot: config.projectRoot });
   const rsiAdapters = new RsiProviderAdapterRegistry({
     projectRoot: config.projectRoot,
     sharedKnowledgeRoot: config.sharedKnowledgeRoot,
-    builder: rsiBuilder
+    builder: rsiBuilder,
+    usageStore: rsiUsageStore
   });
-  const rsiUsageStore = new RsiUsageStore({ projectRoot: config.projectRoot });
   const server = createServer((request, response) => {
     handleRequest(request, response, config, knowledgeStore, globalCatalog, rsiBuilder, rsiAdapters, rsiUsageStore)
       .catch(() => writeNotReadyResponse(response));

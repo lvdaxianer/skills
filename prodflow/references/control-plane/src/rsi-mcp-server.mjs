@@ -101,11 +101,11 @@ export class RsiMcpError extends Error {
  * @returns {{handleMessage: Function, run: Function}} MCP Server
  * @author lvdaxianer@yeah.net
  */
-export function createRsiMcpServer({ builder, usageStore }) {
+export function createRsiMcpServer({ builder, usageStore, defaultWorkerId }) {
   assertBuilder(builder);
   return {
-    handleMessage: (message) => handleMessage(builder, usageStore, message),
-    run: (options = {}) => runRsiMcpServer({ builder, usageStore, ...options })
+    handleMessage: (message) => handleMessage(builder, usageStore, defaultWorkerId, message),
+    run: (options = {}) => runRsiMcpServer({ builder, usageStore, defaultWorkerId, ...options })
   };
 }
 
@@ -119,8 +119,8 @@ export function createRsiMcpServer({ builder, usageStore }) {
  * @returns {Promise<void>} 读取结束
  * @author lvdaxianer@yeah.net
  */
-export async function runRsiMcpServer({ builder, usageStore, input = process.stdin, output = process.stdout }) {
-  const server = createRsiMcpServer({ builder, usageStore });
+export async function runRsiMcpServer({ builder, usageStore, defaultWorkerId, input = process.stdin, output = process.stdout }) {
+  const server = createRsiMcpServer({ builder, usageStore, defaultWorkerId });
   const lines = createInterface({ input, crlfDelay: Infinity });
   for await (const line of lines) {
     const response = await parseAndHandle(server, line);
@@ -136,18 +136,18 @@ async function parseAndHandle(server, line) {
   }
 }
 
-async function handleMessage(builder, usageStore, message) {
+async function handleMessage(builder, usageStore, defaultWorkerId, message) {
   if (!isRequest(message)) return createRpcError(null, -32600, 'MCP 请求结构无效');
   if (message.method === 'notifications/initialized') return undefined;
   if (message.method === 'initialize') return initializeResponse(message.id);
   if (message.method === 'tools/list') return toolsListResponse(message.id);
-  if (message.method === 'tools/call') return callToolResponse(builder, usageStore, message);
+  if (message.method === 'tools/call') return callToolResponse(builder, usageStore, defaultWorkerId, message);
   return createRpcError(message.id, -32601, 'MCP 方法不存在');
 }
 
-async function callToolResponse(builder, usageStore, message) {
+async function callToolResponse(builder, usageStore, defaultWorkerId, message) {
   try {
-    const result = await executeTool(builder, usageStore, message.params);
+    const result = await executeTool(builder, usageStore, defaultWorkerId, message.params);
     return { jsonrpc: '2.0', id: message.id, result: toolResult(result, false) };
   } catch (error) {
     const code = error.code ?? 'RSI_MCP_INTERNAL_ERROR';
@@ -156,37 +156,38 @@ async function callToolResponse(builder, usageStore, message) {
   }
 }
 
-async function executeTool(builder, usageStore, params = {}) {
+async function executeTool(builder, usageStore, defaultWorkerId, params = {}) {
   const name = params.name;
   const args = params.arguments ?? {};
-  if (name === 'rsi_get_context') return getContext(builder, usageStore, args);
+  if (name === 'rsi_get_context') return getContext(builder, usageStore, defaultWorkerId, args);
   if (name === 'rsi_get_evidence') return getEvidence(builder, args);
   if (name === 'rsi_get_manifest') return getManifest(builder, args);
-  if (name === 'rsi_report_usage') return reportUsage(builder, usageStore, args);
-  if (name === 'rsi_finalize_run') return finalizeRun(builder, usageStore, args);
+  if (name === 'rsi_report_usage') return reportUsage(builder, usageStore, defaultWorkerId, args);
+  if (name === 'rsi_finalize_run') return finalizeRun(builder, usageStore, defaultWorkerId, args);
   throw new RsiMcpError('RSI_TOOL_NOT_FOUND', 'RSI MCP 工具不存在');
 }
 
-async function getContext(builder, usageStore, args) {
+async function getContext(builder, usageStore, defaultWorkerId, args) {
   const snapshot = await readSnapshot(builder, args.snapshotId);
   const layers = filterLayers(snapshot.layers, args.layer);
-  await recordLoaded(usageStore, snapshot, args.workerId, layers);
+  const workerId = args.workerId ?? defaultWorkerId;
+  await recordLoaded(usageStore, snapshot, workerId, layers);
   return {
     snapshotId: snapshot.snapshotId,
     runId: snapshot.runId,
     contentHash: snapshot.contentHash,
     layers,
-    usageProtocol: createUsageProtocol(snapshot, args.workerId)
+    usageProtocol: createUsageProtocol(snapshot, workerId)
   };
 }
 
-async function reportUsage(builder, usageStore, args) {
+async function reportUsage(builder, usageStore, defaultWorkerId, args) {
   const snapshot = await readSnapshot(builder, args.snapshotId);
   assertUsageStore(usageStore);
   assertRunMatch(snapshot, args.runId);
   const result = await usageStore.recordBatch({
     snapshot,
-    workerId: args.workerId,
+    workerId: args.workerId ?? defaultWorkerId,
     usages: args.usages,
     source: 'worker-report',
     confidence: 'declared'
@@ -194,11 +195,11 @@ async function reportUsage(builder, usageStore, args) {
   return { ...result, runId: snapshot.runId, snapshotId: snapshot.snapshotId };
 }
 
-async function finalizeRun(builder, usageStore, args) {
+async function finalizeRun(builder, usageStore, defaultWorkerId, args) {
   const snapshot = await readSnapshot(builder, args.snapshotId);
   assertUsageStore(usageStore);
   assertRunMatch(snapshot, args.runId);
-  return usageStore.finalize({ snapshot, workerId: args.workerId });
+  return usageStore.finalize({ snapshot, workerId: args.workerId ?? defaultWorkerId });
 }
 
 async function recordLoaded(usageStore, snapshot, workerId, layers) {
