@@ -123,6 +123,42 @@ If any required source cannot be read, stop and report the missing source.
   forbidden until the audit passes, unless the user explicitly opts out with one
   of the audit opt-out phrases above.
 
+## Task Worktree Closure Gate
+
+`features/✅...` and `fixes/✅...` branches are task branches, not long-lived
+integration branches. They MUST remain in their dedicated worktree until the
+task has passed every required verification and has been merged into the
+recorded `SOURCE_BRANCH`.
+
+The commit gate is hard: before `git commit`, the task MUST have passed RED,
+GREEN, broader verification, plan-implementation consistency audit,
+`code-review-spec`, all applicable domain gates, the per-task audit, the
+OpenSpec task marker, and the `project-hygiene` secret/artifact check. A task
+branch MUST NOT receive a workflow commit before these conditions pass.
+
+The closure gate is a separate hard gate. Before removing a task worktree or
+branch, read `.source_branch` and verify all of the following:
+
+```bash
+SOURCE_BRANCH=$(cut -d= -f2 "$TASK_WORKTREE/.source_branch")
+test -n "$SOURCE_BRANCH"
+test -z "$(git -C "$TASK_WORKTREE" status --porcelain)"
+test -z "$(git -C "$SOURCE_CHECKOUT" status --porcelain)"
+git -C "$SOURCE_CHECKOUT" merge-base --is-ancestor "$TASK_BRANCH" "$SOURCE_BRANCH"
+```
+
+Only when every check succeeds MAY the workflow run:
+
+```bash
+git worktree remove "$TASK_WORKTREE"
+git branch -d "$TASK_BRANCH"
+```
+
+`git worktree remove --force`, `git branch -D`, deleting an unmerged task
+branch, or deleting a dirty worktree are prohibited as task closeout actions.
+If any closure check fails, report the exact failed condition and preserve the
+worktree and branch until the condition is repaired or explicitly resolved.
+
 ## Workflow Flowchart
 
 ```mermaid
@@ -147,8 +183,9 @@ flowchart TD
     P --> Q{Per-task audit passes?}
     Q -- "No" --> O
     Q -- "Yes" --> R[Mark task complete and commit]
-    R --> S[Merge into SOURCE_BRANCH and clean up worktree]
-    S --> T{Tasks remaining?}
+    R --> S[Merge into SOURCE_BRANCH and verify ancestry]
+    S --> C[Worktree closure gate]
+    C --> T{Tasks remaining?}
     T -- "Yes" --> I
     T -- "No" --> U[Final audit and OpenSpec archive]
     U --> V[Verify integration branch contains the change]
@@ -409,22 +446,28 @@ For each development task, execute this exact order:
     this gate.
 23. Mark exactly one completed task immediately after the per-task audit passes
     in the OpenSpec checklist.
-24. Create one atomic Chinese Conventional Commit for this task from the dedicated
-    worktree by applying
+24. Pass the commit gate, then create one atomic Chinese Conventional Commit for
+    this task from the dedicated worktree by applying
     `commit --style=full`; the message must include a non-empty body and
     non-empty footer. Include uncommitted related OpenSpec planning files in this
     commit when the task carries a complete business module. Before committing,
     run the `project-hygiene` secret-leak check (`git ls-files`) and confirm no
-    artifact, tool-local, or secret file is staged.
-25. After the commit succeeds, merge the task branch into its recorded
-   `SOURCE_BRANCH`, verify ancestry, remove the task worktree and branch, and
-   return to the confirmed integration branch before starting the next task.
-26. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
-27. Archive the completed OpenSpec change. If archival modifies repository
+    artifact, tool-local, or secret file is staged. No workflow commit is allowed
+    before this gate passes.
+25. After the commit succeeds, switch to the clean checkout of the recorded
+   `SOURCE_BRANCH`, verify that the integration checkout is clean, merge the
+   task branch with `--no-ff`, and verify `git merge-base --is-ancestor`.
+26. Run the task worktree closure gate. Only after the task worktree and
+   integration checkout are clean and ancestry verification succeeds may the
+   workflow run non-forced `git worktree remove` and `git branch -d`, then return
+   to the confirmed integration branch. On failure, preserve both worktree and
+   branch and do not start the next task.
+27. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
+28. Archive the completed OpenSpec change. If archival modifies repository
    files, create one final dedicated task worktree from the confirmed
    integration branch, commit the archive update, then merge and verify that
    task using the same task-integration loop.
-28. After the final audit and OpenSpec archive work pass, return to the
+29. After the final audit and OpenSpec archive work pass, return to the
    confirmed integration branch and verify it contains every completed task.
    If the source checkout has unrelated uncommitted changes, a merge conflict,
    or a missing task merge, stop and preserve that work. A failed integration
@@ -480,6 +523,13 @@ For each development task, execute this exact order:
   the confirmed integration branch. A dirty source worktree, missing source
   worktree, or merge conflicts must stop the integration gate and preserve
   unrelated work.
+- Do not create a workflow commit from a `features/✅...` or `fixes/✅...` task
+  branch before the commit gate passes.
+- Do not remove a task worktree or branch before the separate closure gate passes:
+  both worktrees must be clean, `.source_branch` must resolve the merge target,
+  and ancestry must be verified.
+- Do not use `git worktree remove --force`, `git branch -D`, or any equivalent
+  destructive operation to bypass a failed closure gate.
 - Do not create standalone planning commits by default; carry OpenSpec planning
   files with the first atomic task commit for a complete business module.
 - Do not create a standalone OpenSpec or documentation commit unless the change
@@ -521,7 +571,7 @@ When reporting progress, include the current task and gate:
 
 ```markdown
 Current task: <task name>
-Gate: <brainstorming | plan approval | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | per-task audit | task mark-complete | commit | final audit | OpenSpec archive | source-branch integration | next task>
+Gate: <brainstorming | plan approval | worktree setup | project-hygiene sync | OpenSpec plan | OpenSpec validation | task boundary and agent dispatch | RED | GREEN | REST API documentation | broader verification | plan-implementation consistency audit | code-review-spec | per-task audit | task mark-complete | commit | source-branch integration | worktree closure | final audit | OpenSpec archive | next task>
 Opt-outs: <none | no OpenSpec | no branch | ...>
 Evidence: <command or file checked>
 ```
