@@ -16,7 +16,8 @@ TDD RED/GREEN → REST API 文档门禁（适用时）→ 验证/审计/review �
 
 一个 change 只确认一个集成分支。每个可独立验证的任务都从该分支创建 emoji
 前缀的 task branch 与独立 worktree；验证和提交通过后，立即合并回工作树中记录的
-`SOURCE_BRANCH`，清理 task branch/worktree，再从已更新的集成分支开始下一个任务。
+`SOURCE_BRANCH`，通过独立的 worktree closure 门禁后，才清理 task branch/worktree，
+再从已更新的集成分支开始下一个任务。
 不存在用于汇总任务的 parent/change branch。
 
 > **显式豁免（Opt-Outs）**：用户说"**不要 OpenSpec**"即跳过全部 OpenSpec 阶段；
@@ -42,10 +43,11 @@ flowchart TD
     Green --> ApiDocs[15. REST API 文档门<br/>按模块更新 apis/&lt;module&gt;.md]
     ApiDocs --> Audit[16-20. broader verification、<br/>一致性审计、code-review-spec、修复与复验]
     Audit --> TaskAudit[21. 任务级规范审计<br/>检查所有适用规范与实现漂移]
-    TaskAudit --> C[22-24. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并清理]
-    C --> More{还有未完成任务?}
+    TaskAudit --> C[22-25. 标记完成、commit、<br/>合并回 SOURCE_BRANCH 并验证 ancestry]
+    C --> Close[worktree closure 门禁<br/>clean + merged + ancestry]
+    Close --> More{还有未完成任务?}
     More -->|是| T
-    More -->|否| F[25-27. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
+    More -->|否| F[27-29. final audit、OpenSpec archive、<br/>确认集成分支包含全部任务]
     F --> End([任务完成])
     
     style B fill:#e1f5ff
@@ -83,9 +85,10 @@ flowchart TD
 | 17-20 | audit / review | 审计计划一致性与适用的 API 文档覆盖；逐项执行 `code-review-spec` 和适用领域 skill，修复问题并重新验证。 |
 | 21 | per-task audit | 每个任务必须再次审计：检查任务边界、验收标准、完整 diff、测试与 broader verification、所有适用领域规范、review 证据和实现漂移；失败必须修复并重审。除非用户明确豁免，否则这是不可逾越的硬门禁。 |
 | 22 | task mark-complete | 只有任务级审计通过后，立即只标记一个任务完成。 |
-| 23 | commit | 使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
-| 24 | source-branch integration | 读取 `.source_branch`，合并 task branch 到集成分支，验证 ancestry，清理 task worktree/branch，并回到集成分支。 |
-| 25-27 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
+| 23 | commit | 先通过 commit gate，再使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
+| 24-25 | source-branch integration | 读取 `.source_branch`，确认集成 checkout clean，合并 task branch 到集成分支，并用 `git merge-base --is-ancestor` 验证 ancestry；失败时保留现场。 |
+| 26 | worktree closure | 任务 worktree 与集成 checkout 都 clean、任务 branch 已合并且验证证据完整后，才允许非强制执行 `git worktree remove` 和 `git branch -d`；禁止 `--force`/`-D` 绕过门禁。 |
+| 27-29 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
 **它本身不管**：
 - 分支怎么命名（委托给 `git-branch-worktree-convention`）
@@ -100,6 +103,35 @@ flowchart TD
 - 门禁通过条件（RED 门要求测试失败，GREEN 门要求测试通过）
 - 每个任务的规范审计必须覆盖所有适用规范；未通过不得标记完成、提交、合并或开始下一个任务
 - 任务顺序（brainstorm 必须在 OpenSpec plan 前，commit 必须在 code-review 后，task merge 必须在下一任务前）
+
+## Task Worktree Closure Gate
+
+`features/✅...` 与 `fixes/✅...` 是任务 branch，不是长期集成 branch。任务未完成前
+不得清理它们；提交和清理是两个独立门禁。
+
+提交前必须完成 RED/GREEN、broad verification、计划一致性审计、
+`code-review-spec`、适用领域规范、per-task audit、OpenSpec 任务标记和
+`project-hygiene` 泄密/产物检查。未通过时，不允许在任务 branch 上创建 workflow commit。
+
+合并后，必须读取 `.source_branch` 并执行以下检查：
+
+```bash
+SOURCE_BRANCH=$(cut -d= -f2 "$TASK_WORKTREE/.source_branch")
+test -n "$SOURCE_BRANCH"
+test -z "$(git -C "$TASK_WORKTREE" status --porcelain)"
+test -z "$(git -C "$SOURCE_CHECKOUT" status --porcelain)"
+git -C "$SOURCE_CHECKOUT" merge-base --is-ancestor "$TASK_BRANCH" "$SOURCE_BRANCH"
+```
+
+只有以上条件全部成功，才允许执行：
+
+```bash
+git worktree remove "$TASK_WORKTREE"
+git branch -d "$TASK_BRANCH"
+```
+
+`git worktree remove --force`、`git branch -D`、删除未合并 branch 或删除 dirty
+worktree 都是违规操作。任一检查失败时，报告具体失败条件并保留 worktree 与 branch。
 
 ---
 
