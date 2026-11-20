@@ -87,7 +87,7 @@ flowchart TD
 | 22 | task mark-complete | 只有任务级审计通过后，立即只标记一个任务完成。 |
 | 23 | commit | 先通过 commit gate，再使用 `commit --style=full` 创建原子中文 Conventional Commit；相关 OpenSpec 计划文件随首个业务任务提交；提交前执行 `project-hygiene` 密钥与产物泄漏检查。 |
 | 24-25 | source-branch integration | 读取 `.source_branch`，确认集成 checkout clean，合并 task branch 到集成分支，并用 `git merge-base --is-ancestor` 验证 ancestry；失败时保留现场。 |
-| 26 | worktree closure | 任务 worktree 与集成 checkout 都 clean、任务 branch 已合并且验证证据完整后，才允许非强制执行 `git worktree remove` 和 `git branch -d`；禁止 `--force`/`-D` 绕过门禁。 |
+| 26 | worktree closure | 仅当 task branch 匹配 `features/*` 或 `fixes/*`、任务 worktree 与集成 checkout 都 clean、任务 branch 已合并且 ancestry 验证通过后，才允许非强制执行 `git worktree remove` 和 `git branch -d`；禁止删除其他命名空间或远端分支，禁止 `--force`/`-D` 绕过门禁。 |
 | 27-29 | completion | 完成 final audit（包括适用 API 文档覆盖），归档 OpenSpec change；确认集成分支包含每个已完成任务，冲突或脏工作树必须先处理。 |
 
 **它本身不管**：
@@ -106,8 +106,16 @@ flowchart TD
 
 ## Task Worktree Closure Gate
 
-`features/✅...` 与 `fixes/✅...` 是任务 branch，不是长期集成 branch。任务未完成前
-不得清理它们；提交和清理是两个独立门禁。
+只有以下两类**本地**分支允许进入任务关闭清理：
+
+```text
+features/*
+fixes/*
+```
+
+它们包括带或不带 `✅` 的分支名，是任务 branch，不是长期集成 branch。任务未完成前
+不得清理它们；提交和清理是两个独立门禁。其他命名空间的本地分支与所有远端分支
+不属于本流程的删除范围。
 
 提交前必须完成 RED/GREEN、broad verification、计划一致性审计、
 `code-review-spec`、适用领域规范、per-task audit、OpenSpec 任务标记和
@@ -117,7 +125,12 @@ flowchart TD
 
 ```bash
 SOURCE_BRANCH=$(cut -d= -f2 "$TASK_WORKTREE/.source_branch")
+TASK_BRANCH=$(git -C "$TASK_WORKTREE" branch --show-current)
 test -n "$SOURCE_BRANCH"
+case "$TASK_BRANCH" in
+  features/*|fixes/*) ;;
+  *) echo "任务 branch 不在清理白名单内：$TASK_BRANCH"; exit 1 ;;
+esac
 test -z "$(git -C "$TASK_WORKTREE" status --porcelain)"
 test -z "$(git -C "$SOURCE_CHECKOUT" status --porcelain)"
 git -C "$SOURCE_CHECKOUT" merge-base --is-ancestor "$TASK_BRANCH" "$SOURCE_BRANCH"
@@ -130,8 +143,10 @@ git worktree remove "$TASK_WORKTREE"
 git branch -d "$TASK_BRANCH"
 ```
 
-`git worktree remove --force`、`git branch -D`、删除未合并 branch 或删除 dirty
-worktree 都是违规操作。任一检查失败时，报告具体失败条件并保留 worktree 与 branch。
+`git worktree remove --force`、`git branch -D`、删除未合并 branch、删除 dirty
+worktree、删除白名单之外的本地 branch 或删除远端 branch 都是违规操作。只有
+`git worktree remove` 成功移除本地目录与 Git worktree 注册信息后，才允许执行
+`git branch -d`。任一检查失败时，报告具体失败条件并保留 worktree 与 branch。
 
 ---
 

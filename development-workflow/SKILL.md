@@ -125,10 +125,19 @@ If any required source cannot be read, stop and report the missing source.
 
 ## Task Worktree Closure Gate
 
-`features/✅...` and `fixes/✅...` branches are task branches, not long-lived
-integration branches. They MUST remain in their dedicated worktree until the
-task has passed every required verification and has been merged into the
-recorded `SOURCE_BRANCH`.
+Task branches eligible for this workflow's cleanup MUST match one of these local
+branch namespaces:
+
+```text
+features/*
+fixes/*
+```
+
+This allowlist includes names with or without the `✅` marker. These branches
+are task branches, not long-lived integration branches. They MUST remain in
+their dedicated worktree until the task has passed every required verification
+and has been merged into the recorded `SOURCE_BRANCH`. This workflow MUST NOT
+delete local branches outside these namespaces or any remote branch.
 
 The commit gate is hard: before `git commit`, the task MUST have passed RED,
 GREEN, broader verification, plan-implementation consistency audit,
@@ -141,7 +150,12 @@ branch, read `.source_branch` and verify all of the following:
 
 ```bash
 SOURCE_BRANCH=$(cut -d= -f2 "$TASK_WORKTREE/.source_branch")
+TASK_BRANCH=$(git -C "$TASK_WORKTREE" branch --show-current)
 test -n "$SOURCE_BRANCH"
+case "$TASK_BRANCH" in
+  features/*|fixes/*) ;;
+  *) echo "task branch is outside cleanup allowlist: $TASK_BRANCH"; exit 1 ;;
+esac
 test -z "$(git -C "$TASK_WORKTREE" status --porcelain)"
 test -z "$(git -C "$SOURCE_CHECKOUT" status --porcelain)"
 git -C "$SOURCE_CHECKOUT" merge-base --is-ancestor "$TASK_BRANCH" "$SOURCE_BRANCH"
@@ -155,9 +169,12 @@ git branch -d "$TASK_BRANCH"
 ```
 
 `git worktree remove --force`, `git branch -D`, deleting an unmerged task
-branch, or deleting a dirty worktree are prohibited as task closeout actions.
-If any closure check fails, report the exact failed condition and preserve the
-worktree and branch until the condition is repaired or explicitly resolved.
+branch, deleting a dirty worktree, deleting a branch outside the allowlist, or
+deleting a remote branch are prohibited as task closeout actions. A successful
+`git worktree remove` MUST remove both the local worktree directory and its Git
+worktree registration before `git branch -d` is attempted. If any closure check
+fails, report the exact failed condition and preserve the worktree and branch
+until the condition is repaired or explicitly resolved.
 
 ## Workflow Flowchart
 
@@ -458,10 +475,12 @@ For each development task, execute this exact order:
    `SOURCE_BRANCH`, verify that the integration checkout is clean, merge the
    task branch with `--no-ff`, and verify `git merge-base --is-ancestor`.
 26. Run the task worktree closure gate. Only after the task worktree and
-   integration checkout are clean and ancestry verification succeeds may the
-   workflow run non-forced `git worktree remove` and `git branch -d`, then return
-   to the confirmed integration branch. On failure, preserve both worktree and
-   branch and do not start the next task.
+   integration checkout are clean, ancestry verification succeeds, and the
+   task branch has been confirmed to match `features/*` or `fixes/*`, may the
+   workflow run non-forced `git worktree remove` and `git branch -d`, then
+   verify the local worktree directory and Git registration are gone before
+   returning to the confirmed integration branch. On failure, preserve both
+   worktree and branch and do not start the next task.
 27. After all tasks are complete, run a final audit to ensure all planned tasks are complete, all acceptance criteria are satisfied, every applicable external Controller/API route has module-document coverage, and no implementation drift remains.
 28. Archive the completed OpenSpec change. If archival modifies repository
    files, create one final dedicated task worktree from the confirmed
@@ -523,13 +542,15 @@ For each development task, execute this exact order:
   the confirmed integration branch. A dirty source worktree, missing source
   worktree, or merge conflicts must stop the integration gate and preserve
   unrelated work.
-- Do not create a workflow commit from a `features/✅...` or `fixes/✅...` task
-  branch before the commit gate passes.
+- Do not create a workflow commit from a `features/*` or `fixes/*` task branch
+  before the commit gate passes.
 - Do not remove a task worktree or branch before the separate closure gate passes:
-  both worktrees must be clean, `.source_branch` must resolve the merge target,
-  and ancestry must be verified.
+  the branch must match the cleanup allowlist, both worktrees must be clean,
+  `.source_branch` must resolve the merge target, and ancestry must be verified.
 - Do not use `git worktree remove --force`, `git branch -D`, or any equivalent
   destructive operation to bypass a failed closure gate.
+- Do not delete local branches outside `features/*` or `fixes/*`, and do not
+  delete remote branches as part of task closeout.
 - Do not create standalone planning commits by default; carry OpenSpec planning
   files with the first atomic task commit for a complete business module.
 - Do not create a standalone OpenSpec or documentation commit unless the change
