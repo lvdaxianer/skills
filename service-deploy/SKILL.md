@@ -1,6 +1,6 @@
 ---
 name: service-deployment
-description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, container persistence, incremental JAR/config overrides, or deployment-standard work. Enforces v2 immutable releases/current, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
+description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, container persistence, incremental JAR/config overrides, deployment-package preparation, operator-handbook writing, or deployment-standard work. Enforces v2 immutable releases/current, versioned self-contained packages, customer-confirmed directories, mode-specific preflight, one-click operator entrypoints, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
 compatibility: "Linux shell utilities; systemd optional; service-specific lifecycle and health commands required."
 ---
 
@@ -10,7 +10,11 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
 
 ## Non-negotiable invariants
 
-- `DEPLOY_ROOT` is the final service deployment root, supplied as an absolute user input and defaulting to `/opt`; do not append `service_name` to it. A custom root such as `/uinnova/deploy/service-root` MUST never write the default tree. `service_name` remains metadata for release IDs, image names, labels and records only.
+- `DEPLOY_ROOT` is the final service deployment root, supplied as an absolute user input; `/opt` is only a proposed value until the customer confirms it. Do not append `service_name` to it. A custom root such as `/uinnova/deploy/service-root` MUST never write the default tree. `service_name` remains metadata for release IDs, image names, labels and records only.
+- A deployment package MUST have an immutable `package_version`, `application_version`, source commit or explicit `manual`, build time, supported OS/architecture/modes, SHA-256 manifest and versioned filename. `latest`, `final` and unversioned archives are not deployable package identities.
+- The customer MUST confirm `DEPLOY_ROOT`, `CONF_ROOT`, `DATA_ROOT`, `LOG_ROOT` and backup root before any stop, write, container creation or current switch. `/opt` is only a proposed value until confirmed; an unconfirmed directory produces dry-run only.
+- The operator-facing package MUST provide stable `deploy.sh`, `service.sh`, `doctor.sh`, `rollback.sh` and `uninstall.sh` entrypoints. Routine deploy, upgrade, start, stop, restart, status, log, diagnostic, rollback and uninstall actions MUST use these exact entrypoints or their documented subcommands.
+- `deployment_mode` MUST be explicitly `vm`, `docker` or `kubernetes`. `vm` maps to `runtime_target=host-process`; `docker` and `kubernetes` use `runtime_target=docker-container`, but Kubernetes requires an existing reachable cluster and namespace. Missing Kubernetes MUST stop immediately and MUST NOT fall back to another mode.
 - `runtime_target` MUST be explicitly `host-process` or `docker-container`. Docker does not remove or rename the lifecycle modes `systemd`, `manual-foreground` and `manual-background`.
 - Releases are immutable directories under `<service-root>/releases/`; runtime configuration, logs, run state and operational records stay outside releases, while the release's own immutable descriptor/manifest stays inside that release.
 - For Docker, the release is an immutable release tag plus its resolved Registry manifest digest or local image ID, a release descriptor and the auditable `latest` alias state. The release stores only its own override delta; every effective override (JAR, config, HTML/static asset or future extension) MUST resolve through its ordered immutable `override_chain` of release directories. The container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records or non-rebuildable indexes.
@@ -52,7 +56,11 @@ Collect and validate before any stop or write action:
 
 | Input | Required contract |
 | --- | --- |
-| `DEPLOY_ROOT` | Absolute final service root; default `/opt`; normalize physically before use; never append `service_name` |
+| `package_manifest` | Versioned `package-manifest.json` matching [deployment-package-manifest.schema.json](references/deployment-package-manifest.schema.json), package SHA-256, source commit and supported mode payloads |
+| `package_version` | Required immutable package identity; reject `latest`, `final`, missing or content-changing reuse |
+| `deployment_mode` | Explicitly `vm`, `docker` or `kubernetes`; select before mode-specific checks |
+| `DEPLOY_ROOT` | Absolute final service root; `/opt` is only a proposed value until customer confirmation; normalize physically before use; never append `service_name` |
+| `directory_confirmation` | Customer-confirmed absolute root/config/data/log/backup paths, owner, permissions, space and data retention decision |
 | `service_name` | Lowercase slug; reject `/`, `..`, whitespace, shell metacharacters and empty values |
 | `artifact` | Path/package, type, SHA-256, version source, expected files and owner/group |
 | `release_number` | Allocated by the sequence state under a service lock; never manually guessed |
@@ -68,21 +76,45 @@ Collect and validate before any stop or write action:
 
 If a required input is unavailable, stop with a dry-run report. Do not infer a health endpoint, process identity, database safety, or stop command.
 
+## Zero-experience delivery contract
+
+When the user is preparing a deployment package or writing an implementation handbook, read the relevant files in this order:
+
+1. [deployment-package.md](references/deployment-package.md) for package identity, mode payloads, offline closure, customer directory confirmation and delivery evidence.
+2. [deployment-preflight-matrix.md](references/deployment-preflight-matrix.md) for the exact read-only checks and stop conditions for VM, Docker and an existing Kubernetes cluster.
+3. [deployment-handbook.md](references/deployment-handbook.md) for the operator-facing quick path, one-click operations, configuration prompts, acceptance, upgrade, rollback, uninstall and incident handoff.
+4. [deployment-package-manifest.schema.json](references/deployment-package-manifest.schema.json) and `scripts/package-contract-test.sh` for machine validation.
+
+The generated package and handbook MUST make the first five operator actions obvious:
+
+```text
+./doctor.sh       # 只检测，不安装
+./deploy.sh       # 首次部署或升级
+./service.sh      # 启动、停止、重启、状态、日志
+./rollback.sh     # 回到记录的上一成功版本
+./uninstall.sh    # 卸载程序，数据默认保留
+```
+
+Do not ask a zero-experience operator to hand-edit YAML/JSON/env files, remember systemd/Docker/kubectl commands, select a release by guessing, or continue after a required preflight failure. Every handbook step MUST state purpose, operation, expected output, stop action and completion mark. The package version MUST appear in the handbook title, preflight output, install preview, success report, record and handoff.
+
+Before installation, ask for the deployment mode and run only that mode's preflight. For Kubernetes, validate `kubectl`, kubeconfig, context, cluster connectivity, namespace, permissions, architecture, storage and image availability; if any required item fails, stop without installing Kubernetes, creating application resources or falling back to VM/Docker.
+
 ## Ordered workflow
 
 Read only the references relevant to the request, then execute these gates in order:
 
-1. Resolve and record `DEPLOY_ROOT` as `service_root`, then resolve physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
-2. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. For Docker, classify the release before validating transport: if no verified prior Docker release/image exists, require a new image build; if the change is override-only, reuse the recorded image identity and verify it is available or recoverable; if any packaged image input changed, require a new build; if the build compacts overrides, require recorded source-chain evidence and verify the materialized effective tree. Then validate the selected transport: Registry mode requires the resolved manifest digest and pull evidence; local-daemon mode requires an existing local image ID; archive mode requires a SHA-256-verified `docker save` archive and `docker load` evidence. In image-build modes validate Dockerfile/build evidence; in override-only mode validate the recorded base release's Dockerfile/build evidence and exact image identity. Always validate the service/release tag, OCI labels, provenance/SBOM policy, required runtime files, ordered override chain, compaction evidence when present and rendered Compose/CLI manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files, bundled live configuration and runtime download/install behavior.
-3. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
-4. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.
-5. Promote a complete staging directory or Docker release descriptor to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths for host-process releases; for Docker, render Compose with physical absolute paths for every release in `override_chain` (never `current`), then validate the release mode, base release when present, transport-specific image identity, labels, mounts, ordered layer precedence and offline/egress-restricted startup. An override-only release must prove that its image identity equals the recorded base release identity. A compaction release must prove that the new image contains the recorded effective override tree and therefore does not depend on deleted source layers.
-6. Detect migration content and apply the migration gate. Prefer expand/contract; do not allow an unapproved incompatible or irreversible migration.
-7. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start the host process or exact Docker/Compose identity using the declared environment-loading path.
-8. Transition to `health-verified` only after the complete health matrix passes. For manual-foreground, the operator must confirm the foreground process is running before checks; `Ctrl+C` is the stop action.
-9. Write a schema-valid record and transition to `recorded`. Only after the release is verified and recorded may Docker update `<service-name>:latest` to the exact verified local image identity; Registry mode updates the remote alias by manifest digest, while local-daemon/archive mode tags the verified local image ID. Re-inspect the alias. If alias update/verification fails, keep the digest- or ID-pinned service running, record `latest_alias.status=failed`, and require an operator retry; do not roll back a healthy service solely for an alias failure. On any release failure, keep the new release/descriptor, record `failed_phase`, leave the previous `latest` unchanged, atomically restore `previous_release`, its image/override inputs and persistence manifest when Docker is used, restart it, and re-run status and health.
-10. If rollback health passes, update `latest` to the previous release identity and verify it; Registry mode uses the previous manifest digest and local modes use the previous image ID. State is `rolled-back`. If rollback health fails, state is `failed` with incident evidence and no third-release selection. Release the lock even after interruption via trap/reconcile.
-11. Run `retention preview`, review the exact deletion set, then run `retention apply --apply` only after success is recorded. For compaction, this is the only cleanup path: never delete source layers from the image build step. Retention errors never delete protected or uncertain paths; every release referenced by a protected `override_chain` is protected too.
+1. Verify the versioned package manifest, package SHA-256, supported mode and customer-confirmed directory table. Run the selected-mode read-only preflight and stop on any required failure before resolving or writing service paths.
+2. Resolve and record `DEPLOY_ROOT` as `service_root`, then resolve physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
+3. Validate the artifact SHA-256 and archive contents before extracting into a staging directory. For Docker, classify the release before validating transport: if no verified prior Docker release/image exists, require a new image build; if the change is override-only, reuse the recorded image identity and verify it is available or recoverable; if any packaged image input changed, require a new build; if the build compacts overrides, require recorded source-chain evidence and verify the materialized effective tree. Then validate the selected transport: Registry mode requires the resolved manifest digest and pull evidence; local-daemon mode requires an existing local image ID; archive mode requires a SHA-256-verified `docker save` archive and `docker load` evidence. In image-build modes validate Dockerfile/build evidence; in override-only mode validate the recorded base release's Dockerfile/build evidence and exact image identity. Always validate the service/release tag, OCI labels, provenance/SBOM policy, required runtime files, ordered override chain, compaction evidence when present and rendered Compose/CLI manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files, bundled live configuration and runtime download/install behavior.
+4. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
+5. Allocate the next sequence in `release-records/sequence.state` (`0600`, deployment-user owned) while holding the service lock. Persist the allocation/attempt record before promoting the release; a failed attempt consumes the number.
+6. Promote a complete staging directory or Docker release descriptor to `releases/<release-id>`. Run the current contract test through both `current/bin/<script>` and `releases/<release-id>/bin/<script>` paths for host-process releases; for Docker, render Compose with physical absolute paths for every release in `override_chain` (never `current`), then validate the release mode, base release when present, transport-specific image identity, labels, mounts, ordered layer precedence and offline/egress-restricted startup. An override-only release must prove that its image identity equals the recorded base release identity. A compaction release must prove that the new image contains the recorded effective override tree and therefore does not depend on deleted source layers.
+7. Detect migration content and apply the migration gate. Prefer expand/contract; do not allow an unapproved incompatible or irreversible migration.
+8. Transition state `prepared -> validated -> stopped -> switched -> started`. Stop using the selected mode, atomically replace `current` with a same-directory temporary symlink, verify its physical target, and start the host process or exact Docker/Compose identity using the declared environment-loading path.
+9. Transition to `health-verified` only after the complete health matrix passes. For manual-foreground, the operator must confirm the foreground process is running before checks; `Ctrl+C` is the stop action.
+10. Write a schema-valid record and transition to `recorded`. Only after the release is verified and recorded may Docker update `<service-name>:latest` to the exact verified local image identity; Registry mode updates the remote alias by manifest digest, while local-daemon/archive mode tags the verified local image ID. Re-inspect the alias. If alias update/verification fails, keep the digest- or ID-pinned service running, record `latest_alias.status=failed`, and require an operator retry; do not roll back a healthy service solely for an alias failure. On any release failure, keep the new release/descriptor, record `failed_phase`, leave the previous `latest` unchanged, atomically restore `previous_release`, its image/override inputs and persistence manifest when Docker is used, restart it, and re-run status and health.
+11. If rollback health passes, update `latest` to the previous release identity and verify it; Registry mode uses the previous manifest digest and local modes use the previous image ID. State is `rolled-back`. If rollback health fails, state is `failed` with incident evidence and no third-release selection. Release the lock even after interruption via trap/reconcile.
+12. Run `retention preview`, review the exact deletion set, then run `retention apply --apply` only after success is recorded. For compaction, this is the only cleanup path: never delete source layers from the image build step. Retention errors never delete protected or uncertain paths; every release referenced by a protected `override_chain` is protected too.
 
 ## Reference routing
 
@@ -102,11 +134,16 @@ Read only the references relevant to the request, then execute these gates in or
 - [release-record.schema.json](references/release-record.schema.json): release record schema.
 - [knowledge-app-example.md](references/knowledge-app-example.md): historical layout example only; never copy its secrets or hard-code its host.
 - [sceneforge-issue-mapping.md](references/sceneforge-issue-mapping.md): map observed deployment findings to v2 controls.
+- [deployment-package.md](references/deployment-package.md): versioned package identity, mode payloads, offline closure, package layout, directory confirmation and delivery validation.
+- [deployment-handbook.md](references/deployment-handbook.md): zero-experience quick path, one-click deployment/service operations, mode chapters, acceptance, upgrade, rollback, uninstall and handoff.
+- [deployment-preflight-matrix.md](references/deployment-preflight-matrix.md): read-only checks, pass conditions and stop actions for VM, Docker and existing Kubernetes.
+- [deployment-package-manifest.schema.json](references/deployment-package-manifest.schema.json): machine-readable package identity, supported modes, entrypoints, payloads and file checksums.
 
 Reusable local helpers:
 
 - `scripts/current-contract-test.sh`: safe current/release/service-root path contract test; it does not start a service unless explicitly asked.
 - `scripts/retention.sh`: preview by default and explicit `--apply` deletion of an exact safe set.
+- `scripts/package-contract-test.sh`: read-only package identity, entrypoint, payload, checksum, link and sensitive-file validator.
 
 ## Required report
 
@@ -114,7 +151,7 @@ Use the same keys as the schema, including:
 
 ```text
 schema_version, service, service_root, host, operator, timestamp, timezone,
-runtime_target, container,
+package_version, application_version, deployment_mode, runtime_target, container,
 lifecycle_mode, environment_loading, version_source, source_commit,
 release_id, release_number, artifact, artifact_checksum, previous_release,
 current, status, failed_phase, health_check, smoke_check, rollback_target,

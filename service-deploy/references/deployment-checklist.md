@@ -4,6 +4,11 @@ Mark every gate with a command output, record path or explicit operator confirma
 
 ## 1. Preflight (read-only)
 
+- [ ] Confirm the versioned package name, `package_version`, `application_version`, source commit, package SHA-256 and supported OS/architecture/mode matrix; reject `latest`, `final` and unversioned packages.
+- [ ] Run `scripts/package-contract-test.sh <package-root>` before copying package files into the customer service root; retain the result as delivery evidence.
+- [ ] Ask the operator to select exactly one deployment mode: `vm`, `docker` or existing `kubernetes`; run only that mode's preflight and stop on required failures.
+- [ ] Record the customer's confirmed absolute service root, config, data, logs and backup paths; `/opt` remains a proposal until explicitly confirmed, and `service_name` MUST NOT be appended.
+- [ ] Confirm the package exposes `./doctor.sh`, `./deploy.sh`, `./service.sh`, `./rollback.sh` and `./uninstall.sh`; the handbook documents their copyable commands and expected output.
 - [ ] Validate absolute `DEPLOY_ROOT` as the complete `service_root`, lowercase `service_name` as metadata, release ID fields and the physical root boundary.
 - [ ] Resolve `current` with physical paths; record current, previous and reject outside/dangling/regular-directory targets.
 - [ ] Acquire `run/deploy.lock`; install traps for lock and named temporary state cleanup.

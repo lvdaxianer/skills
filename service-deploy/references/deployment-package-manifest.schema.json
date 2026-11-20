@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/service-deploy/deployment-package-manifest.schema.json",
+  "title": "Service deployment package manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_name",
+    "package_version",
+    "application_version",
+    "build_time",
+    "source_commit",
+    "supported_modes",
+    "supported_os",
+    "architectures",
+    "offline_supported",
+    "required_privilege",
+    "entrypoints",
+    "mode_payloads",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1"
+    },
+    "package_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+    },
+    "package_version": {
+      "type": "string",
+      "pattern": "^(?!latest$|final$|release$)[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}$"
+    },
+    "application_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "build_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^(manual|[A-Fa-f0-9]{7,64})$"
+    },
+    "supported_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["vm", "docker", "kubernetes"]
+      }
+    },
+    "supported_os": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "architectures": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["amd64", "arm64"]
+      }
+    },
+    "offline_supported": {
+      "type": "boolean"
+    },
+    "required_privilege": {
+      "enum": ["root", "sudo", "operator", "kubernetes-namespace-admin"]
+    },
+    "default_service_root": {
+      "type": "string",
+      "pattern": "^/[^\\0]*$"
+    },
+    "ports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/port"
+      }
+    },
+    "entrypoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deploy", "service", "doctor", "rollback", "uninstall"],
+      "properties": {
+        "deploy": { "$ref": "#/$defs/relativeExecutable" },
+        "service": { "$ref": "#/$defs/relativeExecutable" },
+        "doctor": { "$ref": "#/$defs/relativeExecutable" },
+        "rollback": { "$ref": "#/$defs/relativeExecutable" },
+        "uninstall": { "$ref": "#/$defs/relativeExecutable" }
+      }
+    },
+    "mode_payloads": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vm": { "$ref": "#/$defs/modePayload" },
+        "docker": { "$ref": "#/$defs/modePayload" },
+        "kubernetes": { "$ref": "#/$defs/modePayload" }
+      }
+    },
+    "unsupported_modes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vm": { "type": "string", "minLength": 1 },
+        "docker": { "type": "string", "minLength": 1 },
+        "kubernetes": { "type": "string", "minLength": 1 }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "compatibility"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "compatibility": {
+          "enum": ["none", "expand-contract", "review-required", "irreversible-approved"]
+        },
+        "approval_evidence": { "type": "string" }
+      }
+    },
+    "documents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relativePath" }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "sha256", "required"],
+        "properties": {
+          "path": { "$ref": "#/$defs/relativePath" },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          },
+          "required": { "type": "boolean" },
+          "mode": {
+            "type": "string",
+            "pattern": "^[0-7]{3,4}$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.?(/|$))(?!.*(^|/)\\.\\.(/|$))[^\\0]+$"
+    },
+    "relativeExecutable": {
+      "$ref": "#/$defs/relativePath"
+    },
+    "modePayload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "required_files"],
+      "properties": {
+        "path": { "$ref": "#/$defs/relativePath" },
+        "required_files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/relativePath" }
+        },
+        "runtime": { "type": "string" },
+        "image_transport": {
+          "enum": ["registry", "local-daemon", "archive"]
+        }
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "port", "protocol", "required"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "protocol": { "enum": ["tcp", "udp"] },
+        "required": { "type": "boolean" }
+      }
+    }
+  }
+}
