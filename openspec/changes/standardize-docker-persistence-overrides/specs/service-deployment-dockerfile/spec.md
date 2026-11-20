@@ -4,7 +4,7 @@
 
 ### Requirement: Runtime image has a deterministic local contract
 
-The runtime image MUST use stable `/app/bin`, `/app/lib`, `/app/conf`, `/app/html` or another service-declared static path, and `/app/overrides/<extension>` paths for incremental replacements. Packaged defaults MUST remain in the image. A service-specific extension path MUST document its merge/load rule, ownership and whether it is eligible for a release-bound read-only mount; undeclared host paths are invalid.
+The runtime image MUST use stable `/app/bin`, `/app/lib`, `/app/conf`, `/app/html` or another service-declared frontend/backend/static path, and `/app/overrides/<extension>` paths for incremental replacements. Packaged frontend, backend, library and configuration defaults MUST remain in the image. A service-specific extension path MUST document its merge/load rule, ownership and whether it is eligible for a release-bound read-only mount; undeclared host paths are invalid.
 
 #### Scenario: HTML override path is declared
 
@@ -25,6 +25,11 @@ The runtime image MUST use stable `/app/bin`, `/app/lib`, `/app/conf`, `/app/htm
 
 - **WHEN** static assets are embedded in an image without a declared merge/load path
 - **THEN** deployment MUST keep them `embedded-in-image` and MUST NOT fabricate a host mount that masks the packaged asset tree
+
+#### Scenario: Backend or frontend override masks packaged root
+
+- **WHEN** a host persistence mount replaces the entire `/app/bin`, `/app/lib`, `/app/html` or `/app` tree
+- **THEN** validation MUST fail; the service MUST declare a separate extension point and retain packaged defaults
 
 ### Requirement: Runtime startup cannot download or install resources
 
