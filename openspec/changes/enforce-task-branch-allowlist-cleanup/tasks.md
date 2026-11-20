@@ -1,7 +1,7 @@
 # Tasks
 
 - [x] T1. 将 worktree 关闭清理白名单与合并后删除顺序同步到源 skill、workflow guide、`.claude` canonical 副本和 `.agents` 副本，并同步修改对应的门禁流程、禁止项与状态格式。
-- [ ] T2. 运行 OpenSpec 严格校验、Markdown/差异一致性检查和最终审计，确认只允许清理 `features/*` / `fixes/*` 本地分支且不触及其他命名空间或远端分支。
+- [x] T2. 运行 OpenSpec 严格校验、Markdown/差异一致性检查和最终审计，确认只允许清理 `features/*` / `fixes/*` 本地分支且不触及其他命名空间或远端分支。
 
 ## Task Boundary and Dispatch
 
