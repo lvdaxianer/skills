@@ -18,7 +18,7 @@
 | `application_version` | 包内程序版本 | 应用构建产物 |
 | `release_id` | 客户机器上的一次发布 | 部署锁和 sequence.state |
 
-包内 `package-manifest.json` MUST 记录包版本、应用版本、构建时间、源码提交号、支持系统、CPU 架构、支持模式、离线能力、权限、端口、迁移提示、入口、每个文件的 SHA-256 和模式 payload。
+包内 `package-manifest.json` MUST 记录包版本、应用版本、构建时间、源码提交号、支持系统、CPU 架构、支持模式、离线能力、权限、端口、迁移提示、入口、每个文件的 SHA-256、模式 payload 和默认持久化资源目录。资源目录至少包含前端、后端、lib、conf、数据库、MinIO/对象存储，并标记镜像默认值、容器扩展路径、只读属性、覆盖许可、备份要求和“必须客户确认”。
 
 ## 2. 推荐目录
 
@@ -81,7 +81,8 @@ deploy-package/
 - `registry` 模式的 manifest digest，或 `local-daemon`/`archive` 模式的 local image ID。
 - 离线 `docker save` 归档及 SHA-256，或已验证 Registry 信息。
 - 渲染后的 Compose/CLI 清单，使用物理绝对路径，不使用 `current` 解析挂载源。
-- 持久化挂载 manifest：宿主机路径、容器路径、用途、只读、备份和恢复方法。
+- 默认资源持久化确认表：前端、后端、`lib`、`conf`、数据库、MinIO/对象存储、索引和其他不可重建资源逐项确认。
+- 持久化挂载 manifest：客户确认的绝对宿主机路径、容器路径、用途、只读、备份和恢复方法；代码/配置覆盖目录可以为空但必须存在于清单。
 - release-bound override delta、override_chain、文件校验和和加载顺序。
 - 离线/受限出网启动、容器身份、健康和业务 smoke 证据。
 
@@ -89,6 +90,8 @@ deploy-package/
 
 - 已有集群的接入前置说明；本包不安装 Kubernetes。
 - Namespace、权限、镜像来源、ConfigMap/Secret 输入、持久化存储和服务暴露声明。
+- 默认资源持久化确认表：前端、后端、`lib`、`conf`、数据库、MinIO/对象存储、索引和其他不可重建资源逐项选择 PVC/PV 或 external-managed。
+- 现有 PVC/PV、StorageClass、容量、访问模式、绑定检查、备份和恢复证据；禁止以 `hostPath` 作为缺失存储的替代。
 - Deployment/Service/Ingress/探针/资源限制等 manifest 或 Helm values。
 - 离线镜像导入或私有仓库方案。
 - rollout、readiness、业务 smoke、升级和回滚检查。
@@ -103,6 +106,22 @@ deploy-package/
 5. 在 Docker 模式验证离线镜像导入；在 Kubernetes 模式验证已有集群和 namespace 权限。
 6. 检查失败发布是否保留证据，检查数据目录和客户目录是否未被误写。
 7. 发布包文件、SHA-256、适用手册和交付验收单；禁止只发程序文件。
+
+## 4.1 资源持久化确认门禁
+
+包内必须提供可打印的资源确认表。默认至少包含以下行：
+
+| 资源 | 镜像是否有默认值 | 客户必须确认的目标 | 默认覆盖方式 |
+| --- | --- | --- | --- |
+| 前端 | 是 | Docker 宿主机绝对路径 / Kubernetes PVC/PV | 独立 frontend extension point，只读 |
+| 后端 | 是 | Docker 宿主机绝对路径 / Kubernetes PVC/PV | 独立 backend extension point，只读 |
+| `lib` | 是 | Docker 宿主机绝对路径 / Kubernetes PVC/PV | 独立 lib extension point，只读 |
+| `conf` | 可以有 | Docker 宿主机绝对路径 / Kubernetes PVC/PV | 外部配置路径，只读 |
+| 数据库数据 | 通常没有 | 独立宿主机路径/PVC/PV 或外部数据库 | 独立可写数据挂载 |
+| MinIO/对象存储数据 | 通常没有 | 独立宿主机路径/PVC/PV 或外部对象存储 | 独立可写数据挂载 |
+| 索引/其他不可重建数据 | 按服务声明 | 独立宿主机路径/PVC/PV 或 external-managed | 按清单声明 |
+
+每一行都必须记录决定、确认人、确认时间、备份策略、恢复步骤和记录路径。未确认不得执行停止、写入、容器/Pod 创建或 `current` 切换；只能输出 dry-run。
 
 ## 5. 包内禁止内容
 

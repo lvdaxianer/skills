@@ -16,6 +16,12 @@ services:
     volumes:
       # External configuration and overrides are read-only.
       - ${DEPLOY_ROOT}/conf:/app/config/overrides:ro
+      # The persistence manifest may add these independent extension mounts.
+      # The directories may be empty; an empty directory keeps the image default.
+      # - ${DEPLOY_ROOT}/persistence/frontend:/app/overrides/frontend:ro
+      # - ${DEPLOY_ROOT}/persistence/backend:/app/overrides/backend:ro
+      # - ${DEPLOY_ROOT}/persistence/lib:/app/overrides/lib:ro
+      # Never mount any of them on /app, /app/bin, /app/lib, /app/html or entrypoint.
       # Generated once per release in override_chain, newest layer first.
       # The renderer must emit one physical mount per layer, for example:
       # - /service-root/releases/<new-id>/overrides:/app/overrides/layers/00:ro
@@ -24,6 +30,9 @@ services:
       # Business data and logs are explicit; do not use the container layer.
       - ${DEPLOY_ROOT}/data:/app/data
       - ${DEPLOY_ROOT}/logs:/app/logs
+      # Database, MinIO/object-storage and index data require separate
+      # customer-confirmed mounts when those services run in this stack.
+      # Never rely on the writable container layer as the only data copy.
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev,size=256m
     security_opt:

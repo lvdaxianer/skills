@@ -9,6 +9,7 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Ask the operator to select exactly one deployment mode: `vm`, `docker` or existing `kubernetes`; run only that mode's preflight and stop on required failures.
 - [ ] Record the customer's confirmed absolute service root, config, data, logs and backup paths; `/opt` remains a proposal until explicitly confirmed, and `service_name` MUST NOT be appended.
 - [ ] Confirm the package exposes `./doctor.sh`, `./deploy.sh`, `./service.sh`, `./rollback.sh` and `./uninstall.sh`; the handbook documents their copyable commands and expected output.
+- [ ] Print the default persistence resource table and obtain an explicit customer decision for frontend, backend, lib, conf, database, object-storage and other non-rebuildable resources; missing confirmation keeps the run dry-run only.
 - [ ] Validate absolute `DEPLOY_ROOT` as the complete `service_root`, lowercase `service_name` as metadata, release ID fields and the physical root boundary.
 - [ ] Resolve `current` with physical paths; record current, previous and reject outside/dangling/regular-directory targets.
 - [ ] Acquire `run/deploy.lock`; install traps for lock and named temporary state cleanup.
@@ -25,12 +26,14 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] For the first Docker deployment, confirm no verified prior image/release exists and require a new image build plus transport-specific identity verification.
 - [ ] For a later Docker deployment, classify the change as `override-only` or `image-update`; override-only changes may reuse only the exact verified base image identity and must create a new release directory, while image-content changes require a new build.
 - [ ] For Docker, classify every `conf`, `data`, release-bound `overrides`, `volumes`, `logs` and `run` path with backup/restore policy; reject a global shared override directory and container writable-layer-only business data.
+- [ ] For Docker, verify every host-persistent frontend/backend/lib/conf/database/object-storage target is an absolute customer-confirmed host path with ownership, permissions, capacity, backup and restore evidence; empty code/config override directories must retain the image default.
 - [ ] For Docker, validate rendered mounts physically, reject `/app/lib` replacement, Docker socket/host-root mounts and implicit anonymous business volumes.
 - [ ] For Docker, validate the release-bound override manifest, JAR/config/HTML checksums, deterministic precedence and compatibility evidence without printing values; if HTML is packaged in the image, record `embedded-in-image` and do not invent a mount.
 - [ ] For Docker, validate `override_chain` newest-first, ensure every referenced release layer exists and is protected from retention, and verify the runtime adapter loads newer layers before older layers without copying the full effective tree.
 - [ ] For Docker compaction builds, validate `override_compaction.mode=baked`, the ordered source release IDs, source-chain checksum and effective-tree checksum; prove the new image contains the effective JAR/HTML/config content and does not read old host layers.
 - [ ] For manual-background, validate user/cmdline/artifact/start-time/port identity and exact stop contract.
 - [ ] Detect migrations, compatibility class, runner, backup and approval evidence.
+- [ ] For Kubernetes, verify existing cluster/context/Namespace permissions and every cluster-persistent resource's existing/bound PVC/PV, StorageClass, capacity, access mode and recovery evidence; reject hostPath and stop before creating workloads when any item is missing.
 
 ## 2. Prepare and validate
 

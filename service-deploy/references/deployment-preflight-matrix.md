@@ -13,6 +13,7 @@
 | 磁盘空间 | 满足包大小、运行时、日志和数据预留空间 | 停止，提示扩容或更换目录 |
 | 端口 | 必需端口空闲或明确属于当前服务 | 停止，列出占用者和端口 |
 | 包内容 | 必需入口、模式材料、权限和校验和通过 | 停止，保留包不解压到最终目录 |
+| 资源确认表 | 前端、后端、`lib`、`conf`、数据库、MinIO/对象存储及其他不可重建资源逐项确认了持久化目标、备份和恢复责任 | 停止，只输出缺失项 dry-run |
 
 ## 本机直接运行
 
@@ -32,7 +33,9 @@
 | Compose/CLI | 版本和命令存在 | 停止 |
 | 镜像材料 | Registry digest、local image ID 或 archive SHA-256 与 manifest 一致 | 停止，不使用 latest-only |
 | 存储/端口 | Docker 磁盘、宿主目录、挂载权限和端口通过 | 停止 |
-| 挂载清单 | 每个挂载有用途、只读、备份和恢复方法 | 停止，不创建匿名业务 volume |
+| 宿主机资源 | 每个 host-persistent 资源都有客户确认的绝对宿主机路径，目录边界、权限、空间、备份和恢复检查通过 | 停止，不创建容器 |
+| 镜像默认资源 | 前端、后端、`lib`、`conf` 默认资源存在；空覆盖目录会回退镜像默认值 | 停止，不允许依赖容器 writable layer |
+| 挂载清单 | 每个挂载有用途、只读、备份和恢复方法，且不覆盖 `/app`、`/app/bin`、`/app/lib`、`/app/html` 或 entrypoint | 停止，不创建匿名业务 volume |
 | 启动行为 | 受限出网启动不下载/安装资源 | 停止，保留失败证据 |
 | 容器身份 | project、container、release label、镜像 ID 和端口可唯一确定 | 停止，不使用宽泛删除 |
 
@@ -48,8 +51,11 @@
 | 节点/架构 | 节点满足镜像架构和资源要求 | 立即停止 |
 | 存储/暴露 | StorageClass、Ingress/LoadBalancer/NodePort 方案已确认 | 立即停止 |
 | 镜像 | 集群可拉取或已完成离线导入 | 立即停止 |
+| 持久化资源 | 每个 cluster-persistent 资源使用现有且可绑定/已绑定 PVC/PV，Namespace、StorageClass、容量、访问模式和备份恢复证据一致 | 立即停止 |
+| 默认资源回退 | 前端、后端、`lib`、`conf` 的镜像默认资源存在；PVC 覆盖为空时可以使用镜像默认 | 立即停止 |
+| 禁止降级 | manifest 不包含 `hostPath`、匿名卷或节点本地目录替代 PVC/PV | 立即停止 |
 
-Kubernetes 缺失集群时，不安装 k3s、不创建集群、不回退到 Docker 或本机运行。安装器只输出：集群地址、kubeconfig、context、Namespace、权限、镜像来源、存储和服务暴露方案清单。
+Kubernetes 缺失集群或没有可用 PVC/PV 时，不安装 k3s、不创建集群、不使用 `hostPath`、不回退到 Docker 或本机运行。安装器只输出：集群地址、kubeconfig、context、Namespace、权限、镜像来源、PVC/PV、StorageClass、备份恢复和服务暴露方案清单。
 
 ## 输出要求
 
