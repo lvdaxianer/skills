@@ -19,6 +19,7 @@
     "entrypoints",
     "mode_payloads",
     "persistence_resources",
+    "preflight",
     "files"
   ],
   "properties": {
@@ -86,6 +87,9 @@
       "items": {
         "$ref": "#/$defs/port"
       }
+    },
+    "preflight": {
+      "$ref": "#/$defs/preflight"
     },
     "entrypoints": {
       "type": "object",
@@ -250,6 +254,205 @@
         "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
         "protocol": { "enum": ["tcp", "udp"] },
         "required": { "type": "boolean" }
+      }
+    },
+    "preflight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "common_checks",
+        "mode_checks",
+        "ports",
+        "storage",
+        "permissions",
+        "resources",
+        "dependencies"
+      ],
+      "properties": {
+        "common_checks": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "platform",
+              "privilege",
+              "directories",
+              "ports",
+              "storage",
+              "permissions",
+              "resources",
+              "configuration",
+              "dependencies",
+              "conflict",
+              "persistence",
+              "lifecycle",
+              "security",
+              "observability",
+              "rollback-space"
+            ]
+          }
+        },
+        "mode_checks": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "vm": { "$ref": "#/$defs/checkList" },
+            "docker": { "$ref": "#/$defs/checkList" },
+            "kubernetes": { "$ref": "#/$defs/checkList" }
+          }
+        },
+        "ports": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/preflightPort" }
+        },
+        "storage": {
+          "$ref": "#/$defs/storageRequirements"
+        },
+        "permissions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/permissionRequirement" }
+        },
+        "resources": {
+          "$ref": "#/$defs/resourceRequirements"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/dependencyRequirement" }
+        }
+      }
+    },
+    "checkList": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "runtime",
+          "process-identity",
+          "docker-daemon",
+          "compose",
+          "image",
+          "mounts",
+          "container-identity",
+          "kubectl",
+          "cluster",
+          "namespace",
+          "rbac",
+          "pvc",
+          "service-exposure"
+        ]
+      }
+    },
+    "pathRef": {
+      "enum": [
+        "service_root",
+        "conf",
+        "data",
+        "logs",
+        "backup",
+        "release_root",
+        "docker_root",
+        "run",
+        "record_root"
+      ]
+    },
+    "storageRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_free_bytes",
+        "minimum_free_inodes",
+        "safety_margin_percent",
+        "paths"
+      ],
+      "properties": {
+        "minimum_free_bytes": { "type": "integer", "minimum": 1 },
+        "minimum_free_inodes": { "type": "integer", "minimum": 1 },
+        "safety_margin_percent": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path_ref", "purpose", "required"],
+            "properties": {
+              "path_ref": { "$ref": "#/$defs/pathRef" },
+              "purpose": { "type": "string", "minLength": 1 },
+              "required": { "const": true }
+            }
+          }
+        }
+      }
+    },
+    "permissionRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path_ref", "owner_ref", "group_ref", "mode", "access", "required"],
+      "properties": {
+        "path_ref": { "$ref": "#/$defs/pathRef" },
+        "owner_ref": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,63}$" },
+        "group_ref": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,63}$" },
+        "mode": { "type": "string", "pattern": "^[0-7]{3,4}$" },
+        "access": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["read", "write", "execute"] }
+        },
+        "required": { "const": true }
+      }
+    },
+    "resourceRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_memory_bytes",
+        "minimum_cpu_cores",
+        "minimum_open_files",
+        "minimum_processes"
+      ],
+      "properties": {
+        "minimum_memory_bytes": { "type": "integer", "minimum": 1 },
+        "minimum_cpu_cores": { "type": "integer", "minimum": 1 },
+        "minimum_open_files": { "type": "integer", "minimum": 1 },
+        "minimum_processes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "dependencyRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "kind", "required"],
+      "properties": {
+        "name": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,63}$" },
+        "kind": { "enum": ["database", "cache", "object-storage", "dns", "ntp", "proxy", "registry", "other"] },
+        "required": { "type": "boolean" }
+      }
+    },
+    "preflightPort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "port",
+        "protocol",
+        "required",
+        "bind_address",
+        "exposure",
+        "conflict_policy"
+      ],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "protocol": { "enum": ["tcp", "udp"] },
+        "required": { "type": "boolean" },
+        "bind_address": { "type": "string", "minLength": 1 },
+        "exposure": { "enum": ["host", "container", "service", "ingress"] },
+        "conflict_policy": { "enum": ["must-be-free", "current-service-only", "cluster-allocated"] }
       }
     }
   }
