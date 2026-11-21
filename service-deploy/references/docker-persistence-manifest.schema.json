@@ -4,7 +4,7 @@
   "title": "Docker Persistence and Override Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "service", "service_root", "release_id", "release_root", "runtime_target", "mounts", "overrides"],
+  "required": ["schema_version", "service", "service_root", "release_id", "release_root", "runtime_target", "deployment_mode", "mounts", "overrides", "resources"],
   "properties": {
     "schema_version": {"type": "string", "const": "1"},
     "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
@@ -12,6 +12,7 @@
     "release_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}-[0-9]{14}-[A-Za-z0-9][A-Za-z0-9._+~-]{0,63}-[0-9]{3}$"},
     "release_root": {"type": "string", "pattern": "^/[^\\n]*/releases/[^/]+$"},
     "runtime_target": {"const": "docker-container"},
+    "deployment_mode": {"const": "docker"},
     "compose_project": {"type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,62}$"},
     "mounts": {
       "type": "array",
@@ -93,6 +94,135 @@
             }
           }
         }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 6,
+      "items": {"$ref": "#/$defs/persistenceResource"}
+    }
+  },
+  "$defs": {
+    "persistenceResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_class",
+        "default_in_image",
+        "persistence_decision",
+        "container_path",
+        "read_only",
+        "override_allowed",
+        "backup",
+        "restore_procedure",
+        "confirmation"
+      ],
+      "properties": {
+        "resource_class": {
+          "enum": [
+            "frontend",
+            "backend",
+            "lib",
+            "conf",
+            "database",
+            "object-storage",
+            "data",
+            "logs",
+            "index",
+            "extension"
+          ]
+        },
+        "default_in_image": {"type": "boolean"},
+        "persistence_decision": {
+          "enum": ["host-persistent", "external-managed"]
+        },
+        "host_path": {
+          "type": "string",
+          "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"
+        },
+        "container_path": {
+          "type": "string",
+          "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"
+        },
+        "read_only": {"type": "boolean"},
+        "override_allowed": {"type": "boolean"},
+        "backup": {
+          "enum": ["required", "recommended", "not_required"]
+        },
+        "restore_procedure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmation": {"$ref": "#/$defs/confirmation"},
+        "external_owner": {"type": "string", "minLength": 1},
+        "endpoint_ref": {"type": "string", "minLength": 1},
+        "recovery_evidence": {"type": "string", "minLength": 1}
+      },
+      "allOf": [
+        {
+          "not": {
+            "properties": {
+              "container_path": {
+                "enum": ["/", "/app", "/app/bin", "/app/lib", "/app/html", "/app/entrypoint.sh", "/var/run/docker.sock"]
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "container_path": {
+                "pattern": "^/app/(bin|lib|html)(/|$)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"persistence_decision": {"const": "host-persistent"}},
+            "required": ["persistence_decision"]
+          },
+          "then": {
+            "required": ["host_path"]
+          }
+        },
+        {
+          "if": {
+            "properties": {"persistence_decision": {"const": "external-managed"}},
+            "required": ["persistence_decision"]
+          },
+          "then": {
+            "required": ["external_owner", "endpoint_ref", "recovery_evidence"],
+            "not": {
+              "anyOf": [
+                {"required": ["host_path"]},
+                {"required": ["pvc"]}
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"override_allowed": {"const": true}},
+            "required": ["override_allowed"]
+          },
+          "then": {
+            "properties": {
+              "container_path": {"pattern": "^/app/overrides/"}
+            }
+          }
+        }
+      ]
+    },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "confirmer", "confirmed_at", "record_path"],
+      "properties": {
+        "status": {"const": "confirmed"},
+        "confirmer": {"type": "string", "minLength": 1},
+        "confirmed_at": {"type": "string", "format": "date-time"},
+        "record_path": {"type": "string", "pattern": "^/[^\\n]+$"}
       }
     }
   },

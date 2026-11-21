@@ -18,6 +18,7 @@
     "required_privilege",
     "entrypoints",
     "mode_payloads",
+    "persistence_resources",
     "files"
   ],
   "properties": {
@@ -107,6 +108,13 @@
         "kubernetes": { "$ref": "#/$defs/modePayload" }
       }
     },
+    "persistence_resources": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "$ref": "#/$defs/persistenceCatalogItem"
+      }
+    },
     "unsupported_modes": {
       "type": "object",
       "additionalProperties": false,
@@ -175,6 +183,61 @@
         "runtime": { "type": "string" },
         "image_transport": {
           "enum": ["registry", "local-daemon", "archive"]
+        },
+        "persistence_manifest": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "persistenceCatalogItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_class",
+        "default_in_image",
+        "required_confirmation",
+        "container_path",
+        "read_only",
+        "override_allowed",
+        "backup"
+      ],
+      "properties": {
+        "resource_class": {
+          "enum": [
+            "frontend",
+            "backend",
+            "lib",
+            "conf",
+            "database",
+            "object-storage",
+            "data",
+            "logs",
+            "index",
+            "extension"
+          ]
+        },
+        "default_in_image": {
+          "type": "boolean"
+        },
+        "required_confirmation": {
+          "const": true
+        },
+        "container_path": {
+          "type": "string",
+          "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"
+        },
+        "read_only": {
+          "type": "boolean"
+        },
+        "override_allowed": {
+          "type": "boolean"
+        },
+        "backup": {
+          "enum": ["required", "recommended", "not_required"]
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },

@@ -24,13 +24,17 @@ assert_file "$skill_root/references/deployment-package.md"
 assert_file "$skill_root/references/deployment-handbook.md"
 assert_file "$skill_root/references/deployment-preflight-matrix.md"
 assert_file "$skill_root/references/deployment-package-manifest.schema.json"
+assert_file "$skill_root/references/kubernetes-persistence.md"
+assert_file "$skill_root/references/kubernetes-persistence-manifest.schema.json"
 assert_file "$skill_root/scripts/package-contract-test.sh"
+assert_file "$skill_root/scripts/persistence-contract-test.sh"
+assert_file "$skill_root/tests/test-persistence-hard-gate.sh"
 
 for entrypoint in deploy.sh service.sh doctor.sh rollback.sh uninstall.sh; do
   assert_contains "$entrypoint" "$skill_root/SKILL.md"
 done
 
-for reference in deployment-package.md deployment-handbook.md deployment-preflight-matrix.md deployment-package-manifest.schema.json; do
+for reference in deployment-package.md deployment-handbook.md deployment-preflight-matrix.md deployment-package-manifest.schema.json kubernetes-persistence.md; do
   assert_contains "$reference" "$skill_root/SKILL.md"
 done
 
@@ -50,11 +54,23 @@ required = {
     "supported_os",
     "architectures",
     "offline_supported",
+    "persistence_resources",
     "files",
 }
 missing = required.difference(schema.get("properties", {}))
 if missing:
     raise SystemExit(f"schema missing properties: {sorted(missing)}")
+catalog = schema["$defs"]["persistenceCatalogItem"]
+catalog_required = {
+    "resource_class", "default_in_image", "required_confirmation",
+    "container_path", "read_only", "override_allowed", "backup",
+}
+if not catalog_required.issubset(catalog.get("required", [])):
+    raise SystemExit("persistence catalog schema is missing confirmation fields")
+expected_resources = {"frontend", "backend", "lib", "conf", "database", "object-storage"}
+actual_resources = set(catalog["properties"]["resource_class"]["enum"])
+if not expected_resources.issubset(actual_resources):
+    raise SystemExit("persistence catalog schema is missing default resource classes")
 PY
 
 echo "foolproof delivery contract test passed"

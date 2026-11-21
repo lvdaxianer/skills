@@ -4,7 +4,7 @@
   "title": "Docker Release Unit Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "service", "service_root", "release_id", "release_mode", "base_release", "source_commit", "image", "compose_path", "overrides", "override_strategy", "override_chain", "override_compaction", "persistent_paths"],
+  "required": ["schema_version", "service", "service_root", "release_id", "release_mode", "base_release", "source_commit", "image", "compose_path", "overrides", "override_strategy", "override_chain", "override_compaction", "persistent_paths", "persistence_resources"],
   "properties": {
     "schema_version": {"type": "string", "const": "1"},
     "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
@@ -74,6 +74,97 @@
       }
     },
     "persistent_paths": {"type": "array", "uniqueItems": true, "items": {"enum": ["conf", "data", "logs", "volumes", "release-records"]}},
+    "persistence_resources": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resource_class",
+          "default_in_image",
+          "persistence_decision",
+          "target",
+          "container_path",
+          "read_only",
+          "backup",
+          "restore_procedure",
+          "confirmation"
+        ],
+        "properties": {
+          "resource_class": {
+            "enum": [
+              "frontend",
+              "backend",
+              "lib",
+              "conf",
+              "database",
+              "object-storage",
+              "data",
+              "logs",
+              "index",
+              "extension"
+            ]
+          },
+          "default_in_image": {"type": "boolean"},
+          "persistence_decision": {
+            "enum": ["host-persistent", "external-managed"]
+          },
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "container_path": {
+            "type": "string",
+            "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"
+          },
+          "read_only": {"type": "boolean"},
+          "backup": {
+            "enum": ["required", "recommended", "not_required"]
+          },
+          "restore_procedure": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confirmation": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "confirmer", "confirmed_at", "record_path"],
+            "properties": {
+              "status": {"const": "confirmed"},
+              "confirmer": {"type": "string", "minLength": 1},
+              "confirmed_at": {"type": "string", "format": "date-time"},
+              "record_path": {"type": "string", "pattern": "^/[^\\n]+$"}
+            }
+          },
+          "external_owner": {"type": "string", "minLength": 1},
+          "endpoint_ref": {"type": "string", "minLength": 1},
+          "recovery_evidence": {"type": "string", "minLength": 1}
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"persistence_decision": {"const": "host-persistent"}},
+              "required": ["persistence_decision"]
+            },
+            "then": {
+              "properties": {
+                "target": {"pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"}
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {"persistence_decision": {"const": "external-managed"}},
+              "required": ["persistence_decision"]
+            },
+            "then": {
+              "required": ["external_owner", "endpoint_ref", "recovery_evidence"]
+            }
+          }
+        ]
+      }
+    },
     "html_status": {"enum": ["embedded-in-image", "external-release-override", "not_applicable"]}
   },
   "allOf": [

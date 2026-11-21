@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skills.lvdaxianer.local/service-deployment/kubernetes-persistence-manifest.schema.json",
+  "title": "Kubernetes Persistence Confirmation Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "service", "deployment_mode", "namespace", "resources"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1"},
+    "service": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"},
+    "deployment_mode": {"const": "kubernetes"},
+    "namespace": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$"},
+    "resources": {
+      "type": "array",
+      "minItems": 6,
+      "items": {"$ref": "#/$defs/resource"}
+    }
+  },
+  "$defs": {
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resource_class",
+        "default_in_image",
+        "persistence_decision",
+        "container_path",
+        "read_only",
+        "backup",
+        "restore_procedure",
+        "confirmation"
+      ],
+      "properties": {
+        "resource_class": {
+          "enum": [
+            "frontend",
+            "backend",
+            "lib",
+            "conf",
+            "database",
+            "object-storage",
+            "data",
+            "logs",
+            "index",
+            "extension"
+          ]
+        },
+        "default_in_image": {"type": "boolean"},
+        "persistence_decision": {
+          "enum": ["cluster-persistent", "external-managed"]
+        },
+        "container_path": {
+          "type": "string",
+          "pattern": "^/(?![^\\n]*\\.\\.)[^\\n]+$"
+        },
+        "read_only": {"type": "boolean"},
+        "backup": {
+          "enum": ["required", "recommended", "not_required"]
+        },
+        "restore_procedure": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pvc": {"$ref": "#/$defs/pvc"},
+        "external_owner": {"type": "string", "minLength": 1},
+        "endpoint_ref": {"type": "string", "minLength": 1},
+        "recovery_evidence": {"type": "string", "minLength": 1},
+        "hostPath": {"not": {}},
+        "host_path": {"not": {}},
+        "confirmation": {"$ref": "#/$defs/confirmation"}
+      },
+      "allOf": [
+        {
+          "not": {
+            "properties": {
+              "container_path": {
+                "enum": ["/", "/app", "/app/bin", "/app/lib", "/app/html", "/app/entrypoint.sh", "/var/run/docker.sock"]
+              }
+            }
+          }
+        },
+        {
+          "not": {
+            "properties": {
+              "container_path": {
+                "pattern": "^/app/(bin|lib|html)(/|$)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"persistence_decision": {"const": "cluster-persistent"}},
+            "required": ["persistence_decision"]
+          },
+          "then": {"required": ["pvc"]}
+        },
+        {
+          "if": {
+            "properties": {"persistence_decision": {"const": "external-managed"}},
+            "required": ["persistence_decision"]
+          },
+          "then": {
+            "required": ["external_owner", "endpoint_ref", "recovery_evidence"],
+            "not": {"required": ["pvc"]}
+          }
+        },
+        {
+          "if": {
+            "properties": {"read_only": {"const": true}},
+            "required": ["read_only"]
+          },
+          "then": {
+            "properties": {
+              "container_path": {"pattern": "^/app/(overrides|config)/"}
+            }
+          }
+        }
+      ]
+    },
+    "pvc": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "namespace", "storage_class", "bound"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$"},
+        "namespace": {"type": "string", "pattern": "^[a-z0-9]([a-z0-9.-]{0,61}[a-z0-9])?$"},
+        "storage_class": {"type": "string", "minLength": 1},
+        "bound": {"const": true},
+        "capacity": {"type": "string", "pattern": "^[0-9]+(Ki|Mi|Gi|Ti|Pi|Ei)$"},
+        "access_modes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]}
+        }
+      }
+    },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "confirmer", "confirmed_at", "record_path"],
+      "properties": {
+        "status": {"const": "confirmed"},
+        "confirmer": {"type": "string", "minLength": 1},
+        "confirmed_at": {"type": "string", "format": "date-time"},
+        "record_path": {"type": "string", "pattern": "^/[^\\n]+$"}
+      }
+    }
+  }
+}
