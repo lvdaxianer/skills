@@ -35,6 +35,20 @@ manifest_path = Path(sys.argv[2]).resolve()
 DEFAULT_PERSISTENCE_RESOURCES = {
     "frontend", "backend", "lib", "conf", "database", "object-storage",
 }
+REQUIRED_PREFLIGHT_CHECKS = {
+    "platform", "privilege", "directories", "ports", "storage", "permissions",
+    "resources", "configuration", "dependencies", "conflict", "persistence",
+    "lifecycle", "security", "observability", "rollback-space",
+}
+PREFLIGHT_PATH_REFS = {
+    "service_root", "conf", "data", "logs", "backup", "release_root",
+    "docker_root", "run", "record_root",
+}
+MODE_PREFLIGHT_CHECKS = {
+    "vm": {"runtime", "process-identity"},
+    "docker": {"docker-daemon", "compose", "image", "mounts", "container-identity"},
+    "kubernetes": {"kubectl", "cluster", "namespace", "rbac", "pvc", "service-exposure"},
+}
 PERSISTENCE_RESOURCE_CLASSES = DEFAULT_PERSISTENCE_RESOURCES | {
     "data", "logs", "index", "extension",
 }
@@ -72,7 +86,7 @@ def check_identity(manifest):
         "schema_version", "package_name", "package_version", "application_version",
         "build_time", "source_commit", "supported_modes", "supported_os",
         "architectures", "offline_supported", "entrypoints", "mode_payloads",
-        "persistence_resources", "files",
+        "persistence_resources", "preflight", "files",
     }
     missing = sorted(required.difference(manifest))
     if missing:
@@ -123,6 +137,149 @@ def check_persistence_catalog(manifest):
     missing = DEFAULT_PERSISTENCE_RESOURCES.difference(seen)
     if missing:
         fail(f"persistence_resources 缺少默认资源：{', '.join(sorted(missing))}")
+
+
+def positive_integer(value, field):
+    """校验 preflight 阈值为正整数且拒绝布尔值。"""
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        fail(f"{field} 必须是正整数")
+
+
+def check_preflight(manifest):
+    """校验端口、容量、权限和模式检查声明，不读取目标机状态。"""
+    preflight = manifest.get("preflight")
+    if not isinstance(preflight, dict):
+        fail("缺少 preflight 契约")
+    common_values = preflight.get("common_checks")
+    if not isinstance(common_values, list) or not common_values or not all(isinstance(item, str) for item in common_values):
+        fail("preflight.common_checks 必须是字符串数组")
+    common_checks = set(common_values)
+    if not common_checks.issubset(REQUIRED_PREFLIGHT_CHECKS):
+        fail("preflight.common_checks 包含未知检查")
+    missing_checks = REQUIRED_PREFLIGHT_CHECKS.difference(common_checks)
+    if missing_checks:
+        fail(f"preflight 缺少必需检查：{', '.join(sorted(missing_checks))}")
+    mode_checks = preflight.get("mode_checks")
+    if not isinstance(mode_checks, dict):
+        fail("preflight.mode_checks 必须是对象")
+    for mode in manifest["supported_modes"]:
+        validate_mode_checks(mode, mode_checks.get(mode))
+    validate_preflight_ports(preflight.get("ports"))
+    validate_storage_requirements(preflight.get("storage"))
+    validate_permission_requirements(preflight.get("permissions"))
+    validate_resource_requirements(preflight.get("resources"))
+    validate_dependency_requirements(preflight.get("dependencies"))
+
+
+def validate_mode_checks(mode, checks):
+    """校验每个支持模式声明了对应的环境检查集合。"""
+    if not isinstance(checks, list) or not checks or not all(isinstance(item, str) for item in checks):
+        fail(f"preflight 缺少模式检查：{mode}")
+    expected = MODE_PREFLIGHT_CHECKS[mode]
+    check_set = set(checks)
+    if not check_set.issubset(expected) or not expected.issubset(check_set):
+        fail(f"preflight 模式检查不完整：{mode}")
+
+
+def validate_preflight_ports(ports):
+    """校验端口冲突检查的边界和策略。"""
+    if not isinstance(ports, list) or not ports:
+        fail("preflight.ports 必须是非空数组")
+    required_fields = {
+        "name", "port", "protocol", "required", "bind_address", "exposure", "conflict_policy",
+    }
+    seen_ports = set()
+    for port in ports:
+        if not isinstance(port, dict) or not required_fields.issubset(port):
+            fail("preflight.ports 缺少冲突检查字段")
+        if not isinstance(port["name"], str) or not port["name"]:
+            fail("preflight.ports.name 无效")
+        if isinstance(port["port"], bool) or not isinstance(port["port"], int) or not 1 <= port["port"] <= 65535:
+            fail("preflight.ports.port 超出范围")
+        if port["protocol"] not in {"tcp", "udp"}:
+            fail("preflight.ports.protocol 无效")
+        if not isinstance(port["required"], bool) or not isinstance(port["bind_address"], str) or not port["bind_address"]:
+            fail("preflight.ports.required 或 bind_address 无效")
+        if port["exposure"] not in {"host", "container", "service", "ingress"}:
+            fail("preflight.ports.exposure 无效")
+        if port["conflict_policy"] not in {"must-be-free", "current-service-only", "cluster-allocated"}:
+            fail("preflight.ports.conflict_policy 无效")
+        identity = (port["port"], port["protocol"], port["bind_address"], port["exposure"])
+        if identity in seen_ports:
+            fail("preflight.ports 存在重复端口")
+        seen_ports.add(identity)
+
+
+def validate_storage_requirements(storage):
+    """校验空间、inode 和客户目录引用。"""
+    if not isinstance(storage, dict):
+        fail("preflight.storage 必须是对象")
+    for field in ("minimum_free_bytes", "minimum_free_inodes"):
+        positive_integer(storage.get(field), f"preflight.storage.{field}")
+    margin = storage.get("safety_margin_percent")
+    if isinstance(margin, bool) or not isinstance(margin, int) or not 0 <= margin <= 100:
+        fail("preflight.storage.safety_margin_percent 必须在 0 到 100 之间")
+    paths = storage.get("paths")
+    if not isinstance(paths, list) or not paths:
+        fail("preflight.storage.paths 必须是非空数组")
+    path_refs = set()
+    for item in paths:
+        if not isinstance(item, dict) or not {"path_ref", "purpose", "required"}.issubset(item):
+            fail("preflight.storage.paths 缺少目录字段")
+        if item["path_ref"] not in PREFLIGHT_PATH_REFS or not isinstance(item["purpose"], str) or not item["purpose"]:
+            fail("preflight.storage.paths 引用或用途无效")
+        if item["required"] is not True:
+            fail("preflight.storage.paths.required 必须为 true")
+        path_refs.add(item["path_ref"])
+    required_paths = {"service_root", "conf", "data", "logs", "backup"}
+    if not required_paths.issubset(path_refs) or not path_refs.issubset(PREFLIGHT_PATH_REFS):
+        fail("preflight.storage.paths 缺少必需目录或包含不安全引用")
+
+
+def validate_permission_requirements(permissions):
+    """校验 owner、group、模式和读写执行能力目标。"""
+    if not isinstance(permissions, list) or not permissions:
+        fail("preflight.permissions 必须是非空数组")
+    required_fields = {"path_ref", "owner_ref", "group_ref", "mode", "access", "required"}
+    for item in permissions:
+        if not isinstance(item, dict) or not required_fields.issubset(item):
+            fail("preflight.permissions 缺少权限字段")
+        if item["path_ref"] not in PREFLIGHT_PATH_REFS:
+            fail("preflight.permissions.path_ref 不安全")
+        if not isinstance(item["owner_ref"], str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.:-]{0,63}", item["owner_ref"]):
+            fail("preflight.permissions.owner_ref 无效")
+        if not isinstance(item["group_ref"], str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.:-]{0,63}", item["group_ref"]):
+            fail("preflight.permissions.group_ref 无效")
+        if not isinstance(item["mode"], str) or not re.fullmatch(r"[0-7]{3,4}", item["mode"]):
+            fail("preflight.permissions.mode 格式无效")
+        if not isinstance(item["access"], list) or not item["access"] or not all(isinstance(access, str) for access in item["access"]):
+            fail("preflight.permissions.access 无效")
+        if not set(item["access"]).issubset({"read", "write", "execute"}) or item["required"] is not True:
+            fail("preflight.permissions.access 无效")
+
+
+def validate_resource_requirements(resources):
+    """校验主机内存、CPU、文件描述符和进程数预留。"""
+    if not isinstance(resources, dict):
+        fail("preflight.resources 必须是对象")
+    for field in ("minimum_memory_bytes", "minimum_cpu_cores", "minimum_open_files", "minimum_processes"):
+        positive_integer(resources.get(field), f"preflight.resources.{field}")
+
+
+def validate_dependency_requirements(dependencies):
+    """校验依赖名称和类型，不允许把连接凭据写进包清单。"""
+    if not isinstance(dependencies, list):
+        fail("preflight.dependencies 必须是数组")
+    allowed_kinds = {"database", "cache", "object-storage", "dns", "ntp", "proxy", "registry", "other"}
+    for item in dependencies:
+        if not isinstance(item, dict) or not {"name", "kind", "required"}.issubset(item):
+            fail("preflight.dependencies 缺少依赖字段")
+        if not isinstance(item["name"], str) or not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.:-]{0,63}", item["name"]):
+            fail("preflight.dependencies.name 无效")
+        if item["kind"] not in allowed_kinds:
+            fail("preflight.dependencies.kind 无效")
+        if not isinstance(item["required"], bool):
+            fail("preflight.dependencies.required 无效")
 
 
 def check_entrypoints(manifest):
@@ -213,6 +370,7 @@ def main():
     manifest = read_manifest()
     check_identity(manifest)
     check_persistence_catalog(manifest)
+    check_preflight(manifest)
     check_entrypoints(manifest)
     check_modes(manifest)
     check_files(manifest)
