@@ -30,6 +30,10 @@ The runtime stage MUST use a fixed non-root user unless a documented exception i
 - **WHEN** the entrypoint starts the service without `exec` or launches a shell supervisor with no declared identity contract
 - **THEN** lifecycle and signal handling validation MUST fail
 
+#### Scenario: Backend or frontend override masks packaged root
+- **WHEN** a host persistence mount replaces the entire `/app/bin`, `/app/lib`, `/app/html` or `/app` tree
+- **THEN** validation MUST fail; the service MUST declare a separate extension point and retain packaged defaults
+
 ### Requirement: Runtime startup cannot download or install resources
 
 All runtime dependencies, application code, static assets, models and installation packages MUST be present in the immutable image or declared external persistence before start. `ENTRYPOINT`, `CMD`, `HEALTHCHECK`, startup scripts and runtime package hooks MUST NOT execute `curl`, `wget`, `git clone`, package-manager installation, `pip install`, `npm install`, remote shell execution, or equivalent download/install behavior.
@@ -45,6 +49,14 @@ All runtime dependencies, application code, static assets, models and installati
 #### Scenario: Business dependency access is required
 - **WHEN** the service needs a database, Redis, object store or other declared runtime dependency
 - **THEN** the dependency endpoint MAY be reachable, but registry, package, code and model repositories MUST remain outside the runtime allowlist
+
+### Requirement: Packaged defaults expose independent extension points
+
+The runtime image MUST retain packaged frontend, backend, library and configuration defaults. Any host or PVC override MUST use a separately declared `/app/overrides/<extension>` path, be read-only and preserve resources not replaced by the override.
+
+#### Scenario: Runtime has no tested HTML extension point
+- **WHEN** static assets are embedded in an image without a declared merge/load path
+- **THEN** deployment MUST keep them `embedded-in-image` and MUST NOT fabricate a host mount that masks the packaged asset tree
 
 ### Requirement: Image runtime behavior is verifiable
 

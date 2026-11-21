@@ -73,6 +73,18 @@ Every container mount MUST declare its host path, container path, purpose, read-
 - **WHEN** the application writes business data only to the container writable layer
 - **THEN** validation MUST reject the deployment or require an explicit persistence mount before start
 
+#### Scenario: Unconfirmed default resource
+- **WHEN** the customer has not confirmed the persistence target and recovery owner for a default resource such as frontend, backend, `lib`, `conf`, database or object storage
+- **THEN** deployment MUST remain dry-run and MUST NOT stop the current service, create a container or update `current`
+
+#### Scenario: Empty host override keeps packaged default
+- **WHEN** a confirmed Docker host persistence directory for a code or configuration resource exists but contains no override file
+- **THEN** the runtime MUST use the packaged image default and MUST retain the empty directory as the auditable persistence boundary
+
+#### Scenario: Docker persistence target is not an absolute host path
+- **WHEN** a Docker resource uses a relative path, unresolved variable, anonymous volume or unreviewed named volume as its persistence target
+- **THEN** preflight MUST fail before Compose rendering or container creation
+
 ### Requirement: Incremental overrides preserve packaged defaults
 
 The runtime MUST support an explicit host `overrides/` layer for declared configuration and JAR additions/replacements. Overrides MUST be mounted read-only, validated by manifest and SHA-256, loaded with deterministic precedence before packaged defaults, and MUST NOT replace the entire packaged `lib` directory or startup files.
@@ -84,6 +96,10 @@ The runtime MUST support an explicit host `overrides/` layer for declared config
 #### Scenario: Override directory is mounted over packaged lib
 - **WHEN** a Compose manifest mounts host `overrides/lib` directly on the image's `/app/lib`
 - **THEN** validation MUST fail because the packaged default library set would be hidden
+
+#### Scenario: Global override directory is used
+- **WHEN** Compose mounts `<service-root>/overrides` or a mutable host directory over `/app/lib`, the entrypoint, or an undeclared asset root
+- **THEN** validation MUST fail before stopping the current container
 
 ### Requirement: Override changes are deployment inputs
 

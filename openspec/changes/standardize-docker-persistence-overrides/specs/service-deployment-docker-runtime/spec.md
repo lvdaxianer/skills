@@ -4,7 +4,7 @@
 
 ### Requirement: Persistent data is explicitly classified and mounted
 
-Every Docker mount MUST declare host path, container path, purpose, read-only flag, backup policy and restore procedure. Cross-release live configuration MUST use `<service-root>/conf/`; release-bound replaceable assets such as `html`, `lib`, configuration overrides and future declared extension points MUST live under the selected `<service-root>/releases/<release-id>/overrides/`. The container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records, non-rebuildable indexes or operator-replaceable assets.
+Every Docker mount MUST declare host path, container path, purpose, read-only flag, backup policy and restore procedure. The package MUST first present a customer confirmation table for frontend, backend, `lib`, `conf`, database, object storage and other non-rebuildable resources; every row MUST be explicitly confirmed as `host-persistent`, `external-managed` or an inapplicable reason before any stop, write or container creation. Cross-release live configuration MUST use `<service-root>/conf/`; release-bound replaceable assets such as frontend/static assets, backend packages, `html`, `lib`, configuration overrides and future declared extension points MUST live under the selected `<service-root>/releases/<release-id>/overrides/`. The container writable layer MUST NOT be the only copy of business data, configuration, certificates, release records, non-rebuildable indexes or operator-replaceable assets.
 
 #### Scenario: Recreate a container with external configuration and overrides
 
@@ -25,6 +25,21 @@ Every Docker mount MUST declare host path, container path, purpose, read-only fl
 
 - **WHEN** an operator wants to persist or replace a resource that is not `conf`, `lib`, `html`, data, logs, volume or a declared extension point
 - **THEN** validation MUST fail until its purpose, physical host path, container path, precedence, backup and restore procedure are declared in the release/persistence manifests
+
+#### Scenario: Unconfirmed default resource
+
+- **WHEN** the customer has not confirmed the persistence target and recovery owner for a default resource such as frontend, backend, `lib`, `conf`, database or object storage
+- **THEN** deployment MUST remain dry-run and MUST NOT stop the current service, create a container or update `current`
+
+#### Scenario: Empty host override keeps packaged default
+
+- **WHEN** a confirmed Docker host persistence directory for a code or configuration resource exists but contains no override file
+- **THEN** the runtime MUST use the packaged image default and MUST retain the empty directory as the auditable persistence boundary
+
+#### Scenario: Docker persistence target is not an absolute host path
+
+- **WHEN** a Docker resource uses a relative path, unresolved variable, anonymous volume or unreviewed named volume as its persistence target
+- **THEN** preflight MUST fail before Compose rendering or container creation
 
 ### Requirement: Incremental overrides preserve packaged defaults
 

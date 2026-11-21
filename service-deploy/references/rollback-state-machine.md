@@ -11,12 +11,12 @@ any non-terminal state after interruption -> reconcile -> next safe state or fai
 
 Each state record includes `release_id`, `previous_release`, `current`, timestamp, operator, lifecycle mode and evidence paths. State transitions are append-only; a failed transition records `failed_phase` and does not erase the release.
 
-For `runtime_target=docker-container`, state evidence MUST additionally identify `image_transport`, Registry digest or local image ID, Compose project/container ID, physical release root and Compose path, persistence manifest checksum, host mount set, `override_strategy`, ordered `override_chain` and every layer checksum. These are part of the rollback target; changing only `current`, only the image or only the newest override layer is not sufficient.
+For `runtime_target=docker-container`, state evidence MUST additionally identify `image_transport`, Registry digest or local image ID, Compose project/container ID, physical release root and Compose path, persistence manifest checksum, confirmed frontend/backend/lib/conf/database/object-storage resource decisions, host mount set, `override_strategy`, ordered `override_chain` and every layer checksum. These are part of the rollback target; changing only `current`, only the image or only the newest override layer is not sufficient.
 
 ## Transition gates
 
 - `prepared`: staging exists under releases and artifact checksum is known.
-- `validated`: archive, permissions, required files, env, migration and contract test pass.
+- `validated`: archive, permissions, required files, env, migration, resource confirmation, mode-specific host path/PVC checks and contract test pass.
 - `stopped`: declared stop command succeeded and status proves old process is down.
 - `switched`: atomic current replacement succeeded and physical target is the new release.
 - `started`: selected lifecycle start returned success and process/service identity is the new release.
@@ -27,7 +27,7 @@ For `runtime_target=docker-container`, state evidence MUST additionally identify
 
 ## Failure behavior
 
-Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, and for Docker restore the recorded previous Registry digest or local image ID, verified archive when required, physical Compose path, persistence manifest and complete release-bound `override_chain` before starting previous. Rerun status/health and verify the loaded artifact. If stop fails, do not continue; request operator intervention. If rollback health or required mount restoration fails, stop and report incident, preserve both releases and do not select a third version.
+Before switch failure, leave current untouched. After switch failure, stop only the new service identity, restore previous current atomically, and for Docker restore the recorded previous Registry digest or local image ID, verified archive when required, physical Compose path, persistence manifest, confirmed resource decisions and complete release-bound `override_chain` before starting previous. For Kubernetes restore the recorded previous workload manifest and PVC/PV references; never replace a missing PVC/PV with `hostPath`. Rerun status/health and verify the loaded artifact. If stop fails, do not continue; request operator intervention. If rollback health or required mount restoration fails, stop and report incident, preserve both releases and do not select a third version.
 
 ## SSH interruption recovery
 

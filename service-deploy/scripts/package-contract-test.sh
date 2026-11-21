@@ -32,6 +32,12 @@ from pathlib import Path
 
 root = Path(sys.argv[1]).resolve()
 manifest_path = Path(sys.argv[2]).resolve()
+DEFAULT_PERSISTENCE_RESOURCES = {
+    "frontend", "backend", "lib", "conf", "database", "object-storage",
+}
+PERSISTENCE_RESOURCE_CLASSES = DEFAULT_PERSISTENCE_RESOURCES | {
+    "data", "logs", "index", "extension",
+}
 
 
 def fail(message):
@@ -65,7 +71,8 @@ def check_identity(manifest):
     required = {
         "schema_version", "package_name", "package_version", "application_version",
         "build_time", "source_commit", "supported_modes", "supported_os",
-        "architectures", "offline_supported", "entrypoints", "mode_payloads", "files",
+        "architectures", "offline_supported", "entrypoints", "mode_payloads",
+        "persistence_resources", "files",
     }
     missing = sorted(required.difference(manifest))
     if missing:
@@ -86,6 +93,36 @@ def check_identity(manifest):
     allowed = {"vm", "docker", "kubernetes"}
     if not set(manifest["supported_modes"]).issubset(allowed):
         fail("supported_modes 含未知部署方式")
+
+
+def check_persistence_catalog(manifest):
+    """校验默认资源目录，确保部署前能生成客户确认表。"""
+    catalog = manifest["persistence_resources"]
+    if not isinstance(catalog, list) or not catalog:
+        fail("persistence_resources 必须是非空数组")
+    seen = set()
+    for item in catalog:
+        if not isinstance(item, dict):
+            fail("persistence_resources 条目必须是对象")
+        resource_class = item.get("resource_class")
+        if resource_class not in PERSISTENCE_RESOURCE_CLASSES:
+            fail(f"persistence_resources 包含未知资源：{resource_class}")
+        if resource_class in seen:
+            fail(f"persistence_resources 重复资源：{resource_class}")
+        seen.add(resource_class)
+        required = {"default_in_image", "required_confirmation", "container_path", "read_only", "override_allowed", "backup"}
+        if not required.issubset(item):
+            fail(f"{resource_class} 缺少持久化确认字段")
+        if item["required_confirmation"] is not True:
+            fail(f"{resource_class} 必须要求客户确认")
+        path = item["container_path"]
+        if not isinstance(path, str) or not path.startswith("/") or ".." in Path(path).parts:
+            fail(f"{resource_class} 的 container_path 不安全")
+        if item["override_allowed"] and not path.startswith("/app/overrides/"):
+            fail(f"{resource_class} 的覆盖必须使用独立 extension point")
+    missing = DEFAULT_PERSISTENCE_RESOURCES.difference(seen)
+    if missing:
+        fail(f"persistence_resources 缺少默认资源：{', '.join(sorted(missing))}")
 
 
 def check_entrypoints(manifest):
@@ -175,6 +212,7 @@ def main():
     """按固定顺序执行所有只读包契约检查。"""
     manifest = read_manifest()
     check_identity(manifest)
+    check_persistence_catalog(manifest)
     check_entrypoints(manifest)
     check_modes(manifest)
     check_files(manifest)

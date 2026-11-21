@@ -295,13 +295,33 @@ The service root is the only default host boundary. `DEPLOY_ROOT` is already tha
 | runtime state | `<service-root>/run/` | optional temporary mount | never the sole source of truth |
 | temp/cache | container `/tmp` or declared cache volume | ephemeral/rebuildable | no backup |
 
+Before any Docker stop, write, container creation or current switch, the
+operator MUST show and record a customer confirmation for each default
+persistence resource:
+
+| Resource | Image default | Required Docker target | Override behavior |
+| --- | --- | --- | --- |
+| frontend | packaged static assets | confirmed absolute host path | read-only independent extension point |
+| backend | packaged application package | confirmed absolute host path | read-only independent extension point |
+| lib | packaged libraries | confirmed absolute host path | read-only `/app/overrides/lib`, never `/app/lib` |
+| conf | packaged non-sensitive defaults | confirmed absolute host path | read-only external configuration path |
+| database | no durable container default | separate confirmed data path or external owner | writable data mount, restore evidence required |
+| object-storage | no durable container default | separate confirmed data path or external owner | writable data mount, restore evidence required |
+
+An empty frontend/backend/lib/conf override directory is valid and means the
+image default remains active. It does not remove the persistence requirement:
+the directory, owner, backup and restore procedure must still be recorded.
+An unconfirmed resource or missing recovery evidence is a hard preflight
+failure and produces dry-run only.
+
 The container writable layer MUST NOT contain the only copy of business data, configuration, certificates, deployment records or non-rebuildable indexes. Every bind mount or volume MUST be listed in the persistence manifest with `host_path`, `container_path`, `purpose`, `read_only`, `backup` and `restore_procedure`.
 
 Prefer an external database, Redis, Milvus/Elasticsearch and object store. If any runs in Docker, its data directory is a separate declared volume; `docker compose down --volumes` is a destructive operation and is forbidden in the normal release path.
 
 ## Defaults and incremental overrides
 
-The image MAY contain default configuration and default `/app/lib`. Each
+The image MAY contain default frontend assets, backend packages, configuration
+and default `/app/lib`. Each
 release's `overrides/` directory is an immutable delta layer. The selected
 release manifest MUST provide an ordered `override_chain`, newest layer first.
 The renderer MUST mount every layer at a separate container path using physical
@@ -413,4 +433,7 @@ The five-release policy applies to release descriptors. Before deleting an old d
 
 ## Kubernetes boundary
 
-If the deployment target is Kubernetes, stop and use a Kubernetes-specific standard. Do not translate this Compose/Docker contract into `kubectl` commands implicitly.
+If the deployment target is Kubernetes, read
+[kubernetes-persistence.md](kubernetes-persistence.md) and use its existing
+PVC/PV hard gate. Do not translate this Compose/Docker contract into `kubectl`
+commands implicitly; never use `hostPath` as a fallback.
