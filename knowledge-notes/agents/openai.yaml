@@ -1,0 +1,7 @@
+interface:
+  display_name: "体系化笔记"
+  short_description: "组织项目笔记体系、故事线、互链、差异对比与架构方案图"
+  default_prompt: "Use $knowledge-notes to整理这个项目的笔记体系并补齐相关链接。"
+
+policy:
+  allow_implicit_invocation: true

@@ -9,7 +9,7 @@
 ## 2. 视觉表达与 Skill 元数据
 
 - [x] 2.1 在 `knowledge-notes/SKILL.md` 或专门参考文档中加入视觉路由、概念配图、Mermaid/文本架构图、可选 SVG/PNG、资源引用和图文一致性规则；验证覆盖 `knowledge-note-visualization` 的全部需求并明确图像生成不可用时的替代行为
-- [ ] 2.2 生成 `knowledge-notes/agents/openai.yaml`，提供与 Skill 描述一致的 UI 元数据并保留自动发现；验证 YAML 可解析、名称/描述与 frontmatter 一致、未关闭隐式调用
+- [x] 2.2 生成 `knowledge-notes/agents/openai.yaml`，提供与 Skill 描述一致的 UI 元数据并保留自动发现；验证 YAML 可解析、名称/描述与 frontmatter 一致、未关闭隐式调用
 
 ## 3. 压力验证与交付审计
 
