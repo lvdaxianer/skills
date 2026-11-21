@@ -1,6 +1,6 @@
 ---
 name: service-deployment
-description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, Kubernetes workload delivery, container persistence, incremental frontend/backend/JAR/config overrides, deployment-package preparation, operator-handbook writing, or deployment-standard work. Enforces v2 immutable releases/current, versioned self-contained packages, customer-confirmed directories, a hard host/PVC persistence confirmation gate, mode-specific preflight, one-click operator entrypoints, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
+description: "Use for Linux service deploy, upgrade, rollback, restart, release, Docker image build/deploy, Kubernetes workload delivery, container persistence, incremental frontend/backend/JAR/config overrides, deployment-package preparation, operator-handbook writing, or deployment-standard work. Enforces v2 immutable releases/current, versioned self-contained packages, machine-verifiable three-layer preflight, customer-confirmed directories, a hard host/PVC persistence confirmation gate, mode-specific preflight, one-click operator entrypoints, external configuration, validated artifacts, safe lifecycle modes, health gates, auditable rollback, five-release retention, and optional backend/frontend/nginx/Docker stack deployment."
 compatibility: "Linux shell utilities; systemd optional; service-specific lifecycle and health commands required."
 ---
 
@@ -52,6 +52,11 @@ Use this Skill whenever a service is deployed, upgraded, rolled back, restarted,
 - Any failed release remains on disk and is marked failed/unverified. Rollback only targets recorded `previous_release`; if rollback health fails, stop and report an incident—never guess a third release.
 - Default retention is five newest verified releases, while current, previous, active, failed and unverified releases are protected. Preview before apply; delete only exact, resolved paths under releases.
 - Reports and records MUST NOT contain environment values, passwords, tokens, private keys, or complete sensitive connection URLs.
+- A one-click package MUST declare a machine-verifiable `preflight` contract covering common checks, mode checks, port conflict policy, free bytes/inodes, permission targets, host resources and declared dependencies. Missing or malformed declarations MUST fail package validation.
+- Preflight MUST run in three layers: package static contract validation, read-only `doctor.sh` host checks, and a `deploy.sh` mutation gate. A missing, stale, cross-package or failed report MUST keep the run in `dry-run` and MUST NOT stop, write, create a container/Pod or switch `current`.
+- 端口冲突检查 MUST report the listener boundary and non-sensitive owner summary. An existing listener is acceptable only when the exact current release/container/workload identity is proven; an unknown owner is a hard failure.
+- Storage checks MUST include free bytes, free inodes, package extraction space, runtime/log growth and rollback/retention reserve. Permission checks MUST validate resolved owner/group, mode and runtime-user read/write/execute access without auto-fixing them.
+- 权限检查 MUST report owner/group、文件模式和运行用户的读写执行结果；权限不满足时只能 dry-run，不得自动修复。
 
 ## Required inputs and preconditions
 
@@ -60,6 +65,8 @@ Collect and validate before any stop or write action:
 | Input | Required contract |
 | --- | --- |
 | `package_manifest` | Versioned `package-manifest.json` matching [deployment-package-manifest.schema.json](references/deployment-package-manifest.schema.json), package SHA-256, source commit and supported mode payloads |
+| `preflight_contract` | Manifest `preflight` object declaring common/mode checks, port conflict policy, storage byte/inode thresholds, permission targets, host resources and dependency checks |
+| `preflight_report` | Fresh, redacted `doctor.sh` report bound to package SHA, deployment mode, resolved physical directories and report timestamp; required before mutation |
 | `package_version` | Required immutable package identity; reject `latest`, `final`, missing or content-changing reuse |
 | `deployment_mode` | Explicitly `vm`, `docker` or `kubernetes`; select before mode-specific checks |
 | `DEPLOY_ROOT` | Absolute final service root; `/opt` is only a proposed value until customer confirmation; normalize physically before use; never append `service_name` |
@@ -105,11 +112,13 @@ Do not ask a zero-experience operator to hand-edit YAML/JSON/env files, remember
 
 Before installation, ask for the deployment mode and print the default persistence resource table. The customer MUST confirm every row as host-persistent, cluster-persistent or external-managed before the selected mode's preflight can pass. For Kubernetes, validate `kubectl`, kubeconfig, context, cluster connectivity, namespace, permissions, architecture, existing PVC/PV binding, storage and image availability; if any required item fails, stop without installing Kubernetes, using hostPath, creating application resources or falling back to VM/Docker.
 
+The one-click preflight contract MUST be visible before installation. The package validator checks static package facts; `./doctor.sh` checks the selected host or existing cluster read-only; `./deploy.sh` accepts only a fresh redacted report whose package SHA, deployment mode, resolved directories and validity window match the current input. Any port conflict, insufficient bytes/inodes, owner/group or read/write/execute permission failure, resource shortfall, dependency/configuration failure, ambiguous process identity or missing rollback reserve MUST leave the run as `dry-run`. The entrypoints MUST NOT automatically kill processes, change ports, delete files, repair permissions, change firewall rules or install Docker/Kubernetes.
+
 ## Ordered workflow
 
 Read only the references relevant to the request, then execute these gates in order:
 
-1. Verify the versioned package manifest, package SHA-256, supported mode, default persistence resource catalog and customer-confirmed directory table. Ask for each resource decision and run the selected-mode read-only preflight; stop on any missing confirmation or required failure before resolving or writing service paths.
+1. Verify the versioned package manifest, package SHA-256, `preflight` contract, supported mode, default persistence resource catalog and customer-confirmed directory table. Ask for each resource decision and run the selected-mode read-only preflight; stop on any missing confirmation or required failure before resolving or writing service paths.
 2. Resolve and record `DEPLOY_ROOT` as `service_root`, then resolve physical `releases`, `conf`, `logs`, `run`, `release-records`, and `current`. Acquire `<service-root>/run/deploy.lock` with `flock` or a host-equivalent exclusive lock.
 3. Validate the persistence resource manifest before artifact extraction. For Docker, resolve every host-persistent target as an absolute customer-approved path and validate mounts, permissions, space, backup and restore evidence. For Kubernetes, verify every cluster-persistent target is an existing bound or bindable PVC/PV in the confirmed Namespace and reject `hostPath`, anonymous volumes and missing StorageClass. Then validate artifact SHA-256 and archive contents before extracting into staging. For Docker, classify the release before validating transport: if no verified prior Docker release/image exists, require a new image build; if the change is override-only, reuse the recorded image identity and verify it is available or recoverable; if any packaged image input changed, require a new build; if the build compacts overrides, require recorded source-chain evidence and verify the materialized effective tree. Then validate the selected transport: Registry mode requires the resolved manifest digest and pull evidence; local-daemon mode requires an existing local image ID; archive mode requires a SHA-256-verified `docker save` archive and `docker load` evidence. In image-build modes validate Dockerfile/build evidence; in override-only mode validate the recorded base release's Dockerfile/build evidence and exact image identity. Always validate the service/release tag, OCI labels, provenance/SBOM policy, required runtime files, ordered override chain, compaction evidence when present and rendered Compose/CLI/Kubernetes manifest. Reject path traversal, tarbomb, unsafe links, external directory targets, bad permissions, missing required files, bundled live configuration and runtime download/install behavior.
 4. Validate external configuration with the selected loader contract. Prefer a dedicated parser; a Shell loader is allowed only after restricted `KEY=value` validation. For Docker, validate every declared host mount physically and never copy a package env file over `<service-root>/conf`.
@@ -165,5 +174,7 @@ release_id, release_number, artifact, artifact_checksum, previous_release,
 current, status, failed_phase, health_check, smoke_check, rollback_target,
 rollback_result, retention, deleted_releases, record_path
 ```
+
+Every report MUST also include redacted `preflight` evidence with `contract_checksum`, `report_id`, `generated_at`, `expires_at`, selected mode checks, port conflict results, free bytes/inodes, permission results, resource results, dependency/configuration results, remediation summaries and evidence paths. The 报告绑定关系 MUST be checked again by `deploy.sh`; it is not a substitute for health verification.
 
 For a Docker report, also include `release_mode`, `base_release`, `build_mode`, `override_chain`, `override_compaction`, image transport, optional Registry, immutable release tag, identity kind and image identity (manifest digest or local image ID), latest alias status/target identity/evidence path, Compose project, container ID when available, physical release root, release-bound Compose path, persistence mount summary, override manifest checksum and effective override files. For a dry run, label it `dry_run: true`, list exact commands and missing inputs, and do not fabricate status, health or checksum results.

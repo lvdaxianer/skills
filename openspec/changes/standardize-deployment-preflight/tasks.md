@@ -7,9 +7,9 @@
 
 ## 2. Skill and reference behavior
 
-- [ ] 2.1 更新 `SKILL.md` 的必需输入、零经验交付契约、有序 workflow、报告字段和 fail-closed 规则，覆盖端口、空间/inode、权限及扩展运行环境检查。
-- [ ] 2.2 更新 `references/deployment-preflight-matrix.md`、`deployment-package.md`、`deployment-handbook.md` 和 `deployment-checklist.md`，明确三层检查顺序、停止条件、非破坏性修复边界和模式专属检查；验证入口命令与输出示例一致。
-- [ ] 2.3 更新 `tests/test-foolproof-delivery.sh` 与 `evals/evals.json`，验证 preflight 引用、schema 字段和典型冲突场景均被覆盖。
+- [x] 2.1 更新 `SKILL.md` 的必需输入、零经验交付契约、有序 workflow、报告字段和 fail-closed 规则，覆盖端口、空间/inode、权限及扩展运行环境检查。
+- [x] 2.2 更新 `references/deployment-preflight-matrix.md`、`deployment-package.md`、`deployment-handbook.md` 和 `deployment-checklist.md`，明确三层检查顺序、停止条件、非破坏性修复边界和模式专属检查；验证入口命令与输出示例一致。
+- [x] 2.3 更新 `tests/test-foolproof-delivery.sh` 与 `evals/evals.json`，验证 preflight 引用、schema 字段和典型冲突场景均被覆盖。
 
 ## 3. Verification and audit
 
