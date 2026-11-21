@@ -4,7 +4,9 @@ Mark every gate with a command output, record path or explicit operator confirma
 
 ## 1. Preflight (read-only)
 
+- [ ] Run the three-layer preflight in order: package static contract, `./doctor.sh` read-only host/cluster checks, then `./deploy.sh` mutation gate; any failure remains `dry-run`.
 - [ ] Confirm the versioned package name, `package_version`, `application_version`, source commit, package SHA-256 and supported OS/architecture/mode matrix; reject `latest`, `final` and unversioned packages.
+- [ ] Confirm the manifest `preflight` contract declares common/mode checks, port conflict policy, minimum free bytes/inodes, permission targets, resources, dependencies and rollback reserve.
 - [ ] Run `scripts/package-contract-test.sh <package-root>` before copying package files into the customer service root; retain the result as delivery evidence.
 - [ ] Ask the operator to select exactly one deployment mode: `vm`, `docker` or existing `kubernetes`; run only that mode's preflight and stop on required failures.
 - [ ] Record the customer's confirmed absolute service root, config, data, logs and backup paths; `/opt` remains a proposal until explicitly confirmed, and `service_name` MUST NOT be appended.
@@ -14,6 +16,13 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] Resolve `current` with physical paths; record current, previous and reject outside/dangling/regular-directory targets.
 - [ ] Acquire `run/deploy.lock`; install traps for lock and named temporary state cleanup.
 - [ ] Check disk warning/critical thresholds, owner/group, service user, runtime version and permissions.
+- [ ] Check every required port for conflict and listener boundary; accept an existing listener only with exact current service identity evidence, otherwise stop.
+- [ ] 检查每个必需端口的端口冲突和监听边界；只有精确 current service identity 证据才可继续，否则停止。
+- [ ] Check free bytes and inode thresholds on package, release, data, logs, backup, Docker and rollback filesystems; record the non-sensitive result.
+- [ ] Check owner/group, mode and runtime-user read/write/execute access for every resolved directory; do not auto-fix permissions.
+- [ ] 检查每个解析目录的权限、owner/group、模式和运行用户读写执行能力；不自动修复权限。
+- [ ] Check memory, CPU, open-file/process limits, dependency/configuration reachability, existing process/container identity, log capacity and rollback/retention reserve.
+- [ ] Bind the redacted doctor report to package SHA, deployment mode, resolved physical paths and validity window; stale/mismatched reports remain dry-run.
 - [ ] Verify artifact SHA-256; if policy requires, verify signature/provenance/SBOM.
 - [ ] Inspect tar members for absolute/`../` paths, links, tarbomb, forbidden directories and devices.
 - [ ] Confirm required files, executable scripts, owner/group and release layout.
@@ -87,3 +96,4 @@ Mark every gate with a command output, record path or explicit operator confirma
 - [ ] For Docker compaction, never delete source layers during image build; only after the new release is verified and recorded, run retention preview/apply and record exact deleted source release IDs.
 - [ ] Protect the identity referenced by `latest`; a failed/unverified release MUST NOT move or replace the alias.
 - [ ] Release the lock and return the required report.
+- [ ] Do not let any one-click entrypoint automatically kill an unknown process, change a port, delete files, repair ownership, alter firewall rules or install Docker/Kubernetes.

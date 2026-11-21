@@ -18,7 +18,20 @@
 | `application_version` | 包内程序版本 | 应用构建产物 |
 | `release_id` | 客户机器上的一次发布 | 部署锁和 sequence.state |
 
-包内 `package-manifest.json` MUST 记录包版本、应用版本、构建时间、源码提交号、支持系统、CPU 架构、支持模式、离线能力、权限、端口、迁移提示、入口、每个文件的 SHA-256、模式 payload 和默认持久化资源目录。资源目录至少包含前端、后端、lib、conf、数据库、MinIO/对象存储，并标记镜像默认值、容器扩展路径、只读属性、覆盖许可、备份要求和“必须客户确认”。
+包内 `package-manifest.json` MUST 记录包版本、应用版本、构建时间、源码提交号、支持系统、CPU 架构、支持模式、离线能力、权限、端口、迁移提示、入口、每个文件的 SHA-256、模式 payload、默认持久化资源目录和 `preflight` 契约。资源目录至少包含前端、后端、lib、conf、数据库、MinIO/对象存储，并标记镜像默认值、容器扩展路径、只读属性、覆盖许可、备份要求和“必须客户确认”。
+
+## 1.1 一键部署 preflight 契约
+
+`preflight` MUST 声明通用检查、所支持模式检查、端口冲突策略、目标路径最小可用字节和 inode、owner/group/模式/读写执行能力、内存/CPU/文件描述符/进程数、依赖和回滚空间。构包校验只检查这些字段是否完整、安全且可解析；目标机的端口冲突、实际磁盘空间/inode、权限和依赖连通性由 `./doctor.sh` 只读检查。
+
+构包校验、doctor 和 deploy 的关系必须固定为：
+
+```text
+package-contract-test.sh  ->  ./doctor.sh  ->  ./deploy.sh
+       静态事实                 现场事实          变更门禁
+```
+
+缺少 preflight、端口冲突、空间/inode、权限或报告绑定时，安装器只能输出 dry-run，不得停止、写入、创建容器/Pod 或切换 current。
 
 ## 2. 推荐目录
 
@@ -102,7 +115,7 @@ deploy-package/
 1. 锁定源码提交、应用版本、包版本、系统和架构支持矩阵。
 2. 生成包目录、manifest、checksums 和文档。
 3. 运行 `scripts/package-contract-test.sh <package-root>`。
-4. 在干净的支持系统上执行 `doctor.sh`、首次部署、重启、验收、升级和回滚。
+4. 在干净的支持系统上执行 `doctor.sh`，验证端口冲突、磁盘空间/inode、权限和资源结果，再执行首次部署、重启、验收、升级和回滚。
 5. 在 Docker 模式验证离线镜像导入；在 Kubernetes 模式验证已有集群和 namespace 权限。
 6. 检查失败发布是否保留证据，检查数据目录和客户目录是否未被误写。
 7. 发布包文件、SHA-256、适用手册和交付验收单；禁止只发程序文件。
@@ -144,6 +157,8 @@ deploy-package/
 备份目录：__________________
 运行账号：__________________
 服务端口：__________________
+最小磁盘空间/inode：_________
+目录 owner/group/权限：_______
 ```
 
 部署根目录是最终物理 `service_root`，不得自动追加 `service_name`。`/opt` 只能是待客户确认的建议值。确认结果和物理路径 MUST 写入部署记录。
