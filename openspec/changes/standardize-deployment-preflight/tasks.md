@@ -13,8 +13,8 @@
 
 ## 3. Verification and audit
 
-- [ ] 3.1 运行所有 service-deploy 契约测试、OpenSpec strict validation、JSON/shell 语法检查并修复失败项。
-- [ ] 3.2 逐项对照规格、设计、任务和实现做一致性审计，确认不执行真实部署且报告不泄露敏感信息。
+- [x] 3.1 运行所有 service-deploy 契约测试、OpenSpec strict validation、JSON/shell 语法检查并修复失败项。
+- [x] 3.2 逐项对照规格、设计、任务和实现做一致性审计，确认不执行真实部署且报告不泄露敏感信息。
 
 ## Workflow follow-up
 
